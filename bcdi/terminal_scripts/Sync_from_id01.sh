@@ -1,0 +1,5 @@
+#!/bin/sh
+rsync_SIXSJan_local
+rsync_ML_local
+rsync_GUIBCDI_local
+rsync_Scripts_local
