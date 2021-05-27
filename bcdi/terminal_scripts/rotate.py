@@ -10,30 +10,29 @@ import os
 
 """Python script to rotate the data for vertical configuration"""
  
-# Print all arguments
-# print ('Argument List:', str(sys.argv))
- 
-# Print arguments one by one
-print ('Scan (s):',  sys.argv[2])
-print ('Data dir:',  sys.argv[1])
+# Print help
+try:
+    print ('Data dir:',  sys.argv[1])
+    print ('Scan (s):',  sys.argv[2])
+except IndexError:
+    print("""
+        Arg 1: Path of target directory (before /S{scan} ... )
+        Arg 2: Scan(s) number, list or single value
+        """)
+    exit()
 
 folder = sys.argv[1]
-
-# transform string of list into python list object
-if sys.argv[2].startswith("["):
-    scans = ast.literal_eval(sys.argv[2])
-    
-elif sys.argv[2]=="all":
-    subdirnames = [x[1] for x in os.walk(f"{folder}/")][0]
-    scans = [int(s.replace("S", "")) for s in sorted(subdirnames) if s.startswith("S")]
-    print(scans)
-    
-else:
-    scans = [int(sys.argv[2])]
-
-folder = sys.argv[1]
+scan_list = sys.argv[2]
 root_folder = os.getcwd() + "/" + folder  # folder of the experiment, where all scans are stored
 sample_name = "S"  # str or list of str of sample names (string in front of the scan number in the folder name).
+
+# transform string of list into python list object
+if scan_list.startswith("["):
+    scans = ast.literal_eval(scan_list)
+    
+else:
+    scans = [scan_list]
+
 
 # Load data
 for scan in scans:

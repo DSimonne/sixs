@@ -9,6 +9,17 @@ import sys
 import os
 import glob
 
+try:
+	cd = os.getcwd()
+	print ('Scan (s):',  sys.argv[1])
+	scans = glob.glob(sys.argv[1])
+
+except IndexError:
+    print("""
+        Arg 1: Direct path to data, searched with glob.
+        """)
+    exit()
+
 def find_pos(filename):
 	data = rd.DataSet(filename)
 
@@ -55,27 +66,6 @@ def find_pos(filename):
 	            ]
 	return metadata
     
-
-# Part of script to allow systematic use
-
-# Print total number of arguments
-# print ('Total number of arguments:', format(len(sys.argv)))
- 
-# Print all arguments
-# print ('Argument List:', str(sys.argv))
- 
-# Print arguments one by one
-# print ('First argument:',  str(sys.argv[0]))
-cd = os.getcwd()
-
-print ('Scan (s):',  sys.argv[1])
-scans = glob.glob(sys.argv[1])
-
-# transform string of list into python list object
-# if sys.argv[1].startswith("["):
-#     scans = ast.literal_eval(sys.argv[1])
-# else:
-#     scans = [int(sys.argv[1])]
 
 pos = np.array([find_pos(nb) for nb in scans])
 

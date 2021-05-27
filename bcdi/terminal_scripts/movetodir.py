@@ -5,65 +5,72 @@ import sys
 import ast
 import glob
 
-"""Python script to move file from datadir to folder where it will be used by preprocess.bcdi"""
-
-print ('Total number of arguments:', format(len(sys.argv)))
+"""Python script to move file from datadir to folder where it will be used by preprocess.bcdi
+    Arg 1: directory
+    Arg 2: Scan(s) number, list or single value
+"""
  
-# Print arguments one by one
-print ('Data dir:',  sys.argv[1])
-print ('Scan (s):',  sys.argv[2])
+# Print help
+try:
+    print ('OG data dir:',  sys.argv[1])
+    print ('Target data dir:',  sys.argv[2])
+    print ('Scan (s):',  sys.argv[3])
+except IndexError:
+    print("""
+        Arg 1: Original data directory 
+        Arg 2: Path of target directory (to be created, /S{scan} will be added and all the subfolders)
+        Arg 3: Scan(s) number, list or single value
+        """)
+    exit()
 
-folder = sys.argv[1]
+OG_folder = sys.argv[1]
+TG_folder = sys.argv[2]
+scan_list = sys.argv[3]
 
 # transform string of list into python list object
-if sys.argv[2].startswith("["):
-    scans = ast.literal_eval(sys.argv[2])
-    
-elif sys.argv[2]=="all":
-    subdirnames = [x[1] for x in os.walk(f"{folder}/")][0]
-    scans = [s.replace("S", "") for s in sorted(subdirnames) if s.startswith("S")]
-    print(scans, end="\n\n")
+if scan_list.startswith("["):
+    scans = ast.literal_eval(scan_list)
     
 else:
-    scans = [sys.argv[2]]
+    scans = [scan_list]
 
 # Load data
 for scan in scans:
-    print(scan)
+    print(f"Moving scan {scan}...")
     try:
-        os.mkdir(f"{folder}/S{scan}")
-        print(f"Created {folder}/S{scan}")
+        os.mkdir(f"{TG_folder}S{scan}")
+        print(f"Created {TG_folder}S{scan}")
     except FileExistsError:
-        print(f"{folder}/S{scan} exists")
+        print(f"{TG_folder}S{scan} exists")
         pass
 
     try:
-        os.mkdir(f"{folder}/S{scan}/data")
-        print(f"Created {folder}/S{scan}/data")
+        os.mkdir(f"{TG_folder}S{scan}/data")
+        print(f"Created {TG_folder}S{scan}/data")
     except FileExistsError:
-        print(f"{folder}/S{scan}/data exists")
+        print(f"{TG_folder}S{scan}/data exists")
         pass
 
     try:
-        os.mkdir(f"{folder}/S{scan}/pynxraw")
-        print(f"Created {folder}/S{scan}/pynxraw")
+        os.mkdir(f"{TG_folder}S{scan}/pynxraw")
+        print(f"Created {TG_folder}S{scan}/pynxraw")
     except FileExistsError:
-        print(f"{folder}/S{scan}/pynxraw exists")
+        print(f"{TG_folder}S{scan}/pynxraw exists")
         pass
 
     try:
-        shutil.copy("Scripts/pynx-run-no-support.txt", f"{folder}/S{scan}/pynxraw")
-        print(f"Copied Scripts/pynx-run-no-support.txt to {folder}/S{scan}/pynxraw")
+        shutil.copy("/home/david/.local/lib/python3.9/site-packages/phdutils/bcdi/pynx-run-no-support.txt", f"{TG_folder}S{scan}/pynxraw")
+        print(f"Copied pynx-run-no-support.txt to {TG_folder}S{scan}/pynxraw")
     except FileExistsError:
-        print(f"{folder}/S{scan}/pynxraw/pynx-run-no-support.txt exists")
+        print(f"{TG_folder}S{scan}/pynxraw/pynx-run-no-support.txt exists")
         pass
 
     try:
-        filename = glob.glob(f"data/**/*mu*{scan}*", recursive=True)[0]
-        shutil.copy2(filename, f"{folder}/S{scan}/data")
-        print(f"Copied {filename} to {folder}/S{scan}/data")
+        filename = glob.glob(f"{OG_folder}*mu*{scan}*", recursive=True)[0]
+        shutil.copy2(filename, f"{TG_folder}S{scan}/data")
+        print(f"Copied {filename} to {TG_folder}S{scan}/data")
     except FileExistsError:
-        print(f"{folder}/S{scan}/data/{filename} exists")
+        print(f"{TG_folder}S{scan}/data/{filename} exists")
         pass
     except IndexError:
         print("Not a mu scan")

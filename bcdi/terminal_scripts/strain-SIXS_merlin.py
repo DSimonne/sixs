@@ -46,15 +46,25 @@ Therefore the data structure is data[qx, qz, qy] for reciprocal space, or data[z
 """
 
 
-"""Part of script to allow systematic use"""
+"""Part of script to allow systematic use
+defining scan, root_folder, save_dir, comment, sample_name and template_imagefile"""
 
-# defining scan, root_folder, save_dir, comment, sample_name and template_imagefile
 import ast
 import glob
 import sys
 
+# Print help
+try:
+    print ('Data dir:',  sys.argv[1])
+    print ('Scan:',  sys.argv[2])
+except IndexError:
+    print("""
+        Arg 1: Path of target directory (before /S{scan} ... )
+        Arg 2: Scan(s) number, list or single value
+        """)
+    exit()
+
 scan = int(sys.argv[2])
-print("Scan:", scan)
 
 for i, element in enumerate(sys.argv):
 	if "flip" in element:
@@ -90,7 +100,7 @@ stdoutOrigin=sys.stdout
 
 if not isinstance(save_dir, str):
 	save_dir = "result/"
-README_file = f"{save_dir}README.md"
+README_file = f"{save_dir}README_strain.md"
 print("Save folder:", save_dir)
 try:
 	os.mkdir(save_dir)
@@ -950,4 +960,4 @@ with open(README_file, 'a') as outfile:
 
 print('\nEnd of script')
 plt.ioff()
-# plt.show()
+plt.show()

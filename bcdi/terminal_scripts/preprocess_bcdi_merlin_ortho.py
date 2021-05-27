@@ -23,11 +23,11 @@ from scipy.io import savemat
 import tkinter as tk
 from tkinter import filedialog
 import gc
-sys.path.append('D:/myscripts/bcdi/')
 import bcdi.graph.graph_utils as gu
 import bcdi.experiment.experiment_utils as exp
 import bcdi.postprocessing.postprocessing_utils as pu
 import bcdi.preprocessing.preprocessing_utils as pru
+import bcdi.utils.utilities as util
 import bcdi.utils.validation as valid
 
 
@@ -45,38 +45,92 @@ data in:                                           /rootdir/S1/data/
 output files saved in:   /rootdir/S1/pynxraw/ or /rootdir/S1/pynx/ depending on 'use_rawdata' option
 """
 
-"""Part of script to allow systematic use"""
+"""Part of script to allow systematic use
+defining scans, root_folder, save_dir and template_imagefile"""
 
 import ast
-# Print total number of arguments
-print ('Total number of arguments:', format(len(sys.argv)))
- 
-# Print all arguments
-print ('Argument List:', str(sys.argv))
- 
-# Print arguments one by one
-# print ('First argument:',  str(sys.argv[0]))
-print ('Scan (s):',  sys.argv[2])
-print ('Data dir:',  sys.argv[1])
-folder = sys.argv[1]
+import glob
+import sys
 
-# transform string of list into python list object
+# Print help
+try:
+    print ('Data dir:',  sys.argv[1])
+    print ('Scan (s):',  sys.argv[2])
+except IndexError:
+    print("""
+        Arg 1: Path of target directory (before /S{scan} ... )
+        Arg 2: Scan(s) number, list or single value
+        """)
+    exit()
+
+# folder of the experiment, where all scans are stored
+root_folder = os.getcwd() + "/" + sys.argv[1] 
+print("Root folder:", root_folder)
+
+# scans, transforming string of list into python list object
 if sys.argv[2].startswith("["):
     scans = ast.literal_eval(sys.argv[2])
+    scan = scans[0]
+
 elif sys.argv[2]=="all":
-    subdirnames = [x[1] for x in os.walk(f"{folder}/")][0]
-    scans = [int(s.replace("E", "")) for s in sorted(subdirnames) if s.startswith("E")]
+    subdirnames = [x[1] for x in os.walk(root_folder)][0]
+    scans = [int(s.replace("S", "")) for s in sorted(subdirnames) if s.startswith("S")]
     print(scans)
+    scan = scans[0]
+
 else:
-    scans = int(sys.argv[2])
+    try:
+        scans = int(sys.argv[2])
+        scan = scans
+    except Exception as e:
+        print("Wrong scan input")
+        raise e
+
+# Scan folder
+scan_folder = root_folder + f"S{scan}/"
+print("Scan folder:", scan_folder)
+
+data_folder = scan_folder + "data/" # folder of the experiment, where all scans are stored
+print("Data folder:", data_folder)
+
+# template_imagefile = 'NoMirror_ascan_mu_%05d_R.nxs'
+filename = glob.glob(f"{data_folder}*mu*{scan}*")[0]
+template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R.nxs"
+print("Template: ", template_imagefile)
+del scan
+
+# save_dir = scan_folder + "pynxraw/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
+save_dir = None # scan_folder/pynx/ or scan_folder/pynxraw/
+data_dirname = None # "/data"
+
+# Save all the prints from the script
+stdoutOrigin=sys.stdout
+
+if not isinstance(save_dir, str):
+    save_dir = scan_folder +"pynxraw/"
+README_file = f"{save_dir}README_preprocess.md"
+print("Save folder:", save_dir)
+try:
+    os.mkdir(save_dir)
+except:
+    pass
+
+with open(README_file, 'w') as outfile:
+    outfile.write("```bash\n")
+sys.stdout = open(README_file, "a")
+
+"""end of personal script"""
+
 
 # np.arange(1401, 1419+1, 3)  # scan number or list of scan numbers
 # scans = np.concatenate((scans, np.arange(1147, 1195+1, 3)))
 # bad_indices = np.argwhere(scans == 738)
 # scans = np.delete(scans, bad_indices)
 
-root_folder = "/home/david/Documents/PhD_local/PhDScripts/id01_save/SIXS_Jan/Pt_Al2O3/" + folder + "/"  # folder of the experiment, where all scans are stored
-save_dir = None #"/users/simonne/Documents/id01_david/SIXS_Jan/Pt_Al2O3/1305/"  # images will be saved here, leave it to None otherwise
+# root_folder = "/home/david/Documents/PhD_local/PhDScripts/id01_save/SIXS_Jan/Pt_Al2O3/" + folder + "/"  # folder of the experiment, where all scans are stored
+# save_dir = None  # images will be saved here, leave it to None otherwise
+# data_dirname = None  # leave None to use the beamline default, '' empty string when there is no subfolder
+# (data directly in the scan folder), or a non-empty string for the subfolder name
 # (default to scan_folder/pynx/ or scan_folder/pynxraw/ depending on the setting of use_rawdata)
 sample_name = "S"  # str or list of str of sample names (string in front of the scan number in the folder name).
 # If only one name is indicated, it will be repeated to match the number of scans.
@@ -123,6 +177,7 @@ medfilt_order = 8    # for custom median filter, number of pixels with intensity
 reload_previous = False  # True to resume a previous masking (load data and mask)
 reload_orthogonal = False  # True if the reloaded data is already intepolated in an orthonormal frame
 preprocessing_binning = (1, 1, 1)  # binning factors in each dimension of the binned data to be reloaded
+
 ##################
 # saving options #
 ##################
@@ -131,12 +186,17 @@ save_to_npz = True  # True to save the processed data in npz format
 save_to_mat = False  # True to save also in .mat format
 save_to_vti = False  # save the orthogonalized diffraction pattern to VTK file
 save_asint = False  # if True, the result will be saved as an array of integers (save space)
+
 ######################################
 # define beamline related parameters #
 ######################################
 beamline = 'SIXS_2019'  # name of the beamline, used for data loading and normalization by monitor
 # supported beamlines: 'ID01', 'SIXS_2018', 'SIXS_2019', 'CRISTAL', 'P10', 'NANOMAX', '34ID'
-is_series = False  # specific to series measurement at P10
+actuators = None  # {'rocking_angle': 'actuator_1_1'}
+# Optional dictionary that can be used to define the entries corresponding to actuators in data files
+# (useful at CRISTAL where the location of data keeps changing)
+# e.g.  {'rocking_angle': 'actuator_1_3', 'detector': 'data_04', 'monitor': 'data_05'}
+is_series = True  # specific to series measurement at P10
 
 custom_scan = False  # set it to True for a stack of images acquired without scan, e.g. with ct in a macro, or when
 # there is no spec/log file available
@@ -151,10 +211,17 @@ specfile_name = None
 # template for ID01: name of the spec file without '.spec'
 # template for SIXS: full path of the alias dictionnary, typically root_folder + 'alias_dict_2020.txt'
 # template for all other beamlines: ''
+
 ###############################
 # detector related parameters #
 ###############################
 detector = "Merlin"    # "Eiger2M", "Maxipix", "Eiger4M", "Merlin" or "Timepix"
+linearity_func = None  # lambda array_1d: (array_1d*(7.484e-22*array_1d**4 - 3.447e-16*array_1d**3 +
+# 5.067e-11*array_1d**2 - 6.022e-07*array_1d + 0.889)) # MIR
+# np.divide(array_1d, (1-array_1d*1.3e-6))  # Sarah_1
+# (array_1d*(7.484e-22*array_1d**4 - 3.447e-16*array_1d**3 + 5.067e-11*array_1d**2 - 6.022e-07*array_1d + 0.889)) # MIR
+# linearity correction for the detector, leave None otherwise.
+# You can use def instead of a lambda expression but the input array should be 1d (flattened 2D detector array).
 x_bragg = None  # horizontal pixel number of the Bragg peak, can be used for the definition of the ROI
 y_bragg = None  # vertical pixel number of the Bragg peak, can be used for the definition of the ROI
 roi_detector = None
@@ -168,9 +235,9 @@ photon_threshold = 0  # data[data < photon_threshold] = 0
 photon_filter = 'loading'  # 'loading' or 'postprocessing', when the photon threshold should be applied
 # if 'loading', it is applied before binning; if 'postprocessing', it is applied at the end of the script before saving
 background_file = None  # root_folder + 'background.npz'  # non empty file path or None
-hotpixels_file = "analysis/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
+hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
-template_imagefile = 'Pt_Al2O3_ascan_mu_%05d_R.nxs'
+# template_imagefile = 'Pt_Al2O3_ascan_mu_%05d_R.nxs'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
 # template for SIXS_2018: 'align.spec_ascan_mu_%05d.nxs'
 # template for SIXS_2019: 'spare_ascan_mu_%05d.nxs'
@@ -180,13 +247,17 @@ template_imagefile = 'Pt_Al2O3_ascan_mu_%05d_R.nxs'
 # template for 34ID: 'Sample%dC_ES_data_51_256_256.npz'
 nb_pixel_x = None  # fix to declare a known detector but with less pixels (e.g. one tile HS), leave None otherwise
 nb_pixel_y = None  # fix to declare a known detector but with less pixels (e.g. one tile HS), leave None otherwise
+
 ################################################################################
 # define parameters below if you want to orthogonalize the data before phasing #
 ################################################################################
-use_rawdata = False  # False for using data gridded in laboratory frame/ True for using data in detector frame
+use_rawdata = True  # False for using data gridded in laboratory frame/ True for using data in detector frame
 interp_method = 'linearization'  # 'xrayutilities' or 'linearization'
+fill_value_mask = 0  # 0 (not masked) or 1 (masked). It will define how the pixels outside of the data range are
+# processed during the interpolation. Because of the large number of masked pixels, phase retrieval converges better if
+# the pixels are not masked (0 intensity imposed). The data is by default set to 0 outside of the defined range.
 beam_direction = (1, 0, 0)  # beam direction in the laboratory frame (downstream, vertical up, outboard)
-sample_offsets = (0, 0, 0)  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
+sample_offsets = None  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # convention: the sample offsets will be subtracted to the motor values
 sdd = 1.18 # in m, sample to detector distance in m
 energy = 8500  # np.linspace(11100, 10900, num=51)  # x-ray energy in eV
@@ -200,13 +271,30 @@ custom_motors = None # {"mu": 18, "delta": 0, "gamma": 36}
 # P10: om, phi, chi, mu, gamma, delta
 # NANOMAX: theta, phi, gamma, delta, energy, radius
 # 34ID: mu, phi (incident angle), chi, theta (inplane), delta (inplane), gamma (outofplane)
+
 #######################################################################################################
-# parameters when orthogonalizing the data before phasing using the linearized transformation matrix #
+# parameters when orthogonalizing the data before phasing  using the linearized transformation matrix #
 #######################################################################################################
-outofplane_angle = None # detector angle in deg (rotation around x outboard, typically delta),
-# corrected for the direct beam position. Leave None to use the uncorrected position.
-inplane_angle = None # detector angle in deg(rotation around y vertical up, typically gamma),
-# corrected for the direct beam position. Leave None to use the uncorrected position.
+align_q = True  # used only when interp_method is 'linearization', if True it rotates the crystal to align q
+# along one axis of the array
+ref_axis_q = "y"  # q will be aligned along that axis
+
+if beamline == "SIXS_2019":
+    print("Using angles from file:", glob.glob(data_folder + "*.nxs")[0])
+    from phdutils.sixs import ReadNxs4 as rd
+    data = rd.DataSet(glob.glob(data_folder + "*.nxs")[0])
+    energy = np.round(data.energy[0]*1000, 3)  # x-ray energy in eV, 6eV offset at ID01
+    outofplane_angle = np.round(data.delta[0], 3)  # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
+    inplane_angle = np.round(data.gamma[0], 3) # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
+    tilt_angle = np.round((data.mu[-1] - data.mu[-0]) / len(data.mu), 3)
+    del data
+
+else:
+    outofplane_angle = 0.224  # detector angle in deg (rotation around x outboard, typically delta),
+    # corrected for the direct beam position. Leave None to use the uncorrected position.
+    inplane_angle = 37.493  # detector angle in deg(rotation around y vertical up, typically gamma),
+    # corrected for the direct beam position. Leave None to use the uncorrected position.
+
 #########################################################################
 # parameters for xrayutilities to orthogonalize the data before phasing #
 #########################################################################
@@ -220,6 +308,7 @@ cch2 = 256  # direct beam horizontal position in the full unbinned detector for 
 detrot = 0  # detrot parameter from xrayutilities 2D detector calibration
 tiltazimuth = 360  # tiltazimuth parameter from xrayutilities 2D detector calibration
 tilt = 0  # tilt parameter from xrayutilities 2D detector calibration
+
 ##################################
 # end of user-defined parameters #
 ##################################
@@ -328,12 +417,13 @@ def press_key(event):
 #########################
 # check some parameters #
 #########################
+valid_name = 'bcdi_preprocess_BCDI'
 if isinstance(scans, int):
     scans = (scans,)
 
-#if len(scans) > 1:
-#    if center_fft not in ['crop_asymmetric_ZYX', 'pad_Z', 'pad_asymmetric_ZYX']:
-#        center_fft = 'skip'
+if len(scans) > 1:
+    if center_fft not in ['crop_asymmetric_ZYX', 'pad_Z', 'pad_asymmetric_ZYX']:
+        center_fft = 'skip'
         # avoid croping the detector plane XY while centering the Bragg peak
         # otherwise outputs may have a different size, which will be problematic for combining or comparing them
 if len(fix_size) != 0:
@@ -347,13 +437,20 @@ if photon_filter == 'loading':
 else:
     loading_threshold = 0
 
+create_savedir = True
+
+valid.valid_container(user_comment, container_types=str, name=valid_name)
+if len(user_comment) != 0 and not user_comment.startswith('_'):
+    user_comment = '_' + user_comment
 if reload_previous:
-    create_savedir = False
     user_comment += '_reloaded'
 else:
-    create_savedir = True
     preprocessing_binning = (1, 1, 1)
     reload_orthogonal = False
+
+if rocking_angle == "energy":
+    use_rawdata = False  # you need to interpolate the data in QxQyQz for energy scans
+    print("Energy scan: defaulting use_rawdata to False, the data will be interpolated using xrayutilities")
 
 if reload_orthogonal:
     use_rawdata = False
@@ -363,9 +460,6 @@ if use_rawdata:
     print('Output will be non orthogonal, in the detector frame')
     plot_title = ['YZ', 'XZ', 'XY']
 else:
-    save_dirname = 'pynx'
-    print('Output will be orthogonalized by xrayutilities')
-    plot_title = ['QzQx', 'QyQx', 'QyQz']
     if interp_method not in {'xrayutilities', 'linearization'}:
         raise ValueError('Incorrect value for interp_method, allowed values are "xrayutilities" and "linearization"')
     if rocking_angle == 'energy':
@@ -374,11 +468,26 @@ else:
     if not reload_orthogonal and preprocessing_binning[0] != 1:
         raise ValueError('preprocessing_binning along axis 0 should be 1 when gridding reloaded data'
                          ' (angles won\'t match)')
+    save_dirname = 'pynx'
+    print(f'Output will be orthogonalized using {interp_method}')
+    plot_title = ['QzQx', 'QyQx', 'QyQz']
 
 if isinstance(sample_name, str):
     sample_name = [sample_name for idx in range(len(scans))]
 valid.valid_container(sample_name, container_types=(tuple, list), length=len(scans), item_types=str,
-                      name='preprocess_bcdi')
+                      name=valid_name)
+
+if fill_value_mask not in {0, 1}:
+    raise ValueError(f'fill_value_mask should be 0 or 1, got {fill_value_mask}')
+
+valid.valid_item(align_q, allowed_types=bool, name=valid_name)
+if align_q:
+    user_comment += f'_align-q-{ref_axis_q}'
+    if ref_axis_q not in {'x', 'y', 'z'}:
+        raise ValueError("ref_axis_q should be either 'x', 'y' or 'z'")
+else:
+    ref_axis_q = 'y'  # ref_axis_q will not be used
+axis_to_array_xyz = {'x': np.array([1, 0, 0]), 'y': np.array([0, 1, 0]), 'z': np.array([0, 0, 1])}  # in xyz order
 
 ###################
 # define colormap #
@@ -395,7 +504,7 @@ kwargs['is_series'] = is_series
 kwargs['preprocessing_binning'] = preprocessing_binning
 kwargs['nb_pixel_x'] = nb_pixel_x  # fix to declare a known detector but with less pixels (e.g. one tile HS)
 kwargs['nb_pixel_y'] = nb_pixel_y  # fix to declare a known detector but with less pixels (e.g. one tile HS)
-
+kwargs['linearity_func'] = linearity_func
 detector = exp.Detector(name=detector, template_imagefile=template_imagefile, roi=roi_detector,
                         binning=binning, **kwargs)
 
@@ -407,33 +516,7 @@ setup = exp.Setup(beamline=beamline, energy=energy, rocking_angle=rocking_angle,
                   sample_outofplane=sample_outofplane, offset_inplane=offset_inplane,
                   custom_scan=custom_scan, custom_images=custom_images, sample_offsets=sample_offsets,
                   custom_monitor=custom_monitor, custom_motors=custom_motors,
-                  pixel_x=detector.pixelsize_x, pixel_y=detector.pixelsize_y)
-
-#############################################
-# Initialize geometry for orthogonalization #
-#############################################
-if rocking_angle == "energy":
-    use_rawdata = False  # you need to interpolate the data in QxQyQz for energy scans
-    print("Energy scan: defaulting use_rawdata to False, the data will be interpolated using xrayutilities")
-if not use_rawdata:
-    if interp_method == 'xrayutilities':
-        qconv, offsets = pru.init_qconversion(setup)
-        detector.offsets = offsets
-        hxrd = xu.experiment.HXRD(sample_inplane, sample_outofplane,  en=energy, qconv=qconv)
-        # x downstream, y outboard, z vertical
-        # first 2 arguments in HXRD are the inplane reference direction along the beam and surface normal of the sample
-        cch1 = cch1 - detector.roi[0]  # Ver. direct beam position, take into account the roi if the image is cropped
-        cch2 = cch2 - detector.roi[2]  # Hor. direct beam position, take into account the roi if the image is cropped
-        # number of pixels after taking into account the roi and binning
-        nch1 = (detector.roi[1] - detector.roi[0]) // (detector.preprocessing_binning[1] * detector.binning[1]) +\
-            (detector.roi[1] - detector.roi[0]) % (detector.preprocessing_binning[1] * detector.binning[1])
-        nch2 = (detector.roi[3] - detector.roi[2]) // (detector.preprocessing_binning[2] * detector.binning[2]) +\
-            (detector.roi[3] - detector.roi[2]) % (detector.preprocessing_binning[2] * detector.binning[2])
-        # detector init_area method, pixel sizes are the binned ones
-        hxrd.Ang2Q.init_area(setup.detector_ver, setup.detector_hor, cch1=cch1, cch2=cch2,
-                             Nch1=nch1, Nch2=nch2, pwidth1=detector.pixelsize_y, pwidth2=detector.pixelsize_x,
-                             distance=sdd, detrot=detrot, tiltazimuth=tiltazimuth, tilt=tilt)
-        # first two arguments in init_area are the direction of the detector, checked for ID01 and SIXS
+                  pixel_x=detector.pixelsize_x, pixel_y=detector.pixelsize_y, actuators=actuators)
 
 ########################################
 # print the current setup and detector #
@@ -465,8 +548,9 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
 
     # initialize the paths
     setup.init_paths(detector=detector, sample_name=sample_name[scan_idx-1], scan_number=scan_nb,
-                     root_folder=root_folder, save_dir=save_dir, save_dirname=save_dirname, verbose=True,
-                     create_savedir=create_savedir, specfile_name=specfile_name, template_imagefile=template_imagefile)
+                     data_dirname=data_dirname, root_folder=root_folder, save_dir=save_dir, save_dirname=save_dirname,
+                     verbose=True, create_savedir=create_savedir, specfile_name=specfile_name,
+                     template_imagefile=template_imagefile)
 
     logfile = pru.create_logfile(setup=setup, detector=detector, scan_number=scan_nb,
                                  root_folder=root_folder, filename=detector.specfile)
@@ -477,8 +561,9 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
             comment += '_lin'
             # load the goniometer positions needed in the calculation of the transformation matrix
             tilt_angle, setup.grazing_angle, inplane, outofplane =\
-                pru.goniometer_values(logfile=logfile, scan_number=scan_nb, setup=setup, follow_bragg=follow_bragg)
-            setup.tilt_angle = tilt_angle[1] - tilt_angle[0]
+                setup.diffractometer.goniometer_values(logfile=logfile, scan_number=scan_nb, setup=setup,
+                                                       follow_bragg=follow_bragg)
+            setup.tilt_angle = (tilt_angle[1:] - tilt_angle[0:-1]).mean()
             # override detector motor positions if the corrected values (taking into account the direct beam position)
             # are provided by the user
             setup.inplane_angle = inplane_angle if inplane_angle is not None else inplane
@@ -499,14 +584,16 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
         npz_key = data.files
         data = data[npz_key[0]]
         nz, ny, nx = np.shape(data)
-
+        
         # check that the ROI is correctly defined
         detector.roi = roi_detector or [0, ny, 0, nx]
         print('Detector ROI:', detector.roi)
         # update savedir to save the data in the same directory as the reloaded data
-        detector.savedir = os.path.dirname(file_path) + '/'
-        print(f'Updated saving directory: {detector.savedir}')
-        file_path = filedialog.askopenfilename(initialdir=detector.savedir, title="Select mask file",
+        if not save_dir:
+            detector.savedir = os.path.dirname(file_path) + '/'
+            print(f'Updated saving directory: {detector.savedir}')
+
+        file_path = filedialog.askopenfilename(initialdir=os.path.dirname(file_path) + '/', title="Select mask file",
                                                filetypes=[("NPZ", "*.npz")])
         mask = np.load(file_path)
         npz_key = mask.files
@@ -530,8 +617,8 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
             # bin data and mask if needed
             if (detector.binning[0] != 1) or (detector.binning[1] != 1) or (detector.binning[2] != 1):
                 print('Binning the reloaded orthogonal data by', detector.binning)
-                data = pu.bin_data(data, binning=detector.binning, debugging=False)
-                mask = pu.bin_data(mask, binning=detector.binning, debugging=False)
+                data = util.bin_data(data, binning=detector.binning, debugging=False)
+                mask = util.bin_data(mask, binning=detector.binning, debugging=False)
                 mask[np.nonzero(mask)] = 1
                 if len(q_values) != 0:
                     qx = q_values[0]
@@ -591,14 +678,40 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
             gc.collect()
 
             if interp_method == 'xrayutilities':
+                qconv, offsets = pru.init_qconversion(setup)
+                detector.offsets = offsets
+                hxrd = xu.experiment.HXRD(sample_inplane, sample_outofplane, en=energy, qconv=qconv)
+                # the first 2 arguments in HXRD are the inplane reference direction along the beam and surface normal
+                # of the sample
+
+                # Update the direct beam vertical position, take into account the roi and binning
+                cch1 = (cch1 - detector.roi[0]) / (detector.preprocessing_binning[1] * detector.binning[1])
+                # Update the direct beam horizontal position, take into account the roi and binning
+                cch2 = (cch2 - detector.roi[2]) / (detector.preprocessing_binning[2] * detector.binning[2])
+                # number of pixels after taking into account the roi and binning
+                nch1 = (detector.roi[1] - detector.roi[0]) // (
+                            detector.preprocessing_binning[1] * detector.binning[1]) + \
+                       (detector.roi[1] - detector.roi[0]) % (detector.preprocessing_binning[1] * detector.binning[1])
+                nch2 = (detector.roi[3] - detector.roi[2]) // (
+                            detector.preprocessing_binning[2] * detector.binning[2]) + \
+                       (detector.roi[3] - detector.roi[2]) % (detector.preprocessing_binning[2] * detector.binning[2])
+                # detector init_area method, pixel sizes are the binned ones
+                hxrd.Ang2Q.init_area(setup.detector_ver, setup.detector_hor, cch1=cch1, cch2=cch2,
+                                     Nch1=nch1, Nch2=nch2, pwidth1=detector.pixelsize_y, pwidth2=detector.pixelsize_x,
+                                     distance=setup.distance, detrot=detrot, tiltazimuth=tiltazimuth, tilt=tilt)
+                # first two arguments in init_area are the direction of the detector, checked for ID01 and SIXS
+
                 data, mask, q_values, frames_logical = \
                     pru.grid_bcdi_xrayutil(data=data, mask=mask, scan_number=scan_nb, logfile=logfile,
                                            detector=detector, setup=setup, frames_logical=frames_logical, hxrd=hxrd,
                                            follow_bragg=follow_bragg, debugging=debug)
             else:  # 'linearization'
+                # for q values, the frame used is (qx downstream, qy outboard, qz vertical up)
+                # for reference_axis, the frame is z downstream, y vertical up, x outboard but the order must be x,y,z
                 data, mask, q_values = \
                     pru.grid_bcdi_labframe(data=data, mask=mask, detector=detector, setup=setup,
-                                           debugging=debug, follow_bragg=follow_bragg, method_shape='fix_sampling')
+                                           align_q=align_q, reference_axis=axis_to_array_xyz[ref_axis_q],
+                                           debugging=debug, follow_bragg=follow_bragg, fill_value=(0, fill_value_mask))
             nz, ny, nx = data.shape
             print('\nData size after interpolation into an orthonormal frame:', nz, ny, nx)
 
@@ -838,26 +951,23 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
         print("\nFiltering isolated pixels")
         nb_pix = 0
         for idx in range(pad_width[0], nz-pad_width[1]):  # filter only frames whith data (not padded)
-            data[idx, :, :], numb_pix, mask[idx, :, :] = \
+            data[idx, :, :], processed_pix, mask[idx, :, :] = \
                 pru.mean_filter(data=data[idx, :, :], nb_neighbours=medfilt_order, mask=mask[idx, :, :],
                                 interpolate=flag_medianfilter, min_count=3, debugging=debug)
-            nb_pix = nb_pix + numb_pix
-            print("Processed image nb: ", idx)
-        if flag_medianfilter == 'mask_isolated':
-            print("\nTotal number of masked isolated pixels: ", nb_pix)
-        if flag_medianfilter == 'interp_isolated':
-            print("\nTotal number of interpolated isolated pixels: ", nb_pix)
-
+            nb_pix += processed_pix
+            sys.stdout.write(f'\rImage {idx}, number of filtered pixels: {processed_pix}')
+            sys.stdout.flush()
+        print("\nTotal number of filtered pixels: ", nb_pix)
     elif flag_medianfilter == 'median':  # apply median filter
+        print("\nApplying median filtering")
         for idx in range(pad_width[0], nz-pad_width[1]):  # filter only frames whith data (not padded)
             data[idx, :, :] = scipy.signal.medfilt2d(data[idx, :, :], [3, 3])
-        print("\nApplying median filtering")
     else:
         print("\nSkipping median filtering")
 
-    #############################################
-    # apply photon threshold
-    #############################################
+    ##########################
+    # apply photon threshold #
+    ##########################
     if photon_threshold != 0:
         mask[data < photon_threshold] = 1
         data[data < photon_threshold] = 0
@@ -866,26 +976,17 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
     ################################################
     # check for nans and infs in the data and mask #
     ################################################
-    plt.ion()
-    nz, ny, nx = np.shape(data)
+    nz, ny, nx = data.shape
     print('\nData size after masking:', nz, ny, nx)
 
-    # check for Nan
-    mask[np.isnan(data)] = 1
-    data[np.isnan(data)] = 0
-    mask[np.isnan(mask)] = 1
-    # check for Inf
-    mask[np.isinf(data)] = 1
-    data[np.isinf(data)] = 0
-    mask[np.isinf(mask)] = 1
+    data, mask = util.remove_nan(data=data, mask=mask)
 
     data[mask == 1] = 0
-    if save_asint:
-        data = data.astype(int)
 
     ####################
     # debugging plots  #
     ####################
+    plt.ion()
     if debug:
         z0, y0, x0 = center_of_mass(data)
         fig, _, _ = gu.multislices_plot(data, sum_frames=False, scale='log', plot_colorbar=True, vmin=0,
@@ -915,21 +1016,33 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
     # bin the stacking axis if needed, the detector plane was already binned when loading the data #
     ################################################################################################
     if detector.binning[0] != 1 and not reload_orthogonal:  # data was already binned for reload_orthogonal
-        data = pu.bin_data(data, (detector.binning[0], 1, 1), debugging=False)
-        mask = pu.bin_data(mask, (detector.binning[0], 1, 1), debugging=False)
+        data = util.bin_data(data, (detector.binning[0], 1, 1), debugging=False)
+        mask = util.bin_data(mask, (detector.binning[0], 1, 1), debugging=False)
         mask[np.nonzero(mask)] = 1
         if not use_rawdata and len(q_values) != 0:
             numz = len(qx)
             qx = qx[:numz - (numz % detector.binning[0]):detector.binning[0]]  # along Z
             del numz
-    nz, ny, nx = data.shape
     print('\nData size after binning the stacking dimension:', data.shape)
+
+    ##################################################################
+    # final check of the shape to comply with FFT shape requirements #
+    ##################################################################
+    final_shape = pru.smaller_primes(data.shape, maxprime=7, required_dividers=(2,))
+    com = tuple(map(lambda x: int(np.rint(x)), center_of_mass(data)))
+    crop_center = pu.find_crop_center(array_shape=data.shape, crop_shape=final_shape, pivot=com)
+    data = util.crop_pad(data, output_shape=final_shape, crop_center=crop_center)
+    mask = util.crop_pad(mask, output_shape=final_shape, crop_center=crop_center)
+    print('\nData size after considering FFT shape requirements:', data.shape)
+    nz, ny, nx = data.shape
     comment = f'{comment}_{nz}_{ny}_{nx}' + binning_comment
 
     ############################
     # save final data and mask #
     ############################
     print('\nSaving directory:', detector.savedir)
+    if save_asint:
+        data = data.astype(int)
     print('Data type before saving:', data.dtype)
     mask[np.nonzero(mask)] = 1
     mask = mask.astype(int)
@@ -937,13 +1050,13 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
     if not use_rawdata and len(q_values) != 0:
         if save_to_npz:
             np.savez_compressed(detector.savedir + f'QxQzQy_S{scan_nb}' + comment,
-                                qx=q_values[0], qz=q_values[1], qy=q_values[2])
+                                qx=qx, qz=qz, qy=qy)
         if save_to_mat:
-            savemat(detector.savedir + f'S{scan_nb}_qx.mat', {'qx': q_values[0]})
-            savemat(detector.savedir + f'S{scan_nb}_qy.mat', {'qy': q_values[1]})
-            savemat(detector.savedir + f'S{scan_nb}_qz.mat', {'qz': q_values[2]})
+            savemat(detector.savedir + f'S{scan_nb}_qx.mat', {'qx': qx})
+            savemat(detector.savedir + f'S{scan_nb}_qz.mat', {'qz': qz})
+            savemat(detector.savedir + f'S{scan_nb}_qy.mat', {'qy': qy})
         max_z = data.sum(axis=0).max()
-        fig, _, _ = gu.contour_slices(data, (q_values[0], q_values[1], q_values[2]), sum_frames=True,
+        fig, _, _ = gu.contour_slices(data, (qx, qz, qy), sum_frames=True,
                                       title='Final data', plot_colorbar=True, scale='log', is_orthogonal=True,
                                       levels=np.linspace(0, np.ceil(np.log10(max_z)), 150, endpoint=False),
                                       reciprocal_space=True)
@@ -984,6 +1097,14 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
 
     if len(scans) > 1:
         plt.close('all')
+
+# Added script
+sys.stdout.close()
+sys.stdout=stdoutOrigin
+
+with open(README_file, 'a') as outfile:
+    outfile.write("```")
+# End of added script
 
 print('\nEnd of script')
 plt.ioff()
