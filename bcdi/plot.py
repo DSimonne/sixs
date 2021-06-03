@@ -34,7 +34,7 @@ warnings.filterwarnings("ignore")
 # mpl.rcParams['ytick.direction'] = 'out'
 
 
-def plotting_npz(file, axplot, datapath):
+def plotting_npz(file, axplot, datapath, ComplexNumber):
 	"""For .npz files"""
 
 	rawdata = np.load(datapath)
@@ -45,6 +45,16 @@ def plotting_npz(file, axplot, datapath):
 
 	except Exception as E:
 	    raise E
+
+	# Decide what we want to plot
+	if ComplexNumber == "Real":
+		data = np.real(data)
+	elif ComplexNumber == "Imaginary":
+		data = np.imag(data)
+	elif ComplexNumber == "Module":
+		data = np.abs(data)
+	elif ComplexNumber == "Phase":
+		data = np.angle(data)
 
 	# Take the shape of that array along 2 axis
 	if axplot == "xy":
@@ -208,7 +218,6 @@ def plotting_cxi(axplot, datapath, ComplexNumber):
 		PlottedArrayType = np.abs(data)
 	else:
 		PlottedArrayType = np.angle(data)
-
 
 	# Print the shape of that array along 2 axis, use the last dimension for plotting and Project along two axes
 	if axplot == "xy":
@@ -421,6 +430,13 @@ def plot(filename):
 								    description = 'First 2 axes:',
 								    disabled=False,
 								    style = {'description_width': 'initial'}),
+								ComplexNumber = widgets.ToggleButtons(
+									options = ["Real", "Imaginary", "Module", "Phase"],
+								    value = "Module",
+								    description='Plotting options',
+								    disabled=False,
+								    button_style='', # 'success', 'info', 'warning', 'danger' or ''
+								    tooltip=['Plot only contour or not', "", ""]),
 								datapath =fixed(filename))
 
 			display(WidgetPlottingNPZ)

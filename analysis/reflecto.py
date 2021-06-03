@@ -19,6 +19,12 @@ from phdutils.sixs import utilities3 as ut3
 
 import xrayutilities as xu
 
+import lmfit
+from lmfit import minimize, Parameters, Parameter
+from lmfit.models import LinearModel, ConstantModel, QuadraticModel, PolynomialModel, StepModel
+from lmfit.models import GaussianModel, LorentzianModel, SplitLorentzianModel, VoigtModel, PseudoVoigtModel
+from lmfit.models import MoffatModel, Pearson7Model, StudentsTModel, BreitWignerModel, LognormalModel, ExponentialGaussianModel, SkewedGaussianModel, SkewedVoigtModel, DonaichModel
+
 plt.style.use('fivethirtyeight')
 plt.rc('text', usetex=True) 
 
@@ -34,6 +40,8 @@ class DataSets(object):
 		self.folder = folder
 		self.scan_indices = [str(s) for s in scan_indices]
 		self.data_format = data_format #nxs or "hdf5"
+
+		self.lat_para = dict()
 
 		# implemented for now in case in the future we want to plot on other axes
 		self.var = var
@@ -885,6 +893,96 @@ class DataSets(object):
 
 		print(f"Saved as {save_as}")
 
+
+	def fit_bragg(self, scan_to_fit, fit_range = [2.75, 2.95], x_axis = "q", peak_nb = 1, peak_pos = [2.85], peak_amp = [1e5], peak_sigma = [0.0008], back = [10, 0, 100]):
+		"""docstring"""
+
+		# Create a dictionnary for the peak to be able to iterate on their names
+		peaks = dict()
+
+		# Initialize the parameters and the data over the Bragg peak range
+		x_axes = {"h" : "cp_h",
+			"k" : "cp_k",
+			"l" : "cp_l",
+			"gamma" : "cp_gamma",
+			"mu" : "cp_mu",
+			"omega" : "cp_omega",
+			"delta" : "cp_delta",
+			"q" : "cp_q",
+			"qpar" : "cp_qpar",
+			"qper" : "cp_qper"}
+
+		# Find good x axis
+		if self.data_format == "nxs" and x_axis in ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"]:
+			x_total = getattr(self, x_axes[x_axis])
+
+		elif self.data_format == "nxs" and x_axis not in ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"]:
+			return("Choose a x_axis in the following list :", ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"])
+
+		# Iterate over each data set to find the Bragg peak
+		for q_range, gamma_range, delta_range, x, y, scan_name in zip(self.cp_q, self.cp_gamma, self.cp_delta, x_total, self.intensities, self.scan_indices):
+			if scan_name in scan_to_fit:
+				x_zoom = x[(x >= fit_range[0]) & (x <= fit_range[1])]
+				y_zoom = y[(x >= fit_range[0]) & (x <= fit_range[1])]
+
+				self.mod = ConstantModel(prefix='Bcgd_')
+				self.pars = self.mod.guess(y, x = x)
+
+				for i in range(peak_nb):
+					peaks[f"Peak_{i}"]  = LorentzianModel(prefix = f"P{i}_")
+					self.pars.update(peaks[f"Peak_{i}"].make_params())
+					self.mod += peaks[f"Peak_{i}"]
+
+					self.pars[f"P{i}_center"].value = peak_pos[i]
+					self.pars[f"P{i}_amplitude"].value = peak_amp[i]
+					self.pars[f"P{i}_sigma"].value = peak_sigma[i]
+
+				self.pars["Bcgd_c"].value = back[0]
+				self.pars["Bcgd_c"].min = back[1]
+				self.pars["Bcgd_c"].max = back[2]
+
+				# display(pars)
+
+				# Current guess
+				self.init = self.mod.eval(self.pars, x = x_zoom)
+
+				fig, axs = plt.subplots(1, 2, figsize = (16, 5), sharex=True, sharey=True)
+				axs[0].semilogy()
+
+				axs[0].plot(x_zoom, y_zoom, label = "Data")
+				axs[0].plot(x_zoom, self.init, label='Current guess')
+				axs[0].legend()
+
+				# Launch fit
+				self.out = self.mod.fit(y_zoom, self.pars, x = x_zoom)
+				self.comps = self.out.eval_components(x = x_zoom)
+				display(self.out.params)
+
+				axs[1].plot(x_zoom, y_zoom, label = "Data")
+				axs[1].plot(x_zoom, self.out.best_fit, label='Best fit')
+				axs[1].legend()
+
+				plt.suptitle(scan_name)
+				plt.show()
+				q_hkl = self.out.params["P0_center"].value
+
+				ind = ut3.find_nearest(q_range, q_hkl)[0]
+
+				inplane_angle = gamma_range[ind]
+				outofplane_angle = delta_range[ind]
+
+				kin = 2*np.pi/self.wavel * np.asarray((1, 0, 0))
+
+				kout = 2 * np.pi / self.wavel * np.array( # in lab.frame z downstream, y vertical, x outboard
+				    [np.cos(np.pi * inplane_angle / 180) * np.cos(np.pi * outofplane_angle / 180),  # z
+				     np.sin(np.pi * outofplane_angle / 180),  # y
+				     np.sin(np.pi * inplane_angle / 180) * np.cos(np.pi * outofplane_angle / 180)])  # x
+
+				q = (kout - kin) # convert from 1/m to 1/angstrom
+				qnorm = np.linalg.norm(q)
+				dist_plane = 2 * np.pi / qnorm
+				self.lat_para[scan_name] = np.sqrt(3)*dist_plane
+		
 
 	def compare_roi(self, index_range = 1010, v_min_log = 0.01, v_max_log = 100, central_pixel_gamma = 25, central_pixel_delta = 285):
 		"""Define a widget function to be sure of the quality of the roi on the nxs file

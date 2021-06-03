@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python3
 # -*- coding: utf-8 -*-
 
 # BCDI: tools for pre(post)-processing Bragg coherent X-ray diffraction imaging data
@@ -47,7 +47,8 @@ Therefore the data structure is data[qx, qz, qy] for reciprocal space, or data[z
 
 
 """Part of script to allow systematic use
-defining scan, root_folder, save_dir, comment, sample_name and template_imagefile"""
+defining scan, root_folder, save_dir, comment, sample_name and template_imagefile
+Remember to get the correct angles from the correct_anbfgles_detector.py script"""
 
 import ast
 import glob
@@ -81,6 +82,7 @@ print("Root folder:", root_folder)
 scan_folder = root_folder + f"S{scan}/"
 print("Scan folder:", scan_folder)
 
+# Data folder
 data_folder = scan_folder + "data/" # folder of the experiment, where all scans are stored
 print("Data folder:", data_folder)
 
@@ -118,6 +120,7 @@ sys.stdout = open(README_file, "a")
 #########################################################
 sort_method = 'variance/mean'  # 'mean_amplitude' or 'variance' or 'variance/mean' or 'volume', metric for averaging
 correlation_threshold = 0.90
+
 #########################################################
 # parameters relative to the FFT window and voxel sizes #
 #########################################################
@@ -166,22 +169,11 @@ beamline = "SIXS_2019"  # name of the beamline, used for data loading and normal
 rocking_angle = "inplane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
 # around y vertical up, does not matter for energy scan
 #  "inplane" e.g. phi @ ID01, mu @ SIXS "outofplane" e.g. eta @ ID01
-sdd = 1.18  # 1.26  # sample to detector distance in m
-if beamline == "SIXS_2019":
-	print("Using angles from file:", glob.glob(data_folder + "*.nxs")[0])
-	from phdutils.sixs import ReadNxs4 as rd
-	data = rd.DataSet(glob.glob(data_folder + "*.nxs")[0])
-	energy = np.round(data.energy[0]*1000, 3)  # x-ray energy in eV, 6eV offset at ID01
-	outofplane_angle = np.round(data.delta[0], 3)  # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
-	inplane_angle = np.round(data.gamma[0], 3) # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
-	tilt_angle = np.round((data.mu[-1] - data.mu[-0]) / len(data.mu), 3)
-	del data
-
-else:
-	energy = 8500  # x-ray energy in eV, 6eV offset at ID01
-	outofplane_angle = 0.224  # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
-	inplane_angle = 37.493  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
-	tilt_angle = 0.005  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
+sdd = 1.18  # sample to detector distance in m
+energy = 8500  # x-ray energy in eV, 6eV offset at ID01
+outofplane_angle = -0.1741 # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
+inplane_angle = 37.5841  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
+tilt_angle = 0.005  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
 
 actuators = None
 sample_offsets = None  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
@@ -256,9 +248,10 @@ tick_width = 1  # 2  # in plots
 ##########################################
 # parameteres for temperature estimation #
 ##########################################
-get_temperature = False  # only available for platinum at the moment
+get_temperature = True  # only available for platinum at the moment
 reflection = np.array([1, 1, 1])  # measured reflection, use for estimating the temperature
-reference_spacing = None  # for calibrating the thermal expansion, if None it is fixed to 3.9236/norm(reflection) Pt
+# reference_spacing = None  # for calibrating the thermal expansion, if None it is fixed to Pt 3.9236/norm(reflection)
+reference_spacing = 2.254761  # d_111 at room temperature, from scan 1353, with corrected angles
 reference_temperature = None  # used to calibrate the thermal expansion, if None it is fixed to 293.15K (RT)
 
 ##########################################################
@@ -276,6 +269,7 @@ apodize_window = 'blackman'  # filtering window, multivariate 'normal' or 'tukey
 mu = np.array([0.0, 0.0, 0.0])  # mu of the gaussian window
 sigma = np.array([0.30, 0.30, 0.30])  # sigma of the gaussian window
 alpha = np.array([1.0, 1.0, 1.0])  # shape parameter of the tukey window
+
 ##################################
 # end of user-defined parameters #
 ##################################
@@ -901,7 +895,7 @@ fig.text(0.60, 0.20, f'correlation threshold={correlation_threshold}', size=20)
 fig.text(0.60, 0.15, f'average over {avg_counter} reconstruction(s)', size=20)
 fig.text(0.60, 0.10, f'Planar distance={planar_dist:.5f} nm', size=20)
 if get_temperature:
-    temperature = pu.bragg_temperature(spacing=planar_dist, reflection=reflection, spacing_ref=reference_spacing,
+    temperature = pu.bragg_temperature(spacing=planar_dist*10, reflection=reflection, spacing_ref=reference_spacing,
                                        temperature_ref=reference_temperature, use_q=False, material="Pt")
     fig.text(0.60, 0.05, f'Estimated T={temperature} C', size=20)
 if save:

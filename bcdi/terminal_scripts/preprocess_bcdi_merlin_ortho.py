@@ -1,4 +1,4 @@
-#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python
+#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python3
 # -*- coding: utf-8 -*-
 
 # BCDI: tools for pre(post)-processing Bragg coherent X-ray diffraction imaging data
@@ -99,9 +99,9 @@ template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R
 print("Template: ", template_imagefile)
 del scan
 
-# save_dir = scan_folder + "pynxraw/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
-save_dir = None # scan_folder/pynx/ or scan_folder/pynxraw/
-data_dirname = None # "/data"
+save_dir = scan_folder + "pynxraw_test/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
+# save_dir = None # defaults to scan_folder/pynx/ or scan_folder/pynxraw/
+data_dirname = None # defaults to /data
 
 # Save all the prints from the script
 stdoutOrigin=sys.stdout
@@ -138,29 +138,38 @@ user_comment = ''  # string, should start with "_"
 debug = False  # set to True to see plots
 binning = (1, 1, 1)  # binning to apply to the data
 # (stacking dimension, detector vertical axis, detector horizontal axis)
+
 ##############################
 # parameters used in masking #
 ##############################
 flag_interact = True  # True to interact with plots, False to close it automatically
 background_plot = '0.5'  # in level of grey in [0,1], 0 being dark. For visual comfort during masking
+
 #########################################################
 # parameters related to data cropping/padding/centering #
 #########################################################
 centering = 'max'  # Bragg peak determination: 'max' or 'com', 'max' is better usually.
 #  It will be overridden by 'fix_bragg' if not empty
-fix_bragg = []  # fix the Bragg peak position [z_bragg, y_bragg, x_bragg] considering the full detector
+# fix_bragg = []  # fix the Bragg peak position [z_bragg, y_bragg, x_bragg] considering the full detector
+fix_bragg = [99, 369, 197]
 # It is useful if hotpixels or intense aliens. Leave it [] otherwise.
-fix_size = []  # crop the array to predefined size considering the full detector,
-# leave it to [] otherwise [zstart, zstop, ystart, ystop, xstart, xstop]. ROI will be defaulted to []
-center_fft = 'crop_sym_ZYX'
+# fix_size = []  # crop the array to predefined size considering the full detector, ROI will be defaulted to [] and center_fft to "skip"
+FFT_size = [196, 288, 392] # Fix a good value for the ft size that can be syummetric around Bragg peak, not a bcdi parameter
+fix_size = [fix_bragg[0] - FFT_size[0]//2, fix_bragg[0] + FFT_size[0]//2,
+            fix_bragg[1] - FFT_size[1]//2, fix_bragg[1] + FFT_size[1]//2,
+            fix_bragg[2] - FFT_size[2]//2, fix_bragg[2] + FFT_size[2]//2]
+# leave it to [] otherwise [zstart, zstop, ystart, ystop, xstart, xstop]. 
+center_fft = 'skip'
 # 'crop_sym_ZYX','crop_asym_ZYX','pad_asym_Z_crop_sym_YX', 'pad_sym_Z_crop_asym_YX',
 # 'pad_sym_Z', 'pad_asym_Z', 'pad_sym_ZYX','pad_asym_ZYX' or 'skip'
 pad_size = []  # size after padding, e.g. [256, 512, 512]. Use this to pad the array.
 # used in 'pad_sym_Z_crop_sym_YX', 'pad_sym_Z', 'pad_sym_ZYX'
+
 ##############################################
 # parameters used in intensity normalization #
 ##############################################
 normalize_flux = 'skip'  # 'monitor' to normalize the intensity by the default monitor values, 'skip' to do nothing
+
 #################################
 # parameters for data filtering #
 #################################
@@ -171,6 +180,7 @@ flag_medianfilter = 'skip'
 # set to 'mask_isolated' it will mask isolated empty pixels
 # set to 'skip' will skip filtering
 medfilt_order = 8    # for custom median filter, number of pixels with intensity surrounding the empty pixel
+
 #################################################
 # parameters used when reloading processed data #
 #################################################
@@ -181,7 +191,7 @@ preprocessing_binning = (1, 1, 1)  # binning factors in each dimension of the bi
 ##################
 # saving options #
 ##################
-save_rawdata = False  # save also the raw data when use_rawdata is False
+save_rawdata = True  # save also the raw data when use_rawdata is False
 save_to_npz = True  # True to save the processed data in npz format
 save_to_mat = False  # True to save also in .mat format
 save_to_vti = False  # save the orthogonalized diffraction pattern to VTK file
@@ -200,8 +210,8 @@ is_series = True  # specific to series measurement at P10
 
 custom_scan = False  # set it to True for a stack of images acquired without scan, e.g. with ct in a macro, or when
 # there is no spec/log file available
-custom_images = [3]  # np.arange(11353, 11453, 1)  # list of image numbers for the custom_scan, None otherwise
-custom_monitor = np.ones(51)  # monitor values for normalization for the custom_scan, None otherwise
+custom_images = None  # np.arange(11353, 11453, 1)  # list of image numbers for the custom_scan, None otherwise
+custom_monitor = None  # monitor values for normalization for the custom_scan, None otherwise
 
 rocking_angle = "inplane"  # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
 # around y vertical up, "energy"
@@ -226,9 +236,6 @@ x_bragg = None  # horizontal pixel number of the Bragg peak, can be used for the
 y_bragg = None  # vertical pixel number of the Bragg peak, can be used for the definition of the ROI
 roi_detector = None
 # roi_detector = [y_bragg - 200, y_bragg + 200, x_bragg - 150, x_bragg + 150]
-# roi_detector = [y_bragg - 168, y_bragg + 168, x_bragg - 140, x_bragg + 140]  # CH5309
-# roi_detector = [552, 1064, x_bragg - 240, x_bragg + 240]  # P10 2018
-# roi_detector = [y_bragg - 290, y_bragg + 350, x_bragg - 350, x_bragg + 350]  # PtRh Ar
 # [Vstart, Vstop, Hstart, Hstop]
 # leave None to use the full detector. Use with center_fft='skip' if you want this exact size.
 photon_threshold = 0  # data[data < photon_threshold] = 0
@@ -273,7 +280,7 @@ custom_motors = None # {"mu": 18, "delta": 0, "gamma": 36}
 # 34ID: mu, phi (incident angle), chi, theta (inplane), delta (inplane), gamma (outofplane)
 
 #######################################################################################################
-# parameters when orthogonalizing the data before phasing  using the linearized transformation matrix #
+# parameters when orthogonalizing the data before phasing using the linearized transformation matrix #
 #######################################################################################################
 align_q = True  # used only when interp_method is 'linearization', if True it rotates the crystal to align q
 # along one axis of the array
@@ -303,8 +310,8 @@ sample_inplane = (1, 0, 0)  # sample inplane reference direction along the beam 
 sample_outofplane = (0, 0, 1)  # surface normal of the sample at 0 angles in xrayutilities frame
 #sample_outofplane = (0, 0, 0)  # surface normal of the sample at 0 angles in xrayutilities frame
 offset_inplane = 0  # outer detector angle offset as determined by xrayutilities area detector initialization
-cch1 = 256  # direct beam vertical position in the full unbinned detector for xrayutilities 2D detector calibration
-cch2 = 256  # direct beam horizontal position in the full unbinned detector for xrayutilities 2D detector calibration
+cch1 = 271  # direct beam vertical position in the full unbinned detector for xrayutilities 2D detector calibration
+cch2 = 213  # direct beam horizontal position in the full unbinned detector for xrayutilities 2D detector calibration
 detrot = 0  # detrot parameter from xrayutilities 2D detector calibration
 tiltazimuth = 360  # tiltazimuth parameter from xrayutilities 2D detector calibration
 tilt = 0  # tilt parameter from xrayutilities 2D detector calibration

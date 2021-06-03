@@ -40,7 +40,7 @@ python Scripts/slice_cxi.py NoGas/SBS/S189/pynxraw/all/ Module 2D mid
 """
  
 # Print all arguments
-print ('Argument List:', str(sys.argv))
+print('Argument List:', str(sys.argv))
  
 # Print arguments one by one
 scan_dir = os.getcwd() + "/" + sys.argv[1]
@@ -49,8 +49,8 @@ PlottedDimensions = sys.argv[3] # options = [("2D plot", "2D"), ("2D contour plo
 PlottedIndex =  sys.argv[4] # mid
 
 print("Scan directory", scan_dir)
-print ('Plotted Value:',  PlottedValue)
-print ('Plotting dimensions:', PlottedDimensions)
+print('Plotted Value:',  PlottedValue)
+print('Plotting dimensions:', PlottedDimensions)
 print("Index for slice:", PlottedIndex)
 
 def Plotting(scan_dir, datapath, PlottedValue, PlottedAxes, PlottedDimensions, PlottedIndex):
