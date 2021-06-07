@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python
 
 # BCDI: tools for pre(post)-processing Bragg coherent X-ray diffraction imaging data
 #   (c) 07/2017-06/2019 : CNRS UMR 7344 IM2NP
@@ -35,15 +34,57 @@ Input: a reconstruction .npz file with fields: 'amp' and 'strain'
 Output: a log file with strain statistics by plane, a VTK file for 3D visualization of detected planes.
 """
 
-scan = 1585  # spec scan number
-datadir = "C:/Users/carnisj/Documents/data/david/S" + str(scan) + '/'
+
+"""Part of script to allow systematic use
+defining scan, root_folder, savedir, comment, sample_name and template_imagefile
+Remember to get the correct angles from the correct_anbfgles_detector.py script"""
+
+import ast
+import glob
+import sys
+
+# Print help
+try:
+    print ('Data dir:',  sys.argv[1])
+    print ('Scan:',  sys.argv[2])
+except IndexError:
+    print("""
+        Arg 1: Path of target directory (before /S{scan} ... )
+        Arg 2: Scan(s) number, list or single value
+        """)
+    exit()
+
+scan = int(sys.argv[2])
+sample_name = "S"  # str or list of str of sample names (string in front of the scan number in the folder name).
+
+# Folder of the experiment, where all scans are stored
+root_folder = os.getcwd() + "/" + sys.argv[1] 
+print("Root folder:", root_folder)
+
+# Scan folder
+datadir = root_folder + f"{sample_name}{scan}/"
+print("Scan folder:", datadir)
+
+savedir = datadir + "postprocessing/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
+print("Save folder:", savedir)
+
+# Save all the prints from the script
+stdoutOrigin=sys.stdout
+
+README_file = f"{savedir}README_facets.md"
+
+with open(README_file, 'w') as outfile:
+    outfile.write("```bash\n")
+sys.stdout = open(README_file, "a")
+
+"""end of personal script"""
+
 support_threshold = 0.35  # threshold for support determination
 voxel_size = [11.4, 10.4, 11.3]   # tuple of 3 numbers, voxel size of the real-space reconstruction in each dimension
 upsampling_factor = 2  # integer, factor for upsampling the reconstruction in order to have a smoother surface
-savedir = datadir
 reflection = np.array([1, 1, 1])  # measured crystallographic reflection
 projection_axis = 1  # the projection will be performed on the equatorial plane perpendicular to that axis (0, 1 or 2)
-debug = False  # set to True to see all plots for debugging
+debug = False  # set to True to see all plots for debugging, crashes
 smoothing_iterations = 5  # number of iterations in Taubin smoothing, bugs if smoothing_iterations larger than 10
 smooth_lamda = 0.33  # lambda parameter in Taubin smoothing
 smooth_mu = 0.34  # mu parameter in Taubin smoothing
@@ -139,7 +180,7 @@ if upsampling_factor > 1:
 #####################################################################
 # Use marching cubes to obtain the surface mesh of these ellipsoids #
 #####################################################################
-vertices_old, faces, _, _ = measure.marching_cubes_lewiner(amp, level=support_threshold, allow_degenerate=False,
+vertices_old, faces, _, _ = measure.marching_cubes(amp, level=support_threshold, allow_degenerate=False,
                                                            step_size=1)
 # vertices_old is a list of 3d coordinates of all vertices points
 # faces is a list of facets defined by the indices of 3 vertices_old
@@ -376,7 +417,8 @@ if debug:
 edges[edges > edges_coord] = 0  # remove facets and bulk
 edges[np.nonzero(edges)] = 1  # edge support
 gu.scatter_plot(array=np.asarray(np.nonzero(edges)).T, markersize=2, markercolor='b',
-                labels=('axis 0', 'axis 1', 'axis 2'), title='edges')
+                labels=('axis 0', 'axis 1', 'axis 2'), title='edges',
+                save_as = savedir + "edges.png")
 
 ########################################################
 # define corners using the coordination number of voxels #
@@ -388,7 +430,8 @@ if debug:
 corners[corners > corners_coord] = 0  # remove edges, facets and bulk
 corners[np.nonzero(corners)] = 1  # corner support
 gu.scatter_plot(array=np.asarray(np.nonzero(corners)).T, markersize=2, markercolor='b',
-                labels=('axis 0', 'axis 1', 'axis 2'), title='corners')
+                labels=('axis 0', 'axis 1', 'axis 2'), title='corners',
+                save_as = savedir + "corners.png")
 
 ######################################
 # Initialize log files and .vti file #
@@ -770,9 +813,12 @@ for label in summary_dict.keys():
                                      np.concatenate((surf0[:, np.newaxis],
                                                      surf1[:, np.newaxis],
                                                      surf2[:, np.newaxis]), axis=1)),
-                             markersizes=(8, 2), markercolors=('b', 'r'), labels=('axis 0', 'axis 1', 'axis 2'),
-                             title='Final plane' + str(label) + ' after checking for duplicates\nPoints number='
-                                   + str(nb_points))
+                            markersizes=(8, 2),
+                            markercolors=('b', 'r'),
+                            labels=('axis 0', 'axis 1', 'axis 2'),
+                            title='Final plane ' + str(label) + ' after checking for duplicates\nPoints number='
+                                   + str(nb_points),
+                            save_as = f"{savedir}plane_{label}.png")
 
     fu.update_logfile(support=plane, strain_array=strain, summary_file=summary_file, allpoints_file=allpoints_file,
                       label=label, angle_plane=summary_dict[label]['angle_plane'],
@@ -800,6 +846,17 @@ writer = vtk.vtkXMLImageDataWriter()
 writer.SetFileName(os.path.join(savedir, "S" + str(scan) + "_refined planes_iso" + str(support_threshold) + ".vti"))
 writer.SetInputData(image_data)
 writer.Write()
+
+
+# # Added script
+sys.stdout.close()
+sys.stdout=stdoutOrigin
+
+with open(README_file, 'a') as outfile:
+    outfile.write("```")
+# End of added script
+
+
 print('\nEnd of script')
 plt.ioff()
 plt.show()

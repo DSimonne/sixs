@@ -74,7 +74,7 @@ template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R
 print("Template: ", template_imagefile)
 
 # Saving directory
-save_dir = scan_folder + "postprocessing/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
+save_dir = scan_folder + "postprocessing/corrections/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
 
 # Save all the prints from the script
 stdoutOrigin=sys.stdout

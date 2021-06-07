@@ -45,7 +45,6 @@ In arrays, when plotting the first parameter is the row (vertical axis), and the
 Therefore the data structure is data[qx, qz, qy] for reciprocal space, or data[z, y, x] for real space
 """
 
-
 """Part of script to allow systematic use
 defining scan, root_folder, save_dir, comment, sample_name and template_imagefile
 Remember to get the correct angles from the correct_anbfgles_detector.py script"""
