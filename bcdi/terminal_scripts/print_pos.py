@@ -1,4 +1,4 @@
-#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python
+#!/usr/bin/python3
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -9,10 +9,19 @@ import sys
 import os
 import glob
 
+# Print help
+try:
+    print ('Glob string',  sys.argv[1])
+except IndexError:
+    print("""
+        Arg 1: Glob string to seach for, try "path/to/data/*.nxs"
+        """)
+    exit()
+
 try:
 	cd = os.getcwd()
-	print ('Scan (s):',  sys.argv[1])
 	scans = glob.glob(sys.argv[1])
+	print(scans)
 
 except IndexError:
     print("""
@@ -21,6 +30,7 @@ except IndexError:
     exit()
 
 def find_pos(filename):
+	print(f"Opening {filename}")
 	data = rd.DataSet(filename)
 
 	# print("x:", np.round(data.x[0], 3))
@@ -45,7 +55,16 @@ def find_pos(filename):
 	# print("ssl1hg:", np.round(data.ssl1hg[0], 3))
 	# print("ssl1vg:", np.round(data.ssl1vg[0], 3))
 
+	try:
+		scan_number = int(filename.split("_mu_")[-1].split(".nxs")[0])
+		rotation = 0
+	except ValueError:
+		scan_number = int(filename.split("_mu_")[-1].split("_R.nxs")[0])
+		rotation = 1
+
 	metadata = [
+			scan_number,
+			rotation,
 	        data.x[0],
 	        data.y[0],
 	        data.z[0],
@@ -69,7 +88,7 @@ def find_pos(filename):
 
 pos = np.array([find_pos(nb) for nb in scans])
 
-data = pd.DataFrame(pos, columns = ["x", "y", "z", "mu", "delta", "omega", "gamma", 'gamma-mu',
+data = pd.DataFrame(pos, columns = ["scan", "rotation", "x", "y", "z", "mu", "delta", "omega", "gamma", 'gamma-mu',
                                     "roi1_sum", "roi4_sum", "step size", "integration time", "nb of steps",
                                     "ssl1vg", "ss1hg", "ssl3vg", "sslhg"], dtype=float)
 data = data.round(3)

@@ -1,4 +1,4 @@
-#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python
+#!/usr/bin/python3
 import os
 import shutil
 import sys

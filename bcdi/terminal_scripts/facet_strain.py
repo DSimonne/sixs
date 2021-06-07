@@ -1,4 +1,4 @@
-#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python
+#!/usr/bin/python3
 
 # BCDI: tools for pre(post)-processing Bragg coherent X-ray diffraction imaging data
 #   (c) 07/2017-06/2019 : CNRS UMR 7344 IM2NP

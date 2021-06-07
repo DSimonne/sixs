@@ -1,4 +1,4 @@
-#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python3
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # BCDI: tools for pre(post)-processing Bragg coherent X-ray diffraction imaging data
@@ -75,6 +75,9 @@ print("Template: ", template_imagefile)
 
 # Saving directory
 save_dir = scan_folder + "postprocessing/corrections/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
+
+# CSV file if iterating on scans
+csv_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/Pt_Al2O3/temp_ramp_data.csv"
 
 # Save all the prints from the script
 stdoutOrigin=sys.stdout
@@ -368,7 +371,7 @@ with open(README_file, 'a') as outfile:
     outfile.write("```")
 
 # save data
-with open("/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/Pt_Al2O3/temp_ramp_data.csv", "a") as f:
+with open(csv_file, "a") as f:
     f.write(f"{scan};{q};{qnorm};{dist_plane};{bragg_inplane:.4f};{bragg_outofplane:.4f}\n")
 
 # End of added script

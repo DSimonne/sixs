@@ -1,4 +1,4 @@
-#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python
+#!/usr/bin/python3
 import sys
 import numpy as np
 import tables as tb
@@ -35,23 +35,23 @@ mpl.rcParams['ytick.major.size'] = 10
 mpl.rcParams['ytick.major.width'] = 2
 mpl.rcParams['ytick.direction'] = 'out'
 
-"""Python script to show slices of cxi files
-python Scripts/slice_cxi.py NoGas/SBS/S189/pynxraw/all/ Module 2D mid
-"""
- 
-# Print all arguments
-print('Argument List:', str(sys.argv))
- 
-# Print arguments one by one
-scan_dir = os.getcwd() + "/" + sys.argv[1]
-PlottedValue = sys.argv[2] # Module
-PlottedDimensions = sys.argv[3] # options = [("2D plot", "2D"), ("2D contour plot", "2DC"),("3D surface plot", "3D")],
-PlottedIndex =  sys.argv[4] # mid
 
-print("Scan directory", scan_dir)
-print('Plotted Value:',  PlottedValue)
-print('Plotting dimensions:', PlottedDimensions)
-print("Index for slice:", PlottedIndex)
+# Print help
+try:
+    print ('Data dir:',  sys.argv[1])
+    print ('Plotted Value:',  sys.argv[2])
+    print ('Plot type:',  sys.argv[3])
+	print ("Index for slice:", sys.argv[4])
+
+except IndexError:
+    print("""
+        Arg 1: Path of target directory (before /S{scan} ... )
+        Arg 2: Real/Imaginary/Module/Phase
+        Arg 3: 2D / 2DC (contour or normal plot)
+        Arg 4: index of slice ("mid" takes the middle of each axis for the projection)
+        """)
+    exit()
+
 
 def Plotting(scan_dir, datapath, PlottedValue, PlottedAxes, PlottedDimensions, PlottedIndex):
 	"""Interactive function to plot the cxi files, only open in read mode"""
