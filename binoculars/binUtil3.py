@@ -377,16 +377,19 @@ class hdf5load(object):
                 #interpolation="nearest",
                 origin="lower",
                 #aspect = 'auto',
-                norm = LogNorm(vmin = vmin, vmax = vmax),
+                norm = LogNorm(vmin = 1e-2, vmax = 1e1),
                 extent=[axe1.min(),axe1.max(),axe2.min(),axe2.max()]
                 )
-            plt.xlabel(axe_name1, fontsize = 20)
-            plt.ylabel(axe_name2, fontsize = 20)
-            plt.xticks(fontsize = 20)
-            plt.yticks(fontsize = 20)
-            plt.colorbar(
-                #orientation="horizontal",
+            plt.xlabel(axe_name1, fontsize = 30)
+            plt.ylabel(axe_name2, fontsize = 30)
+            plt.xticks(fontsize = 30)
+            plt.yticks(fontsize = 30)
+            cbar = plt.colorbar(
+                # orientation="horizontal",
                 pad=0.1)
+
+            cbar.ax.tick_params(labelsize=30)
+
             plt.tight_layout()
      
         if save =='YES':

@@ -750,16 +750,16 @@ class XCAT():
 			plt.xlim(zoom[0], zoom[1])
 			plt.ylim(zoom[2], zoom[3])
 
-			plt.title(title, fontsize=26)
+			# plt.title(title, fontsize=26)
 
-			plt.xlabel('Time (h)',fontsize = 25)
-			plt.ylabel('Pressure (mBar)',fontsize = 25)
+			plt.xlabel('Time (h)',fontsize = 35)
+			plt.ylabel('Pressure (mBar)',fontsize = 35)
 			if legend:
 				plt.legend(bbox_to_anchor=(1.15, 1), loc="upper right",
 				       ncol=1, fontsize = 20, fancybox = True)
 
-			plt.xticks(fontsize = 20)
-			plt.yticks(fontsize = 20)
+			plt.xticks(fontsize = 30)
+			plt.yticks(fontsize = 30)
 			plt.grid(b=True, which='major', color='b', linestyle='-')
 			plt.grid(b=True, which='minor', color=mcolors.CSS4_COLORS["teal"], linestyle='--')
 
