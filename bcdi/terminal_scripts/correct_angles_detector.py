@@ -301,24 +301,32 @@ bragg_y = detector.roi[0] + y0  # convert it in full detector pixel
 
 x_direct_0 = directbeam_x + setup.inplane_coeff *\
              (direct_inplane*np.pi/180*sdd/detector.pixelsize_x)  # inplane_coeff is +1 or -1
+
 y_direct_0 = directbeam_y - setup.outofplane_coeff *\
              direct_outofplane*np.pi/180*sdd/detector.pixelsize_y   # outofplane_coeff is +1 or -1
 
 print(f'\nDirect beam at (gam={direct_inplane}, del={direct_outofplane}) (X, Y): {directbeam_x}, {directbeam_y}')
 print(f'Direct beam at (gam=0, del=0) (X, Y): ({x_direct_0:.2f}, {y_direct_0:.2f})')
-print(f'\nBragg peak at (gam={setup.inplane_angle}, del={setup.outofplane_angle}) (X, Y): ({bragg_x:.2f}, {bragg_y:.2f})')
 
 bragg_inplane = setup.inplane_angle + setup.inplane_coeff *\
                 (detector.pixelsize_x*(bragg_x-x_direct_0)/sdd*180/np.pi)  # inplane_coeff is +1 or -1
+
+print("bragg_inplane", bragg_inplane)
 bragg_outofplane = setup.outofplane_angle - setup.outofplane_coeff *\
                    detector.pixelsize_y*(bragg_y-y_direct_0)/sdd*180/np.pi   # outofplane_coeff is +1 or -1
+print("bragg_outofplane", bragg_outofplane)
+
+print("inplane",setup.inplane_angle, setup.inplane_coeff, detector.pixelsize_x, bragg_x, x_direct_0, sdd)
+print("outofplane",setup.outofplane_angle, setup.outofplane_coeff, detector.pixelsize_y, bragg_y, y_direct_0, sdd)
 
 print(f'\nBragg angles before correction (gam, del): ({setup.inplane_angle:.4f}, {setup.outofplane_angle:.4f})')
 print(f'Bragg angles after correction (gam, del): ({bragg_inplane:.4f}, {bragg_outofplane:.4f})')
 
-# update setup with the corrected detector angles
+# update setup with the corrected detector angles, calculates new q automatically
 setup.inplane_angle = bragg_inplane
 setup.outofplane_angle = bragg_outofplane
+
+print(f'\nBragg peak at (gam={setup.inplane_angle}, del={setup.outofplane_angle}) (X, Y): ({bragg_x:.2f}, {bragg_y:.2f})')
 
 print(f'\nGrazing angle(s) = {setup.grazing_angle} deg')
 print(f'Rocking step = {setup.tilt_angle:.5f} deg')
