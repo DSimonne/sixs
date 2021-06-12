@@ -38,20 +38,24 @@ mpl.rcParams['ytick.direction'] = 'out'
 
 # Print help
 try:
-    print ('Data dir:',  sys.argv[1])
-    print ('Plotted Value:',  sys.argv[2])
-    print ('Plot type:',  sys.argv[3])
+	print ('Data dir:',  sys.argv[1])
+	print ('Plotted Value:',  sys.argv[2])
+	print ('Plot type:',  sys.argv[3])
 	print ("Index for slice:", sys.argv[4])
 
 except IndexError:
     print("""
-        Arg 1: Path of target directory (before /S{scan} ... )
+        Arg 1: Path to directory with cxi files
         Arg 2: Real/Imaginary/Module/Phase
         Arg 3: 2D / 2DC (contour or normal plot)
         Arg 4: index of slice ("mid" takes the middle of each axis for the projection)
         """)
     exit()
 
+scan_dir = sys.argv[1]
+PlottedValue = sys.argv[2]
+PlottedDimensions = sys.argv[3]
+PlottedIndex = sys.argv[4]
 
 def Plotting(scan_dir, datapath, PlottedValue, PlottedAxes, PlottedDimensions, PlottedIndex):
 	"""Interactive function to plot the cxi files, only open in read mode"""
@@ -161,14 +165,14 @@ def Plotting(scan_dir, datapath, PlottedValue, PlottedAxes, PlottedDimensions, P
 	    cbar.set_ticks(ticks)
 	    cbar.set_ticklabels(tickslabel)
 	    if PlottedAxes == "xy":
-	        plt.savefig(f"{scan_dir}images/xy/{run}_{PlottedAxes}_{i}_2D.png")
-	        print(f"Saved as {scan_dir}images/xy/{run}_{PlottedAxes}_{i}_2D.png")
+	        plt.savefig(f"{scan_dir}slices/xy/{run}_{PlottedAxes}_{i}_2D.png")
+	        print(f"Saved as {scan_dir}slices/xy/{run}_{PlottedAxes}_{i}_2D.png")
 	    elif PlottedAxes == "yz":
-	        plt.savefig(f"{scan_dir}images/yz/{run}_{PlottedAxes}_{i}_2D.png")
-	        print(f"Saved as {scan_dir}images/yz/{run}_{PlottedAxes}_{i}_2D.png")
+	        plt.savefig(f"{scan_dir}slices/yz/{run}_{PlottedAxes}_{i}_2D.png")
+	        print(f"Saved as {scan_dir}slices/yz/{run}_{PlottedAxes}_{i}_2D.png")
 	    elif PlottedAxes == "zx":
-	        plt.savefig(f"{scan_dir}images/zx/{run}_{PlottedAxes}_{i}_2D.png")
-	        print(f"Saved as {scan_dir}images/zx/{run}_{PlottedAxes}_{i}_2D.png") 
+	        plt.savefig(f"{scan_dir}slices/zx/{run}_{PlottedAxes}_{i}_2D.png")
+	        print(f"Saved as {scan_dir}slices/zx/{run}_{PlottedAxes}_{i}_2D.png") 
 
 	elif PlottedDimensions == "2DC" :
 	    plt.close()
@@ -196,14 +200,14 @@ def Plotting(scan_dir, datapath, PlottedValue, PlottedAxes, PlottedDimensions, P
 	        cbar.set_ticks(ticks)
 	        cbar.set_ticklabels(tickslabel)
 	        if PlottedAxes == "xy":
-	            plt.savefig(f"{scan_dir}images/xy/{run}_{PlottedAxes}_{i}_2DC.png")
-	            print(f"Saved as {scan_dir}images/xy/{run}_{PlottedAxes}_{i}_2DC.png")
+	            plt.savefig(f"{scan_dir}slices/xy/{run}_{PlottedAxes}_{i}_2DC.png")
+	            print(f"Saved as {scan_dir}slices/xy/{run}_{PlottedAxes}_{i}_2DC.png")
 	        elif PlottedAxes == "yz":
-	            plt.savefig(f"{scan_dir}images/yz/{run}_{PlottedAxes}_{i}_2DC.png")
-	            print(f"Saved as {scan_dir}images/yz/{run}_{PlottedAxes}_{i}_2DC.png")
+	            plt.savefig(f"{scan_dir}slices/yz/{run}_{PlottedAxes}_{i}_2DC.png")
+	            print(f"Saved as {scan_dir}slices/yz/{run}_{PlottedAxes}_{i}_2DC.png")
 	        elif PlottedAxes == "zx":
-	            plt.savefig(f"{scan_dir}images/zx/{run}_{PlottedAxes}_{i}_2DC.png")
-	            print(f"Saved as {scan_dir}images/zx/{run}_{PlottedAxes}_{i}_2DC.png")      
+	            plt.savefig(f"{scan_dir}slices/zx/{run}_{PlottedAxes}_{i}_2DC.png")
+	            print(f"Saved as {scan_dir}slices/zx/{run}_{PlottedAxes}_{i}_2DC.png")      
 	            #plt.show()
 
 	    except IndexError:
@@ -212,10 +216,10 @@ def Plotting(scan_dir, datapath, PlottedValue, PlottedAxes, PlottedDimensions, P
 
 
 try:
-	os.mkdir(f"{scan_dir}images")
-	os.mkdir(f"{scan_dir}images/xy")
-	os.mkdir(f"{scan_dir}images/yz")
-	os.mkdir(f"{scan_dir}images/zx")
+	os.mkdir(f"{scan_dir}slices")
+	os.mkdir(f"{scan_dir}slices/xy")
+	os.mkdir(f"{scan_dir}slices/yz")
+	os.mkdir(f"{scan_dir}slices/zx")
 
 except FileExistsError:
     pass

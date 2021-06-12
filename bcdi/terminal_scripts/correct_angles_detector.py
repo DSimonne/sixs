@@ -77,13 +77,19 @@ print("Template: ", template_imagefile)
 save_dir = scan_folder + "postprocessing/corrections/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
 
 # CSV file if iterating on scans
-csv_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/Pt_Al2O3/temp_ramp_data.csv"
+csv_file = "/home/experiences/sixs/simonne/Documents/SIXS_Jan_2021/Pt_Al2O3/temp_ramp_data.csv"
 
 # Save all the prints from the script
 stdoutOrigin=sys.stdout
 
 README_file = f"{save_dir}README_correct_angles.md"
 print("Save folder:", save_dir)
+
+try:
+    os.mkdir(scan_folder + "postprocessing")
+except:
+    pass
+
 try:
     os.mkdir(save_dir)
 except:
@@ -124,7 +130,7 @@ custom_motors = None
 # P10: om, phi, chi, mu, gamma, delta
 # SIXS: beta, mu, gamma, delta
 rocking_angle = "inplane"  # "outofplane" or "inplane"
-specfile_name = "/home/david/.local/lib/python3.9/site-packages/phdutils/sixs/alias_dict_2021.txt"
+specfile_name = "/home/experiences/sixs/simonne/Packages/lib/python3.7/site-packages/phdutils/sixs/alias_dict_2021.txt"
 # template for ID01: name of the spec file without '.spec'
 # template for SIXS_2018: full path of the alias dictionnary 'alias_dict.txt', typically: root_folder + 'alias_dict.txt'
 # template for all other beamlines: ''
@@ -140,7 +146,7 @@ roi_detector = None
 # [y_bragg - 290, y_bragg + 350, x_bragg - 350, x_bragg + 350]  # Ar  # HC3207  x_bragg = 430
 # leave it as None to use the full detector. Use with center_fft='do_nothing' if you want this exact size.
 high_threshold = 1000000  # everything above will be considered as hotpixel
-hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
+hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_Jan_2021/masks/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
 # template_imagefile ="Pt_Al2O3_ascan_mu_%05d_R.nxs"
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
@@ -176,6 +182,7 @@ reference_temperature = None  # used to calibrate the thermal expansion, if None
 ##########################################################
 # end of user parameters
 ##########################################################
+
 plt.ion()
 #######################
 # Initialize detector #
@@ -186,20 +193,19 @@ detector = exp.Detector(name=detector, template_imagefile=template_imagefile, ro
 ####################
 # Initialize setup #
 ####################
-setup = exp.Setup(beamline=beamline, energy=energy, rocking_angle=rocking_angle, distance=sdd,
+setup = exp.Setup(beamline=beamline, detector=detector, energy=energy, rocking_angle=rocking_angle, distance=sdd,
                   beam_direction=beam_direction, custom_scan=custom_scan, custom_images=custom_images,
-                  custom_monitor=custom_monitor, custom_motors=custom_motors, pixel_x=detector.pixelsize_x,
-                  pixel_y=detector.pixelsize_y, sample_offsets=sample_offsets, actuators=actuators)
+                  custom_monitor=custom_monitor, custom_motors=custom_motors, sample_offsets=sample_offsets,
+                  actuators=actuators)
 
 ########################################
 # Initialize the paths and the logfile #
 ########################################
 # initialize the paths
-setup.init_paths(detector=detector, sample_name=sample_name, scan_number=scan, root_folder=root_folder, save_dir=None,
+setup.init_paths(sample_name=sample_name, scan_number=scan, root_folder=root_folder, save_dir=None,
                  create_savedir=False, specfile_name=specfile_name, template_imagefile=template_imagefile, verbose=True)
 
-logfile = pru.create_logfile(setup=setup, detector=detector, scan_number=scan, root_folder=root_folder,
-                             filename=detector.specfile)
+logfile = setup.create_logfile(scan_number=scan, root_folder=root_folder, filename=detector.specfile)
 
 #################
 # load the data #
@@ -237,7 +243,7 @@ if high_threshold != 0:
     print(f'Applying photon threshold, {nb_thresholded} high intensity pixels masked')
 
 ###############################
-# load releavant motor values #
+# load relevant motor values #
 ###############################
 tilt_values, setup.grazing_angle, setup.inplane_angle, setup.outofplane_angle = \
     setup.diffractometer.goniometer_values(logfile=logfile, scan_number=scan, setup=setup,
@@ -358,9 +364,10 @@ dz_realspace, dy_realspace, dx_realspace = setup.voxel_sizes((nb_frames, numy, n
 #################################
 plt.figure()
 plt.imshow(np.log10(abs(data[int(round(z0)), :, :])), vmin=0, vmax=5)
-plt.scatter(bragg_x, bragg_y, color='r', alpha = 0.7, linewidth = 1)
 plt.title(f'Central slice at frame {int(np.rint(z0))}')
 plt.colorbar()
+
+plt.scatter(bragg_x, bragg_y, color='r', alpha = 0.7, linewidth = 1)
 plt.savefig(save_dir + "central_slice.png")
 
 # Added script
@@ -378,4 +385,4 @@ with open(csv_file, "a") as f:
 
 print("End of script \n")
 plt.ioff()
-# plt.show()
+plt.show()
