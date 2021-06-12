@@ -94,13 +94,13 @@ data_folder = scan_folder + "data/" # folder of the experiment, where all scans 
 print("Data folder:", data_folder)
 
 # template_imagefile = 'NoMirror_ascan_mu_%05d_R.nxs'
-filename = glob.glob(f"{data_folder}*mu*{scan}*")[0]
+filename = glob.glob(f"{data_folder}*omega*{scan}*")[0]
 template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R.nxs"
 print("Template: ", template_imagefile)
 del scan
 
-save_dir = scan_folder + "pynxraw_test/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
-# save_dir = None # defaults to scan_folder/pynx/ or scan_folder/pynxraw/
+# save_dir = scan_folder + "pynxraw_test/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
+save_dir = None # defaults to scan_folder/pynx/ or scan_folder/pynxraw/
 data_dirname = None # defaults to /data
 
 # Save all the prints from the script
@@ -122,7 +122,7 @@ sys.stdout = open(README_file, "a")
 """end of personal script"""
 
 
-# np.arange(1401, 1419+1, 3)  # scan number or list of scan numbers
+# scans = 76 # np.arange(1401, 1419+1, 3)  # scan number or list of scan numbers
 # scans = np.concatenate((scans, np.arange(1147, 1195+1, 3)))
 # bad_indices = np.argwhere(scans == 738)
 # scans = np.delete(scans, bad_indices)
@@ -150,16 +150,16 @@ background_plot = '0.5'  # in level of grey in [0,1], 0 being dark. For visual c
 #########################################################
 centering = 'max'  # Bragg peak determination: 'max' or 'com', 'max' is better usually.
 #  It will be overridden by 'fix_bragg' if not empty
-# fix_bragg = []  # fix the Bragg peak position [z_bragg, y_bragg, x_bragg] considering the full detector
-fix_bragg = [99, 369, 197]
+fix_bragg = []  # fix the Bragg peak position [z_bragg, y_bragg, x_bragg] considering the full detector
+# fix_bragg = [99, 369, 197]
 # It is useful if hotpixels or intense aliens. Leave it [] otherwise.
-# fix_size = []  # crop the array to predefined size considering the full detector, ROI will be defaulted to [] and center_fft to "skip"
-FFT_size = [196, 288, 392] # Fix a good value for the ft size that can be syummetric around Bragg peak, not a bcdi parameter
-fix_size = [fix_bragg[0] - FFT_size[0]//2, fix_bragg[0] + FFT_size[0]//2,
-            fix_bragg[1] - FFT_size[1]//2, fix_bragg[1] + FFT_size[1]//2,
-            fix_bragg[2] - FFT_size[2]//2, fix_bragg[2] + FFT_size[2]//2]
+fix_size = []  # crop the array to predefined size considering the full detector, ROI will be defaulted to [] and center_fft to "skip"
+# FFT_size = [196, 288, 392] # Fix a good value for the ft size that can be symmetric around Bragg peak, not a bcdi parameter
+# fix_size = [fix_bragg[0] - FFT_size[0]//2, fix_bragg[0] + FFT_size[0]//2,
+#             fix_bragg[1] - FFT_size[1]//2, fix_bragg[1] + FFT_size[1]//2,
+#             fix_bragg[2] - FFT_size[2]//2, fix_bragg[2] + FFT_size[2]//2]
 # leave it to [] otherwise [zstart, zstop, ystart, ystop, xstart, xstop]. 
-center_fft = 'skip'
+center_fft = 'crop_sym_ZYX'
 # 'crop_sym_ZYX','crop_asym_ZYX','pad_asym_Z_crop_sym_YX', 'pad_sym_Z_crop_asym_YX',
 # 'pad_sym_Z', 'pad_asym_Z', 'pad_sym_ZYX','pad_asym_ZYX' or 'skip'
 pad_size = []  # size after padding, e.g. [256, 512, 512]. Use this to pad the array.
@@ -179,7 +179,7 @@ flag_medianfilter = 'skip'
 # set to 'interp_isolated' to interpolate isolated empty pixels based on 'medfilt_order' parameter
 # set to 'mask_isolated' it will mask isolated empty pixels
 # set to 'skip' will skip filtering
-medfilt_order = 8    # for custom median filter, number of pixels with intensity surrounding the empty pixel
+medfilt_order = 7   # for custom median filter, number of pixels with intensity surrounding the empty pixel
 
 #################################################
 # parameters used when reloading processed data #
@@ -242,7 +242,8 @@ photon_threshold = 0  # data[data < photon_threshold] = 0
 photon_filter = 'loading'  # 'loading' or 'postprocessing', when the photon threshold should be applied
 # if 'loading', it is applied before binning; if 'postprocessing', it is applied at the end of the script before saving
 background_file = None  # root_folder + 'background.npz'  # non empty file path or None
-hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
+# hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"
+hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_June_2021_flipped.npy"
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
 # template_imagefile = 'Pt_Al2O3_ascan_mu_%05d_R.nxs'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
@@ -285,8 +286,9 @@ custom_motors = None # {"mu": 18, "delta": 0, "gamma": 36}
 align_q = True  # used only when interp_method is 'linearization', if True it rotates the crystal to align q
 # along one axis of the array
 ref_axis_q = "y"  # q will be aligned along that axis
+use_central_pixel = False
 
-if beamline == "SIXS_2019":
+if use_central_pixel:
     print("Using angles from file:", glob.glob(data_folder + "*.nxs")[0])
     from phdutils.sixs import ReadNxs4 as rd
     data = rd.DataSet(glob.glob(data_folder + "*.nxs")[0])
@@ -297,6 +299,7 @@ if beamline == "SIXS_2019":
     del data
 
 else:
+    # calculate the correct angles beforehand !!
     outofplane_angle = 0.224  # detector angle in deg (rotation around x outboard, typically delta),
     # corrected for the direct beam position. Leave None to use the uncorrected position.
     inplane_angle = 37.493  # detector angle in deg(rotation around y vertical up, typically gamma),
@@ -305,10 +308,10 @@ else:
 #########################################################################
 # parameters for xrayutilities to orthogonalize the data before phasing #
 #########################################################################
+# Make sure the central pixel is right !!
 # xrayutilities uses the xyz crystal frame: for incident angle = 0, x is downstream, y outboard, and z vertical up
 sample_inplane = (1, 0, 0)  # sample inplane reference direction along the beam at 0 angles in xrayutilities frame
 sample_outofplane = (0, 0, 1)  # surface normal of the sample at 0 angles in xrayutilities frame
-#sample_outofplane = (0, 0, 0)  # surface normal of the sample at 0 angles in xrayutilities frame
 offset_inplane = 0  # outer detector angle offset as determined by xrayutilities area detector initialization
 cch1 = 271  # direct beam vertical position in the full unbinned detector for xrayutilities 2D detector calibration
 cch2 = 213  # direct beam horizontal position in the full unbinned detector for xrayutilities 2D detector calibration
@@ -518,12 +521,11 @@ detector = exp.Detector(name=detector, template_imagefile=template_imagefile, ro
 ####################
 # Initialize setup #
 ####################
-setup = exp.Setup(beamline=beamline, energy=energy, rocking_angle=rocking_angle, distance=sdd,
+setup = exp.Setup(beamline=beamline, detector=detector, energy=energy, rocking_angle=rocking_angle, distance=sdd,
                   beam_direction=beam_direction, sample_inplane=sample_inplane,
                   sample_outofplane=sample_outofplane, offset_inplane=offset_inplane,
                   custom_scan=custom_scan, custom_images=custom_images, sample_offsets=sample_offsets,
-                  custom_monitor=custom_monitor, custom_motors=custom_motors,
-                  pixel_x=detector.pixelsize_x, pixel_y=detector.pixelsize_y, actuators=actuators)
+                  custom_monitor=custom_monitor, custom_motors=custom_motors, actuators=actuators)
 
 ########################################
 # print the current setup and detector #
@@ -554,13 +556,12 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
     print(f'\n{"#" * len(tmp_str)}\n' + tmp_str + '\n' + f'{"#" * len(tmp_str)}')
 
     # initialize the paths
-    setup.init_paths(detector=detector, sample_name=sample_name[scan_idx-1], scan_number=scan_nb,
-                     data_dirname=data_dirname, root_folder=root_folder, save_dir=save_dir, save_dirname=save_dirname,
+    setup.init_paths(sample_name=sample_name[scan_idx-1], scan_number=scan_nb, data_dirname=data_dirname,
+                     root_folder=root_folder, save_dir=save_dir, save_dirname=save_dirname,
                      verbose=True, create_savedir=create_savedir, specfile_name=specfile_name,
                      template_imagefile=template_imagefile)
 
-    logfile = pru.create_logfile(setup=setup, detector=detector, scan_number=scan_nb,
-                                 root_folder=root_folder, filename=detector.specfile)
+    logfile = setup.create_logfile(scan_number=scan_nb, root_folder=root_folder, filename=detector.specfile)
 
     if not use_rawdata:
         comment += '_ortho'
@@ -1111,6 +1112,17 @@ sys.stdout=stdoutOrigin
 
 with open(README_file, 'a') as outfile:
     outfile.write("```")
+
+# Create file for phase retrieval
+with open("/home/experiences/sixs/simonne/Packages/lib/python3.7/site-packages/phdutils/bcdi/pynx_run.txt", "r") as f:
+    text_file = f.readlines()
+    
+    text_file[1] = f"data = S{scan_nb}_pynx{comment}.npz\"\n"
+    text_file[2] = f"mask = S{scan_nb}_maskpynx{comment}.npz\"\n"
+
+    with open(f"{save_dir}pynx_run.txt", "w") as v:
+        new_file_contents = "".join(text_file)
+        v.write(new_file_contents)
 # End of added script
 
 print('\nEnd of script')

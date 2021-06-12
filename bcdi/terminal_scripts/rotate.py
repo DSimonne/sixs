@@ -37,7 +37,8 @@ else:
 # Load data
 for scan in scans:
     print(scan)
-    filename = glob.glob(f"{root_folder}{sample_name}{scan}/data/*mu*{scan}*")[0]
+    # filename = glob.glob(f"{root_folder}{sample_name}{scan}/data/*mu*{scan}*")[0]
+    filename = glob.glob(f"{root_folder}{sample_name}{scan}/data/*omega*{scan}*")[0]
     f_copy = filename.split(".nxs")[0] + "_R.nxs"
     
     shutil.copy2(filename, f_copy)
@@ -49,12 +50,12 @@ for scan in scans:
 
         # Get data
         try:
-            data_og = f.root.com.scan_data.data_02[:]
-            print("Trying to climb eiger ...")
+            data_og = f.root.com.scan_data.data_10[:]
+            print("Calling merlin the enchanter ...")
         except:
             try:
-                data_og = f.root.com.scan_data.merlin_image[:]
-                print("Calling merlin the enchanter ...")
+                data_og = f.root.com.scan_data.data_02[:]
+                print("Trying to climb eiger ...")
             except:
                 print("This data does not result from Eiger nor Merlin :/")
 
@@ -86,9 +87,9 @@ for scan in scans:
 
         # Overwrite data in copied file
         try:
-            f.root.com.scan_data.data_02[:] = data
+            f.root.com.scan_data.data_10[:] = data
         except:
             try:
-                f.root.com.scan_data.merlin_image[:] = data
+                f.root.com.scan_data.data_02[:] = data
             except:
                 print("Could not overwrite data ><")
