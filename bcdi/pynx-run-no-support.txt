@@ -43,3 +43,4 @@ output_format= 'cxi'  # 'npz' # 'cxi' #
 live_plot = True
 # gpu = "K20"
 # gpu="M2090"
+save=True
