@@ -47,7 +47,11 @@ Therefore the data structure is data[qx, qz, qy] for reciprocal space, or data[z
 
 """Part of script to allow systematic use
 defining scan, root_folder, save_dir, comment, sample_name and template_imagefile
-Remember to get the correct angles from the correct_anbfgles_detector.py script"""
+Remember to get the correct angles from the correct_anbfgles_detector.py script
+
+Remember that you may have to change the mask, the central pixel, the rocking angle, the angles...
+
+"""
 
 import ast
 import glob
@@ -91,8 +95,9 @@ save_dir = scan_folder + "result_crystal_frame/"  # images will be saved here, l
 comment = ''  # comment in filenames, should start with _
 sample_name = "S"  # str or list of str of sample names (string in front of the scan number in the folder name).
 
+rocking_angle_sixs = "omega" # choose between mu or omega
 # template_imagefile = 'NoMirror_ascan_mu_%05d_R.nxs'
-filename = glob.glob(f"{data_folder}*mu*{scan}*")[0]
+filename = glob.glob(f"{data_folder}*{rocking_angle_sixs}*{scan}*")[0]
 template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R.nxs"
 print("Template: ", template_imagefile)
 

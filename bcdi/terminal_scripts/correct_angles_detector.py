@@ -34,7 +34,11 @@ Output: corrected inplane, out-of-plane detector angles for the Bragg peak.
 """
 
 """Part of script to allow systematic use
-defining scan, root_folder, save_dir, comment, sample_name and template_imagefile"""
+defining scan, root_folder, save_dir, comment, sample_name and template_imagefile
+
+Remenber that you may have to change the mask, the central pixel, the rocking angle, the angles...
+
+"""
 
 import ast
 import glob
@@ -68,8 +72,9 @@ print("Data folder:", data_folder)
 
 sample_name = "S"  # str or list of str of sample names (string in front of the scan number in the folder name).
 
+rocking_angle_sixs = "omega" # choose between mu or omega
 # template_imagefile = 'NoMirror_ascan_mu_%05d_R.nxs'
-filename = glob.glob(f"{data_folder}*omega*{scan}*")[0]
+filename = glob.glob(f"{data_folder}*{rocking_angle_sixs}*{scan}*")[0]
 template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R.nxs"
 print("Template: ", template_imagefile)
 
@@ -180,7 +185,7 @@ get_temperature = True  # True to estimate the temperature using the reference s
 reflection = np.array([1, 1, -1])  # measured reflection, use for estimating the temperature
 # reference_spacing = None  # for calibrating the thermal expansion, if None it is fixed to Pt 3.9236/norm(reflection)
 # reference_spacing = 2.254761  # d_111 at room temperature, from scan 1353, with corrected angles, SIXS jan
-reference_spacing = 2.269545  # d_111 at room temperature, from scan 1353, with corrected angles, SIXS jan
+reference_spacing = 2.269545  # d_111 at room temperature, from scan 670, with corrected angles, SIXS june
 
 reference_temperature = None  # used to calibrate the thermal expansion, if None it is fixed to 293.15K (RT)
 
@@ -195,7 +200,6 @@ plt.ion()
 detector = exp.Detector(name=detector, template_imagefile=template_imagefile, roi=roi_detector,
                         is_series=is_series)
 
-print(detector.specfile)
 
 ####################
 # Initialize setup #
