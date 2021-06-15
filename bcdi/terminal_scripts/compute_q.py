@@ -18,30 +18,39 @@ import bcdi.experiment.experiment_utils as exp
 
 # Print help
 try:
-    print ('Pos_x:',  sys.argv[1])
-    print ('Pos_y:',  sys.argv[2])
-    print ('Gamma:',  sys.argv[3])
-    print ('Delta:',  sys.argv[4], end = "\n\n")
+    print ('Pos_x1:',  sys.argv[1])
+    print ('Pos_y1:',  sys.argv[2])
+    print ('Pos_x2:',  sys.argv[3])
+    print ('Pos_y2:',  sys.argv[4])
+    print ('Intervals:',  sys.argv[5])
+    print ('Delta:',  sys.argv[6])
+    print ('Gamma:',  sys.argv[7], end = "\n\n")
 
 except IndexError:
     print("""
-        Arg 1: Pos_x
-        Arg 2: Pos_y
-        Arg 3: Gamma
-        Arg 4: Delta
+        Arg 1: Pos_x1
+        Arg 2: Pos_y1
+        Arg 3: Pos_x2
+        Arg 4: Pos_y2
+        Arg 5: Intervals
+        Arg 6: Delta
+        Arg 7: Gamma
 
         Remember to change the central pixel and wavelength for different experiments !!
         """)
     exit()
 
-pos_x = int(sys.argv[1])
-pos_y = int(sys.argv[2])
+x1 = int(sys.argv[1])
+y1 = int(sys.argv[2])
+
+x2 = int(sys.argv[3])
+y2 = int(sys.argv[4])
 
 # give bragg x and bragg y in entry (pixel x and y where we want to have q)
 # also need angles at central pixel
 
-inplane_angle = float(sys.argv[3]) # 37.9378
-outofplane_angle = float(sys.argv[4]) # 0.3260
+inplane_angle = float(sys.argv[5]) # Delta
+outofplane_angle = float(sys.argv[6]) # Gamma
 
 ###################################
 # define setup related parameters #
@@ -63,32 +72,41 @@ pixelsize_x = 5.5e-05
 pixelsize_y = 5.5e-05
 
 wavelength = 12.398 * 1e-7 / energy
-print("Lambda: ", wavelength)
-
-x_direct_0 = directbeam_x + inplane_coeff *\
-             (direct_inplane*np.pi/180*sdd/pixelsize_x)
-y_direct_0 = directbeam_y - outofplane_coeff *\
-             direct_outofplane*np.pi/180*sdd/pixelsize_y
-
-bragg_inplane = inplane_angle + inplane_coeff *\
-                (pixelsize_x*(pos_x-x_direct_0)/sdd*180/np.pi)
+print("Lambda: ", wavelength, end = "\n\n")
 
 
-bragg_outofplane = outofplane_angle - outofplane_coeff *\
-                   pixelsize_y*(pos_y-y_direct_0)/sdd*180/np.pi
+vecteurs_q = {}
+for j, (x, y) in enumerate([(x1, y1), (x2, y2)]):
+    print("Computing q for position:", j)
+    x_direct_0 = directbeam_x + inplane_coeff *\
+                 (direct_inplane*np.pi/180*sdd/pixelsize_x)
+    y_direct_0 = directbeam_y - outofplane_coeff *\
+                 direct_outofplane*np.pi/180*sdd/pixelsize_y
 
-print("Inplane angle:", bragg_inplane)
-print("Outofplane angle:", bragg_outofplane, end = "\n\n")
+    bragg_inplane = inplane_angle + inplane_coeff *\
+                    (pixelsize_x*(x-x_direct_0)/sdd*180/np.pi)
 
-# gamma is anti-clockwise
-kout = 2 * np.pi / wavelength * np.array(
-    [np.cos(np.pi * bragg_inplane / 180) * np.cos(np.pi * bragg_outofplane / 180),  # z
-     np.sin(np.pi * bragg_outofplane / 180),  # y
-     np.sin(np.pi * bragg_inplane / 180) * np.cos(np.pi * bragg_outofplane / 180)])  # x
 
-kin = 2*np.pi/wavelength * np.asarray(beam_direction)
+    bragg_outofplane = outofplane_angle - outofplane_coeff *\
+                       pixelsize_y*(y-y_direct_0)/sdd*180/np.pi
 
-q = (kout - kin) / 1e10  # convert from 1/m to 1/angstrom
-qnorm = np.linalg.norm(q)
-print("q vector in (z, y, x)", q)
-print("q norm:", qnorm)
+    print("Inplane angle:", bragg_inplane)
+    print("Outofplane angle:", bragg_outofplane)
+
+    # gamma is anti-clockwise
+    kout = 2 * np.pi / wavelength * np.array(
+        [np.cos(np.pi * bragg_inplane / 180) * np.cos(np.pi * bragg_outofplane / 180),  # z
+         np.sin(np.pi * bragg_outofplane / 180),  # y
+         np.sin(np.pi * bragg_inplane / 180) * np.cos(np.pi * bragg_outofplane / 180)])  # x
+
+    kin = 2*np.pi/wavelength * np.asarray(beam_direction)
+
+    q = (kout - kin) / 1e10  # convert from 1/m to 1/angstrom
+    qnorm = np.linalg.norm(q)
+    print("q vector in (z, y, x)", q)
+    print("q norm:", qnorm, end = "\n\n")
+    vecteurs_q[f"q_{j}"] = qnorm
+
+t = abs((2*np.pi)/((vecteurs_q["q_0"]- vecteurs_q["q_1"])/int(sys.argv[5])))
+
+print(f"Particle size: {t} (A)")
