@@ -95,7 +95,7 @@ print("Data folder:", data_folder)
 
 # template_imagefile = 'NoMirror_ascan_mu_%05d_R.nxs'
 filename = glob.glob(f"{data_folder}*omega*{scan}*")[0]
-template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R.nxs"
+template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d.nxs"
 print("Template: ", template_imagefile)
 del scan
 
@@ -159,7 +159,7 @@ fix_size = []  # crop the array to predefined size considering the full detector
 #             fix_bragg[1] - FFT_size[1]//2, fix_bragg[1] + FFT_size[1]//2,
 #             fix_bragg[2] - FFT_size[2]//2, fix_bragg[2] + FFT_size[2]//2]
 # leave it to [] otherwise [zstart, zstop, ystart, ystop, xstart, xstop]. 
-center_fft = 'crop_sym_ZYX'
+center_fft = 'skip'
 # 'crop_sym_ZYX','crop_asym_ZYX','pad_asym_Z_crop_sym_YX', 'pad_sym_Z_crop_asym_YX',
 # 'pad_sym_Z', 'pad_asym_Z', 'pad_sym_ZYX','pad_asym_ZYX' or 'skip'
 pad_size = []  # size after padding, e.g. [256, 512, 512]. Use this to pad the array.
@@ -243,7 +243,7 @@ photon_filter = 'loading'  # 'loading' or 'postprocessing', when the photon thre
 # if 'loading', it is applied before binning; if 'postprocessing', it is applied at the end of the script before saving
 background_file = None  # root_folder + 'background.npz'  # non empty file path or None
 # hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"
-hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_June_2021_flipped.npy"
+hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_better.npy"
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
 # template_imagefile = 'Pt_Al2O3_ascan_mu_%05d_R.nxs'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'

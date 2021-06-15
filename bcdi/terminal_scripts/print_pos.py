@@ -55,15 +55,16 @@ def find_pos(filename):
 	# print("ssl1hg:", np.round(data.ssl1hg[0], 3))
 	# print("ssl1vg:", np.round(data.ssl1vg[0], 3))
 
-	try:
-		scan_number = int(filename.split("_mu_")[-1].split(".nxs")[0])
+	if "_R.nxs" in filename:
 		rotation = 0
-	except ValueError:
-		scan_number = int(filename.split("_mu_")[-1].split("_R.nxs")[0])
+		scan_nb = int(filename.split("/")[-1].split("_R.nxs")[0].split("_")[-1])
+
+	else:
 		rotation = 1
+		scan_nb = int(filename.split("/")[-1].split(".nxs")[0].split("_")[-1])
 
 	metadata = [
-			scan_number,
+			scan_nb,
 			rotation,
 	        data.x[0],
 	        data.y[0],
@@ -80,16 +81,20 @@ def find_pos(filename):
 	        len(data.integration_time),
 	        data.ssl3hg[0],
 	        data.ssl3vg[0],
-	        data.ssl1hg[0],
-	        data.ssl1vg[0]
+#	        data.ssl1hg[0],
+#	        data.ssl1vg[0]
 	            ]
 	return metadata
     
 
 pos = np.array([find_pos(nb) for nb in scans])
 
-data = pd.DataFrame(pos, columns = ["scan", "rotation", "x", "y", "z", "mu", "delta", "omega", "gamma", 'gamma-mu',
-                                    "roi1_sum", "roi4_sum", "step size", "integration time", "nb of steps",
-                                    "ssl1vg", "ss1hg", "ssl3vg", "sslhg"], dtype=float)
+data = pd.DataFrame(pos,
+					columns = ["scan_nb", "rotation", "x", "y", "z", "mu", "delta", "omega", "gamma", 'gamma-mu',
+								"roi1_sum", "roi4_sum", "step size", "integration time", "nb of steps",
+								"ssl3hg", "ssl3vg",
+								# "ssl3vg", "sslhg"
+								],
+					dtype=float)
 data = data.round(3)
 print(data.to_string())

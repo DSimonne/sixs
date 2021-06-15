@@ -19,23 +19,6 @@ import cmath
 import warnings
 warnings.filterwarnings("ignore")
 
-# Edit overall plot parameters
-# Font parameters
-# mpl.rcParams['font.family'] = 'Verdana'
-mpl.rcParams['font.size'] = 18
-
-# Edit axes parameters
-mpl.rcParams['axes.linewidth'] = 2
-
-# Tick properties
-mpl.rcParams['xtick.major.size'] = 10
-mpl.rcParams['xtick.major.width'] = 2
-mpl.rcParams['xtick.direction'] = 'out'
-mpl.rcParams['ytick.major.size'] = 10
-mpl.rcParams['ytick.major.width'] = 2
-mpl.rcParams['ytick.direction'] = 'out'
-
-
 # Print help
 try:
 	print ('Data dir:',  sys.argv[1])
@@ -139,18 +122,15 @@ def Plotting(scan_dir, datapath, PlottedValue, PlottedAxes, PlottedDimensions, P
 	# Show image
 	if PlottedDimensions == "2D":
 	    plt.close()
-	    fig, ax = plt.subplots(figsize = (15,15))
+	    fig, ax = plt.subplots(figsize = (15,15),
+	    dpi = 150
+	    )
 	    img = ax.imshow(TwoDPlottedArray,
 	                origin='lower',
 	                cmap='YlGnBu_r',
-	                #extent=(0, 2, 0, 2),
+	                extent=(0, 2, 0, 2),
 	                vmin = dmin,
 	                vmax = dmax)
-
-	    # # Create scale bar (only if we know the  image size)
-	    # ax.fill_between(x=[1.4, 1.9], y1=[0.1, 0.1], y2=[0.2, 0.2], color='white')
-
-	    # ax.text(x=1.65, y=0.25, s='500 nm', va='bottom', ha='center', color='white', size=20)
 
 	    # Create axis for colorbar
 	    cbar_ax = make_axes_locatable(ax).append_axes(position='right', size='5%', pad=0.1)
@@ -165,25 +145,27 @@ def Plotting(scan_dir, datapath, PlottedValue, PlottedAxes, PlottedDimensions, P
 	    cbar.set_ticks(ticks)
 	    cbar.set_ticklabels(tickslabel)
 	    if PlottedAxes == "xy":
-	        plt.savefig(f"{scan_dir}slices/xy/{run}_{PlottedAxes}_{i}_2D.png")
-	        print(f"Saved as {scan_dir}slices/xy/{run}_{PlottedAxes}_{i}_2D.png")
+	        plt.savefig(f"{scan_dir}slices/xy/{run}_{PlottedAxes}_{PlottedValue}_{i}_2D.png")
+	        print(f"Saved as {scan_dir}slices/xy/{run}_{PlottedAxes}_{PlottedValue}_{i}_2D.png")
 	    elif PlottedAxes == "yz":
-	        plt.savefig(f"{scan_dir}slices/yz/{run}_{PlottedAxes}_{i}_2D.png")
-	        print(f"Saved as {scan_dir}slices/yz/{run}_{PlottedAxes}_{i}_2D.png")
+	        plt.savefig(f"{scan_dir}slices/yz/{run}_{PlottedAxes}_{PlottedValue}_{i}_2D.png")
+	        print(f"Saved as {scan_dir}slices/yz/{run}_{PlottedAxes}_{PlottedValue}_{i}_2D.png")
 	    elif PlottedAxes == "zx":
-	        plt.savefig(f"{scan_dir}slices/zx/{run}_{PlottedAxes}_{i}_2D.png")
-	        print(f"Saved as {scan_dir}slices/zx/{run}_{PlottedAxes}_{i}_2D.png") 
+	        plt.savefig(f"{scan_dir}slices/zx/{run}_{PlottedAxes}_{PlottedValue}_{i}_2D.png")
+	        print(f"Saved as {scan_dir}slices/zx/{run}_{PlottedAxes}_{PlottedValue}_{i}_2D.png") 
+	    plt.tight_layout()
 
 	elif PlottedDimensions == "2DC" :
 	    plt.close()
 	    # Show contour plot instead
 	    try:
-	        fig, ax = plt.subplots(figsize = (15,15))
-	        ticks = [dmin + n * (dmax-dmin)/10 for n in range(0, 11)]
+	        fig, ax = plt.subplots(figsize = (15,15),
+	        dpi = 150
+	        )
 
 	        img = ax.contour(TwoDPlottedArray,
-	                        ticks,
-	                    #extent=(0, 2, 0, 2),
+	                    origin = "lower",
+	                    extent=(0, 2, 0, 2),
 	                    cmap='YlGnBu_r',
 	                    vmin=dmin,
 	                    vmax=dmax)
@@ -195,24 +177,26 @@ def Plotting(scan_dir, datapath, PlottedValue, PlottedAxes, PlottedDimensions, P
 	        cbar = fig.colorbar(mappable=img, cax=cbar_ax)
 
 	        # Edit colorbar ticks and labels
+	        ticks = [dmin + n * (dmax-dmin)/10 for n in range(0, 11)]
 	        tickslabel = [f"{t}" for t in ticks]
 
 	        cbar.set_ticks(ticks)
 	        cbar.set_ticklabels(tickslabel)
 	        if PlottedAxes == "xy":
-	            plt.savefig(f"{scan_dir}slices/xy/{run}_{PlottedAxes}_{i}_2DC.png")
-	            print(f"Saved as {scan_dir}slices/xy/{run}_{PlottedAxes}_{i}_2DC.png")
+	            plt.savefig(f"{scan_dir}slices/xy/{run}_{PlottedAxes}_{PlottedValue}_{i}_2DC.png")
+	            print(f"Saved as {scan_dir}slices/xy/{run}_{PlottedAxes}_{PlottedValue}_{i}_2DC.png")
 	        elif PlottedAxes == "yz":
-	            plt.savefig(f"{scan_dir}slices/yz/{run}_{PlottedAxes}_{i}_2DC.png")
-	            print(f"Saved as {scan_dir}slices/yz/{run}_{PlottedAxes}_{i}_2DC.png")
+	            plt.savefig(f"{scan_dir}slices/yz/{run}_{PlottedAxes}_{PlottedValue}_{i}_2DC.png")
+	            print(f"Saved as {scan_dir}slices/yz/{run}_{PlottedAxes}_{PlottedValue}_{i}_2DC.png")
 	        elif PlottedAxes == "zx":
-	            plt.savefig(f"{scan_dir}slices/zx/{run}_{PlottedAxes}_{i}_2DC.png")
-	            print(f"Saved as {scan_dir}slices/zx/{run}_{PlottedAxes}_{i}_2DC.png")      
+	            plt.savefig(f"{scan_dir}slices/zx/{run}_{PlottedAxes}_{PlottedValue}_{i}_2DC.png")
+	            print(f"Saved as {scan_dir}slices/zx/{run}_{PlottedAxes}_{PlottedValue}_{i}_2DC.png")      
 	            #plt.show()
+	        plt.tight_layout()
 
 	    except IndexError:
 	        plt.close()
-	        print("No contour levels were found within the data range. Meaning there is very little variation in the dat, change index")# 
+	        print("No contour levels were found within the data range. Meaning there is very little variation in the data, change index")# 
 
 
 try:

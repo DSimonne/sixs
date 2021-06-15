@@ -69,7 +69,7 @@ print("Data folder:", data_folder)
 sample_name = "S"  # str or list of str of sample names (string in front of the scan number in the folder name).
 
 # template_imagefile = 'NoMirror_ascan_mu_%05d_R.nxs'
-filename = glob.glob(f"{data_folder}*mu*{scan}*")[0]
+filename = glob.glob(f"{data_folder}*omega*{scan}*")[0]
 template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R.nxs"
 print("Template: ", template_imagefile)
 
@@ -77,7 +77,7 @@ print("Template: ", template_imagefile)
 save_dir = scan_folder + "postprocessing/corrections/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
 
 # CSV file if iterating on scans
-csv_file = "/home/experiences/sixs/simonne/Documents/SIXS_Jan_2021/Pt_Al2O3/temp_ramp_data.csv"
+csv_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/Pt_Al2O3/temp_ramp_data.csv"
 
 # Save all the prints from the script
 stdoutOrigin=sys.stdout
@@ -146,7 +146,9 @@ roi_detector = None
 # [y_bragg - 290, y_bragg + 350, x_bragg - 350, x_bragg + 350]  # Ar  # HC3207  x_bragg = 430
 # leave it as None to use the full detector. Use with center_fft='do_nothing' if you want this exact size.
 high_threshold = 1000000  # everything above will be considered as hotpixel
-hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_Jan_2021/masks/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
+hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_better_flipped.npy"
+#hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_better.npy"
+#hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_Jan_2021/masks/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
 # template_imagefile ="Pt_Al2O3_ascan_mu_%05d_R.nxs"
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
@@ -164,7 +166,8 @@ beam_direction = (1, 0, 0)  # beam along z
 sample_offsets = None  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # convention: the sample offsets will be subtracted to the motor values
 directbeam_x = 271  # x horizontal,  cch2 in xrayutilities
-directbeam_y = 213   # y vertical,  cch1 in xrayutilities
+# directbeam_y = 271 # SIXS jan 2021   # y vertical,  cch1 in xrayutilities
+directbeam_y = 236 #271 SIXS june 2021   # y vertical,  cch1 in xrayutilities
 direct_inplane = 0.0  # outer angle in xrayutilities
 direct_outofplane = 0.0
 sdd = 1.18  # sample to detector distance in m
@@ -174,9 +177,11 @@ energy = 8500  # in eV, offset of 6eV at ID01
 # parameters related to temperature estimation #
 ################################################
 get_temperature = True  # True to estimate the temperature using the reference spacing of the material. Only for Pt.
-reflection = np.array([1, 1, 1])  # measured reflection, use for estimating the temperature
+reflection = np.array([1, 1, -1])  # measured reflection, use for estimating the temperature
 # reference_spacing = None  # for calibrating the thermal expansion, if None it is fixed to Pt 3.9236/norm(reflection)
-reference_spacing = 2.254761  # d_111 at room temperature, from scan 1353, with corrected angles
+# reference_spacing = 2.254761  # d_111 at room temperature, from scan 1353, with corrected angles, SIXS jan
+reference_spacing = 2.269545  # d_111 at room temperature, from scan 1353, with corrected angles, SIXS jan
+
 reference_temperature = None  # used to calibrate the thermal expansion, if None it is fixed to 293.15K (RT)
 
 ##########################################################
@@ -189,6 +194,8 @@ plt.ion()
 #######################
 detector = exp.Detector(name=detector, template_imagefile=template_imagefile, roi=roi_detector,
                         is_series=is_series)
+
+print(detector.specfile)
 
 ####################
 # Initialize setup #
@@ -245,9 +252,13 @@ if high_threshold != 0:
 ###############################
 # load relevant motor values #
 ###############################
-tilt_values, setup.grazing_angle, setup.inplane_angle, setup.outofplane_angle = \
-    setup.diffractometer.goniometer_values(logfile=logfile, scan_number=scan, setup=setup,
-                                           frames_logical=frames_logical)
+try:
+    tilt_values, setup.grazing_angle, setup.inplane_angle, setup.outofplane_angle = \
+        setup.diffractometer.goniometer_values(logfile=logfile, scan_number=scan, setup=setup,
+                                               frames_logical=frames_logical)
+    print(tilt_values)
+except:
+    raise AttributeError("Fly scan")
 setup.tilt_angle = (tilt_values[1:] - tilt_values[0:-1]).mean()
 
 nb_frames = len(tilt_values)
@@ -279,7 +290,6 @@ else:  # take the whole detector
         rocking_curve[idx] = data[idx, :, :].sum()
     plot_title = "Rocking curve (full detector)"
 z0 = np.unravel_index(rocking_curve.argmax(), rocking_curve.shape)[0]
-
 interpolation = interp1d(tilt_values, rocking_curve, kind='cubic')
 interp_points = 5*nb_frames
 interp_tilt = np.linspace(tilt_values.min(), tilt_values.max(), interp_points)
