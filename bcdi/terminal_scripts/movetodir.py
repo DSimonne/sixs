@@ -68,15 +68,23 @@ for scan in scans:
         pass
 
     try:
-        # filename = glob.glob(f"{OG_folder}*mu*{scan}*.nxs", recursive=True)[0]
-        filename = glob.glob(f"{OG_folder}*omega*{scan}*.nxs", recursive=True)[0]
+        filename = glob.glob(f"{OG_folder}*mu*{scan}*.nxs", recursive=True)[0]
+        print("Mu scan.")
         shutil.copy2(filename, f"{TG_folder}S{scan}/data")
         print(f"Copied {filename} to {TG_folder}S{scan}/data")
     except FileExistsError:
         print(f"{TG_folder}S{scan}/data/{filename} exists")
         pass
     except IndexError:
-        print("Not an omega scan")
-        # print("Not a mu scan")
-        pass
+        try:
+            filename = glob.glob(f"{OG_folder}*omega*{scan}*.nxs", recursive=True)[0]
+            print("Omega scan.")
+            shutil.copy2(filename, f"{TG_folder}S{scan}/data")
+            print(f"Copied {filename} to {TG_folder}S{scan}/data")
+        except FileExistsError:
+            print(f"{TG_folder}S{scan}/data/{filename} exists")
+            pass
+        except IndexError:
+            print("Not a mu or an omega scan.")
+            pass
     print("\n")

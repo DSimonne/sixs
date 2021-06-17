@@ -102,9 +102,13 @@ data_folder = scan_folder + "data/" # folder of the experiment, where all scans 
 print("Data folder:", data_folder)
 
 # Filename
-rocking_angle_sixs = "mu" # choose between mu or omega
 # template_imagefile = 'NoMirror_ascan_mu_%05d_R.nxs'
-filename = glob.glob(f"{data_folder}*{rocking_angle_sixs}*{scan}*")[0]
+try:
+    filename = glob.glob(f"{data_folder}*mu*{scan}*")[0]
+    print("Mu scan")
+except IndexError:
+        filename = glob.glob(f"{data_folder}*omega*{scan}*")[0]
+        print("Omega scan") 
 template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R.nxs"
 print("Template: ", template_imagefile)
 
@@ -167,7 +171,7 @@ fix_bragg = (
 # It is useful if hotpixels or intense aliens. Leave it [] otherwise.
 fix_size = []  # crop the array to predefined size considering the full detector,
 # leave it to [] otherwise [zstart, zstop, ystart, ystop, xstart, xstop]. ROI will be defaulted to []
-center_fft = "skip"
+center_fft = "crop_sym_ZYX"
 # 'crop_sym_ZYX','crop_asym_ZYX','pad_asym_Z_crop_sym_YX', 'pad_sym_Z_crop_asym_YX',
 # 'pad_sym_Z', 'pad_asym_Z', 'pad_sym_ZYX','pad_asym_ZYX' or 'skip'
 pad_size = []  # size after padding, e.g. [256, 512, 512]. Use this to pad the array.
@@ -251,7 +255,7 @@ photon_filter = 'loading'  # 'loading' or 'postprocessing', when the photon thre
 # if 'loading', it is applied before binning; if 'postprocessing', it is applied at the end of the script before saving
 background_file = None  # root_folder + 'background.npz'  # non empty file path or None
 # hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"
-hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_better.npy"
+hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/Pt_Al2O3/analysis/mask_merlin_better_flipped.npy"
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
 # template_imagefile = 'Pt_Al2O3_ascan_mu_%05d_R.nxs'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
@@ -267,13 +271,13 @@ nb_pixel_y = None  # fix to declare a known detector but with less pixels (e.g. 
 ################################################################################
 # define parameters below if you want to orthogonalize the data before phasing #
 ################################################################################
-use_rawdata = False  # False for using data gridded in laboratory frame/ True for using data in detector frame
+use_rawdata = True  # False for using data gridded in laboratory frame/ True for using data in detector frame
 interp_method = 'linearization'  # 'xrayutilities' or 'linearization'
 fill_value_mask = 0  # 0 (not masked) or 1 (masked). It will define how the pixels outside of the data range are
 # processed during the interpolation. Because of the large number of masked pixels, phase retrieval converges better if
 # the pixels are not masked (0 intensity imposed). The data is by default set to 0 outside of the defined range.
 beam_direction = (1, 0, 0)  # beam direction in the laboratory frame (downstream, vertical up, outboard)
-sample_offsets = (0, 0, 0)  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
+sample_offsets = (0, 0)  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # convention: the sample offsets will be subtracted to the motor values
 sdd = 1.18 # in m, sample to detector distance in m
 energy = 8500  # np.linspace(11100, 10900, num=51)  # x-ray energy in eV

@@ -74,7 +74,12 @@ sample_name = "S"  # str or list of str of sample names (string in front of the 
 
 rocking_angle_sixs = "mu" # choose between mu or omega
 # template_imagefile = 'NoMirror_ascan_mu_%05d_R.nxs'
-filename = glob.glob(f"{data_folder}*{rocking_angle_sixs}*{scan}*")[0]
+try:
+    filename = glob.glob(f"{data_folder}*mu*{scan}*")[0]
+    print("Mu scan")
+except IndexError:
+        filename = glob.glob(f"{data_folder}*omega*{scan}*")[0]
+        print("Omega scan")
 template_imagefile = filename.split("/data/")[-1].split("%05d"%scan)[0] +"%05d_R.nxs"
 print("Template: ", template_imagefile)
 
@@ -151,7 +156,7 @@ roi_detector = None
 # [y_bragg - 290, y_bragg + 350, x_bragg - 350, x_bragg + 350]  # Ar  # HC3207  x_bragg = 430
 # leave it as None to use the full detector. Use with center_fft='do_nothing' if you want this exact size.
 high_threshold = 1000000  # everything above will be considered as hotpixel
-hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_better_flipped.npy"
+hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/Pt_Al2O3/analysis/mask_merlin_better_flipped.npy"
 #hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_better.npy"
 #hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_Jan_2021/masks/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
@@ -182,7 +187,7 @@ energy = 8500  # in eV, offset of 6eV at ID01
 # parameters related to temperature estimation #
 ################################################
 get_temperature = True  # True to estimate the temperature using the reference spacing of the material. Only for Pt.
-reflection = np.array([1, 1, -1])  # measured reflection, use for estimating the temperature
+reflection = np.array([1, 1, 1])  # measured reflection, use for estimating the temperature
 # reference_spacing = None  # for calibrating the thermal expansion, if None it is fixed to Pt 3.9236/norm(reflection)
 # reference_spacing = 2.254761  # d_111 at room temperature, from scan 1353, with corrected angles, SIXS jan
 reference_spacing = 2.269545  # d_111 at room temperature, from scan 670, with corrected angles, SIXS june
@@ -294,7 +299,7 @@ if high_threshold != 0:
     print(f'Applying photon threshold, {nb_thresholded} high intensity pixels masked')
 
 ###############################
-# load relavant motor values #
+# load relevant motor values #
 ###############################
 (
     tilt_values,

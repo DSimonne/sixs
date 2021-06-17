@@ -28,7 +28,7 @@ import bcdi.graph.graph_utils as gu
 import bcdi.experiment.experiment_utils as exp
 import bcdi.postprocessing.postprocessing_utils as pu
 import bcdi.preprocessing.preprocessing_utils as pru
-import bcdi.simulation.simulation_utils as simu
+import bcdi.simulation.simulation_utils_sixs as simu
 import bcdi.utils.utilities as util
 import bcdi.utils.validation as valid
 
@@ -174,6 +174,7 @@ centering_method = 'max_com'  # 'com' (center of mass), 'max', 'max_com' (max th
 ######################################
 beamline = "SIXS_2019"  # name of the beamline, used for data loading and normalization by monitor and orthogonalisation
 # supported beamlines: 'ID01', 'SIXS_2018', 'SIXS_2019', 'CRISTAL', 'P10', '34ID'
+actuators = None
 rocking_angle = "inplane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
 # around y vertical up, does not matter for energy scan
 #  "inplane" e.g. phi @ ID01, mu @ SIXS "outofplane" e.g. eta @ ID01
@@ -182,9 +183,9 @@ energy = 8500  # x-ray energy in eV, 6eV offset at ID01
 beam_direction = np.array(
     [1, 0, 0]
 )  # incident beam along z, in the frame (z downstream, y vertical up, x outboard)
-outofplane_angle = -0.0292 # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
-inplane_angle = 37.7402  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
-tilt_angle = 0.005  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
+outofplane_angle = -0.0214 # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
+inplane_angle = 37.6113  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
+tilt_angle = 0.00467  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
 sample_offsets = None  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # the sample offsets will be subtracted to the motor values
 specfile_name = None #'analysis/alias_dict_2021.txt'
@@ -297,9 +298,9 @@ avg_threshold = 0.90  # minimum correlation within reconstructed object for aver
 # setup for phase averaging or apodization #
 ############################################
 hwidth = (
-    0  # (width-1)/2 of the averaging window for the phase, 0 means no phase averaging
+    1 # (width-1)/2 of the averaging window for the phase, 0 means no phase averaging
 )
-apodize_flag = False  # True to multiply the diffraction pattern by a filtering window
+apodize_flag = True  # True to multiply the diffraction pattern by a filtering window
 apodize_window = (
     "blackman"  # filtering window, multivariate 'normal' or 'tukey' or 'blackman'
 )
