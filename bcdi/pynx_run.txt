@@ -4,7 +4,7 @@ mask = ""
 data2cxi = True
 #object = "pynx-cdi-input-S61-2018-06-07T11-33-51_LLK000.488.npz"
 auto_center_resize = False #
-#support= "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/Pt_Al2O3/analysis/support_3116.npy"
+#support= "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/support_168_170_190_1_2_2_3116.npz"
 #support_type = 'square' # (will be a sphere or cube in 3d)
 #support_size = 20, 10, 20  # half-size of the initial support (radius for a sphere)
 support_threshold = 0.15, 0.20 # pick a random number between these two numbers
@@ -25,7 +25,7 @@ nb_er = 300
 nb_ml = 0
 
 nb_run = 40
-nb_run_keep = 15
+nb_run_keep = 25
 
 zero_mask = auto # masked pixels will start from imposed 0 and then let free
 # max_size = 256 

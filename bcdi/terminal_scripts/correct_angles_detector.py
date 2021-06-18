@@ -40,10 +40,15 @@ Remenber that you may have to change the mask, the central pixel, the rocking an
 
 """
 
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import pandas as pd
+from phdutils.sixs import ReadNxs4 as rd
 import ast
-import glob
 import sys
 import os
+import glob
 
 # Print help
 try:
@@ -57,6 +62,9 @@ except IndexError:
     exit()
 
 scan = int(sys.argv[2])
+
+particle = sys.argv[1].split("/")[-2]
+print("Particle (from file name):", particle)
 
 # folder of the experiment, where all scans are stored
 root_folder = os.getcwd() + "/" + sys.argv[1] 
@@ -87,7 +95,7 @@ print("Template: ", template_imagefile)
 save_dir = scan_folder + "postprocessing/corrections/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
 
 # CSV file if iterating on scans
-csv_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/Pt_Al2O3/temp_ramp_data.csv"
+csv_file = "/nfs/ruche-sixs/sixs-soleil/com-sixs/2021/Run3/20201572_Richard/reconstructions/temp_ramp_data.csv"
 
 # Save all the prints from the script
 stdoutOrigin=sys.stdout
@@ -116,7 +124,7 @@ sys.stdout = open(README_file, "a")
 # sample_name = "S"
 filtered_data = False  # set to True if the data is already a 3D array, False otherwise
 # Should be the same shape as in specfile
-peak_method = 'maxcom'  # Bragg peak determination: 'max', 'com' or 'maxcom'.
+peak_method = 'com'  # Bragg peak determination: 'max', 'com' or 'maxcom'.
 normalize_flux = 'skip'  # 'monitor' to normalize the intensity by the default monitor values, 'skip' to do nothing
 debug = False  # True to see more plots
 
@@ -156,7 +164,7 @@ roi_detector = None
 # [y_bragg - 290, y_bragg + 350, x_bragg - 350, x_bragg + 350]  # Ar  # HC3207  x_bragg = 430
 # leave it as None to use the full detector. Use with center_fft='do_nothing' if you want this exact size.
 high_threshold = 1000000  # everything above will be considered as hotpixel
-hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/Pt_Al2O3/analysis/mask_merlin_better_flipped.npy"
+hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/mask_merlin_better_flipped.npy"
 #hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_better.npy"
 #hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_Jan_2021/masks/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
@@ -191,7 +199,6 @@ reflection = np.array([1, 1, 1])  # measured reflection, use for estimating the 
 # reference_spacing = None  # for calibrating the thermal expansion, if None it is fixed to Pt 3.9236/norm(reflection)
 # reference_spacing = 2.254761  # d_111 at room temperature, from scan 1353, with corrected angles, SIXS jan
 reference_spacing = 2.269545  # d_111 at room temperature, from scan 670, with corrected angles, SIXS june
-
 reference_temperature = None  # used to calibrate the thermal expansion, if None it is fixed to 293.15K (RT)
 
 ##########################################################
@@ -356,11 +363,14 @@ print('FWHM by interpolation', str('{:.3f}'.format(interp_fwhm)), 'deg')
 fig, (ax0, ax1) = plt.subplots(2, 1, sharex='col', figsize=(10, 5))
 ax0.plot(tilt_values, rocking_curve, '.')
 ax0.plot(interp_tilt, interp_curve)
+ax0.axvline(tilt_values[z0], color='r', alpha = 0.7, linewidth = 1)
 ax0.set_ylabel('Integrated intensity')
 ax0.legend(('data', 'interpolation'))
 ax0.set_title(plot_title)
 ax1.plot(tilt_values, np.log10(rocking_curve), '.')
 ax1.plot(interp_tilt, np.log10(interp_curve))
+ax1.axvline(tilt_values[z0], color='r', alpha = 0.7, linewidth = 1)
+
 ax1.set_xlabel('Rocking angle (deg)')
 ax1.set_ylabel('Log(integrated intensity)')
 ax0.legend(('data', 'interpolation'))
@@ -474,14 +484,48 @@ plt.savefig(save_dir + "central_slice.png")
 
 # Added script
 sys.stdout.close()
-sys.stdout=stdoutOrigin
+sys.stdout = stdoutOrigin
+
+# Use this opportunity to save a lot more data !
+print(f"Opening {filename}")
+data = rd.DataSet(filename)
+
+# Add new data
+DF = pd.DataFrame([[scan, particle, q, qnorm, dist_plane, bragg_inplane, bragg_outofplane, data.x[0], data.y[0], data.z[0], data.mu[0], data.delta[0], data.omega[0],
+                    data.gamma[0], data.gamma[0] - data.mu[0], int(data.roi1_merlin.sum()), int(data.roi4_merlin.sum()), (data.mu[-1] - data.mu[-0]) / len(data.mu),
+                    data.integration_time[0], len(data.integration_time), data.ssl3hg[0], data.ssl3vg[0],
+                    # data.ssl1hg[0],
+                    # data.ssl1vg[0]
+                    ]],
+                    columns = [
+                        "scan", "particle", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle", "x", "y", "z", "mu", "delta", "omega",
+                        "gamma", 'gamma-mu', "roi1_sum", "roi4_sum", "step size", "integration time", "nb of steps", "ssl3hg", "ssl3vg"
+                    ])
+
+# Load all the data
+try:
+    df = pd.read_csv(csv_file)
+
+    # Replace old data linked to this scan, no problem if this row does not exist yet
+    indices = df[df['scan'] == scan].index
+    df.drop(indices , inplace=True)
+
+    result = pd.concat([df, DF])
+
+except FileNotFoundError:
+    result = DF
+
+# Save 
+result.to_csv(csv_file,
+            index = False,
+            columns = [
+                "scan", "particle", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle", "x", "y", "z", "mu", "delta", "omega",
+                "gamma", 'gamma-mu', "roi1_sum", "roi4_sum", "step size", "integration time", "nb of steps", "ssl3hg", "ssl3vg"
+            ])
+print(f"Saved in {csv_file}")
 
 with open(README_file, 'a') as outfile:
     outfile.write("```")
-
-# save data
-with open(csv_file, "a") as f:
-    f.write(f"{scan};{q};{qnorm};{dist_plane};{bragg_inplane:.4f};{bragg_outofplane:.4f}\n")
 
 # End of added script
 

@@ -70,6 +70,14 @@ except IndexError:
         """)
     exit()
 
+# reolad mask
+for i, element in enumerate(sys.argv):
+    if "reload" in element:
+        if "true" in element.lower():
+            reload_previous = True  # True if you want to get the conjugate object
+    else:
+        reload_previous = False  # True if you want to get the conjugate object
+
 # folder of the experiment, where all scans are stored
 root_folder = os.getcwd() + "/" + sys.argv[1] 
 print("Root folder:", root_folder)
@@ -196,7 +204,7 @@ medfilt_order = 7   # for custom median filter, number of pixels with intensity 
 #################################################
 # parameters used when reloading processed data #
 #################################################
-reload_previous = False  # True to resume a previous masking (load data and mask)
+#reload_previous = True  # True to resume a previous masking (load data and mask)
 reload_orthogonal = (False)  # True if the reloaded data is already intepolated in an orthonormal frame
 preprocessing_binning = (1, 1, 1)  # binning factors in each dimension of the binned data to be reloaded
 
@@ -255,7 +263,7 @@ photon_filter = 'loading'  # 'loading' or 'postprocessing', when the photon thre
 # if 'loading', it is applied before binning; if 'postprocessing', it is applied at the end of the script before saving
 background_file = None  # root_folder + 'background.npz'  # non empty file path or None
 # hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"
-hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/Pt_Al2O3/analysis/mask_merlin_better_flipped.npy"
+hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/mask_merlin_better_flipped.npy"
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
 # template_imagefile = 'Pt_Al2O3_ascan_mu_%05d_R.nxs'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'

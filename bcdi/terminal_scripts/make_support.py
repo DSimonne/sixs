@@ -56,23 +56,23 @@ except IndexError:
 # folder of the experiment, where all scans are stored
 print("Root folder:", root_folder)
 
-save_dir = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/Pt_Al2O3/analysis/"
+save_dir = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/"
 
 # root_folder = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/analysis/"
-support_threshold = 0.02  # in % of the normalized absolute value
+support_threshold = 0.05  # in % of the normalized absolute value
 pynx_shape = (
-    168,
     180,
-    200,
+    180,
+    196,
 )  # shape of the array used for phasing and finding the support (after binning_pynx)
 binning_pynx = (1, 2, 2)  # binning that was used in PyNX during phasing
 output_shape = (
-    168,
+    180,
     360,
-    400,
+    392,
 )  # shape of the array for later phasing (before binning_output)
 # if the data and q-values were binned beforehand, use the binned shape and binning_output=(1,1,1)
-binning_output = (1, 1, 1)  # binning that will be used in PyNX for later phasing
+binning_output = (1, 2, 2)  # binning that will be used in PyNX for later phasing
 qvalues_binned = True  # if True, the q values provided are expected to be binned (binning_pynx & binning_output
 
 flag_interact = False  # if False, will skip thresholding and masking

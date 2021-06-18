@@ -65,15 +65,25 @@ import sys
 try:
     print ('Data dir:',  sys.argv[1])
     print ('Scan:',  sys.argv[2])
+    print ('Delta:',  sys.argv[3])
+    print ('Gamma:',  sys.argv[4])
+    print ('Tilt angle:',  sys.argv[5])
 except IndexError:
     print("""
         Arg 1: Path of target directory (before /S{scan} ... )
         Arg 2: Scan(s) number, list or single value
+        Arg 3: Delta
+        Arg 4: Gamma
+        Arg 5: Tilt angle
         """)
     exit()
 
 scan = int(sys.argv[2])
+outofplane_angle = float(sys.argv[3]) # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
+inplane_angle = float(sys.argv[4])  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
+tilt_angle = float(sys.argv[5])  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
 
+print(outofplane_angle, inplane_angle, tilt_angle)
 for i, element in enumerate(sys.argv):
 	if "flip" in element:
 		if "true" in element.lower():
@@ -183,9 +193,9 @@ energy = 8500  # x-ray energy in eV, 6eV offset at ID01
 beam_direction = np.array(
     [1, 0, 0]
 )  # incident beam along z, in the frame (z downstream, y vertical up, x outboard)
-outofplane_angle = -0.0214 # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
-inplane_angle = 37.6113  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
-tilt_angle = 0.00467  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
+# outofplane_angle = -0.01815149389135301 # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
+# inplane_angle = 37.51426377175866  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
+# tilt_angle = 0.007737016574585642  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
 sample_offsets = None  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # the sample offsets will be subtracted to the motor values
 specfile_name = None #'analysis/alias_dict_2021.txt'

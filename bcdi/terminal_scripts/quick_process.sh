@@ -16,5 +16,5 @@ echo preprocess_bcdi_merlin_ortho.py $2 $3
 preprocess_bcdi_merlin_ortho.py $2 $3
 
 echo "Ready to launch phase retrieval !"
-echo cd $2/S$3pynxraw
+echo cd $2S$3/pynxraw
 echo quick_phase_retrieval.sh
