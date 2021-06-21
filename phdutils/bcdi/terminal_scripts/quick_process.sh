@@ -13,6 +13,9 @@ correct_angles_detector.py $2 $3
 
 echo "Preprocessing scan..."
 echo preprocess_bcdi_merlin_ortho.py $2 $3
+echo "Or you can try:"
+echo preprocess_bcdi_merlin_ortho.py $2 $3 "reload=True"
+
 preprocess_bcdi_merlin_ortho.py $2 $3
 
 echo "Ready to launch phase retrieval !"

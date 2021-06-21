@@ -83,13 +83,13 @@ outofplane_angle = float(sys.argv[3]) # detector angle in deg (rotation around x
 inplane_angle = float(sys.argv[4])  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
 tilt_angle = float(sys.argv[5])  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
 
-print(outofplane_angle, inplane_angle, tilt_angle)
 for i, element in enumerate(sys.argv):
-	if "flip" in element:
-		if "true" in element.lower():
-			flip_reconstruction = True  # True if you want to get the conjugate object
-	else:
-		flip_reconstruction = False  # True if you want to get the conjugate object
+    if "flip" in element:
+        if "true" in element.lower():
+            flip_reconstruction = True  # True if you want to get the conjugate object
+            print("Flipping the reconstruction")
+    else:
+    	flip_reconstruction = False  # True if you want to get the conjugate object
 
 # folder of the experiment, where all scans are stored
 root_folder = os.getcwd() + "/" + sys.argv[1] 
@@ -169,7 +169,7 @@ save_frame = 'crystal'  # 'crystal', 'laboratory' or 'lab_flat_sample'
 # 'lab_flat_sample' to save the data in the laboratory frame, with all sample angles rotated back to 0
 # rotations for 'laboratory' and 'lab_flat_sample' are realized after the strain calculation
 # (which is done in the crystal frame along ref_axis_q)
-isosurface_strain = 0.2  # threshold use for removing the outer layer (strain is undefined at the exact surface voxel)
+isosurface_strain = 0.5  # threshold use for removing the outer layer (strain is undefined at the exact surface voxel)
 strain_method = 'default'  # 'default' or 'defect'. If 'defect', will offset the phase in a loop and keep the smallest
 # magnitude value for the strain. See: F. Hofmann et al. PhysRevMaterials 4, 013801 (2020)
 phase_offset = 0  # manual offset to add to the phase, should be 0 in most cases

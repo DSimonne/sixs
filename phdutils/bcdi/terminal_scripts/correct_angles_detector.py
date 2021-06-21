@@ -49,6 +49,7 @@ import ast
 import sys
 import os
 import glob
+import pickle
 
 # Print help
 try:
@@ -95,10 +96,7 @@ print("Template: ", template_imagefile)
 save_dir = scan_folder + "postprocessing/corrections/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
 
 # CSV file if iterating on scans
-csv_file = "/nfs/ruche-sixs/sixs-soleil/com-sixs/2021/Run3/20201572_Richard/reconstructions/temp_ramp_data.csv"
-
-# Save all the prints from the script
-stdoutOrigin=sys.stdout
+csv_file = "/nfs/ruche-sixs/sixs-soleil/com-sixs/2021/Run3/20201572_Richard/reconstructions/scans_data.csv"
 
 README_file = f"{save_dir}README_correct_angles.md"
 print("Save folder:", save_dir)
@@ -112,6 +110,9 @@ try:
     os.mkdir(save_dir)
 except:
     pass
+
+# Save all the prints from the script
+stdoutOrigin=sys.stdout
 
 with open(README_file, 'w') as outfile:
     outfile.write("```bash\n")
@@ -148,7 +149,7 @@ custom_motors = None
 # P10: om, phi, chi, mu, gamma, delta
 # SIXS: beta, mu, gamma, delta
 rocking_angle = "inplane"  # "outofplane" or "inplane"
-specfile_name = "/home/experiences/sixs/simonne/Packages/lib/python3.7/site-packages/phdutils/sixs/alias_dict_2021.txt"
+specfile_name = None
 # template for ID01: name of the spec file without '.spec'
 # template for SIXS_2018: full path of the alias dictionnary 'alias_dict.txt', typically: root_folder + 'alias_dict.txt'
 # template for all other beamlines: ''
@@ -348,7 +349,6 @@ else:  # take the whole detector
         rocking_curve[idx] = data[idx, :, :].sum()
     plot_title = "Rocking curve (full detector)"
 z0 = np.unravel_index(rocking_curve.argmax(), rocking_curve.shape)[0]
-
 interpolation = interp1d(tilt_values, rocking_curve, kind='cubic')
 interp_points = 5*nb_frames
 interp_tilt = np.linspace(tilt_values.min(), tilt_values.max(), interp_points)
@@ -486,20 +486,34 @@ plt.savefig(save_dir + "central_slice.png")
 sys.stdout.close()
 sys.stdout = stdoutOrigin
 
+
+# Save rocking curve data
+np.savez(save_dir + "correct_detector_data.npz",
+    tilt_values = tilt_values,
+    rocking_curve = rocking_curve,
+    interp_tilt = interp_tilt,
+    interp_curve = interp_curve,
+    COM_rocking_curve = tilt_values[z0],
+    detector_data_COM = abs(data[int(round(z0)), :, :]),
+    interp_fwhm = interp_fwhm
+    )
+
+print(f"Saved data in {save_dir}correct_detector_data.npz")
+
 # Use this opportunity to save a lot more data !
 print(f"Opening {filename}")
 data = rd.DataSet(filename)
 
 # Add new data
 DF = pd.DataFrame([[scan, particle, q, qnorm, dist_plane, bragg_inplane, bragg_outofplane, data.x[0], data.y[0], data.z[0], data.mu[0], data.delta[0], data.omega[0],
-                    data.gamma[0], data.gamma[0] - data.mu[0], int(data.roi1_merlin.sum()), int(data.roi4_merlin.sum()), (data.mu[-1] - data.mu[-0]) / len(data.mu),
-                    data.integration_time[0], len(data.integration_time), data.ssl3hg[0], data.ssl3vg[0],
+                    data.gamma[0], data.gamma[0] - data.mu[0], (data.mu[-1] - data.mu[-0]) / len(data.mu), data.integration_time[0], len(data.integration_time), 
+                    data.ssl3hg[0], data.ssl3vg[0], interp_fwhm, bragg_x, bragg_y, tilt_values[z0],
                     # data.ssl1hg[0],
                     # data.ssl1vg[0]
                     ]],
                     columns = [
-                        "scan", "particle", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle", "x", "y", "z", "mu", "delta", "omega",
-                        "gamma", 'gamma-mu', "roi1_sum", "roi4_sum", "step size", "integration time", "nb of steps", "ssl3hg", "ssl3vg"
+                        "scan", "particle", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle", "x", "y", "z", "mu", "delta", "omega","gamma", 'gamma-mu',
+                        "step size", "integration time", "steps", "ssl3hg", "ssl3vg", "FWHM", "bragg_x", "bragg_y", "COM_rocking_curve"
                     ])
 
 # Load all the data
@@ -519,8 +533,8 @@ except FileNotFoundError:
 result.to_csv(csv_file,
             index = False,
             columns = [
-                "scan", "particle", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle", "x", "y", "z", "mu", "delta", "omega",
-                "gamma", 'gamma-mu', "roi1_sum", "roi4_sum", "step size", "integration time", "nb of steps", "ssl3hg", "ssl3vg"
+                "scan", "particle", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle", "x", "y", "z", "mu", "delta", "omega","gamma", 'gamma-mu',
+                "step size", "integration time", "steps", "ssl3hg", "ssl3vg", "FWHM", "bragg_x", "bragg_y", "COM_rocking_curve"
             ])
 print(f"Saved in {csv_file}")
 

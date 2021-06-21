@@ -18,6 +18,7 @@ import bcdi.graph.graph_utils as gu
 import bcdi.algorithms.algorithms_utils as algu
 import bcdi.utils.utilities as util
 import bcdi.experiment.experiment_utils as exp
+import sys
 
 helptext = """
 Create a support from a reconstruction, using the indicated threshold.
@@ -31,13 +32,13 @@ import os
 
 # Print help
 try:
-    print ('Data dir:',  sys.argv[1])
+    print ('Saving directory:',  sys.argv[1])
     root_folder = os.getcwd() + "/" + sys.argv[1] 
 
 except IndexError:
     print("""
-        Arg 1: Path of target directory (before /S{scan} ... )
-            No argument given, using current directory as root_dir.
+        Arg 1: Path of saving directory
+            No argument given, using current directory as save_dir.
         """)
     root_folder = os.getcwd() + "/"
 
@@ -56,23 +57,22 @@ except IndexError:
 # folder of the experiment, where all scans are stored
 print("Root folder:", root_folder)
 
-save_dir = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/"
-
+save_dir = root_folder
 # root_folder = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/analysis/"
 support_threshold = 0.05  # in % of the normalized absolute value
 pynx_shape = (
-    180,
-    180,
-    196,
+    180 ,
+    384,
+    384,
 )  # shape of the array used for phasing and finding the support (after binning_pynx)
-binning_pynx = (1, 2, 2)  # binning that was used in PyNX during phasing
+binning_pynx = (1, 1, 1)  # binning that was used in PyNX during phasing
 output_shape = (
-    180,
-    360,
+    180 ,
+    384,
     392,
-)  # shape of the array for later phasing (before binning_output)
+) # pynx_shape #   # shape of the array for later phasing (before binning_output)
 # if the data and q-values were binned beforehand, use the binned shape and binning_output=(1,1,1)
-binning_output = (1, 2, 2)  # binning that will be used in PyNX for later phasing
+binning_output = (1, 1, 1)  # binning that will be used in PyNX for later phasing
 qvalues_binned = True  # if True, the q values provided are expected to be binned (binning_pynx & binning_output
 
 flag_interact = False  # if False, will skip thresholding and masking
@@ -752,4 +752,4 @@ print("End of script")
 plt.ioff()
 plt.show()
 plt.close('all')
-exit()
+sys.exit()

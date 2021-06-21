@@ -1532,7 +1532,7 @@ with open(README_file, 'a') as outfile:
     outfile.write("```")
 
 # Create file for phase retrieval
-with open("/home/experiences/sixs/simonne/Packages/lib/python3.7/site-packages/phdutils/bcdi/pynx_run.txt", "r") as f:
+with open("/home/experiences/sixs/simonne/Documents/phdutils/phdutils/bcdi/pynx_run.txt", "r") as f:
     text_file = f.readlines()
     
     text_file[1] = f"data = S{scan_nb}_pynx{comment}.npz\"\n"

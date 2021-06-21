@@ -61,7 +61,7 @@ for scan in scans:
         pass
 
     try:
-        shutil.copy("/home/experiences/sixs/simonne/Packages/lib/python3.7/site-packages/phdutils/bcdi/pynx_run.txt", f"{TG_folder}S{scan}/pynxraw")
+        shutil.copy("/home/experiences/sixs/simonne/Documents/phdutils/phdutils/bcdi/pynx_run.txt", f"{TG_folder}S{scan}/pynxraw")
         print(f"Copied pynx-run-no-support.txt to {TG_folder}S{scan}/pynxraw")
     except FileExistsError:
         print(f"{TG_folder}S{scan}/pynxraw/pynx-run-no-support.txt exists")
