@@ -28,7 +28,7 @@ class XCAT():
 		"""
 
 		self.log_file = log_file
-		self.pathtodata = self.log_file if self.log_file.endswith(".txt") else self.log_file+".txt"
+		self.pathtodata = self.log_file if self.log_file.endswith(".txt") else self.log_file + ".txt"
 
 		self.MRS_pos = [
 						"All", "Ar", "Ar+Shu", "All", "Rea+Ar", "Closed", "All", "Closed", "Ar", "Ar+Shu", "Shu",
@@ -292,7 +292,7 @@ class XCAT():
 			for entry in self.entry_list:
 
 				# get dataframe
-				temp_df = getattr(self, f"{entry}_df_truncated")
+				temp_df = getattr(self, f"{entry}_df_truncated").copy()
 
 				# get bad time axis 
 				x = temp_df[f"time_{entry}"]
@@ -339,69 +339,100 @@ class XCAT():
 
 	#### plotting functions for xcat data ###
 
-	def plot_xcat_entry(self, plot_entry_list, df = "interpolated", save = False, fig_name = "xcat_entry", zoom1 = [None, None, None, None], zoom2 = [None, None, None, None], cursor_positions = [None], cursor_labels = [None]):
+	def plot_xcat_entry(self,
+						plot_entry_list,
+						df = "interpolated",
+						save = False,
+						fig_name = "xcat_entry",
+						zoom1 = [None, None, None, None],
+						zoom2 = [None, None, None, None],
+						cursor_positions = [None],
+						cursor_labels = [None],
+						y_pos_text_valve = {"ar" : [45, 3.45], "argon" : [45, 3.45], "o2" : [5, 2], "h2" : [5, 2]}):
 		try:
 			plot_entry_list = [g.lower() for g in plot_entry_list]
 
 			for entry in plot_entry_list:
 				plt.close()
-				fig, ax = plt.subplots(2, 1, figsize = (16, 9))
+				fig, axes = plt.subplots(2, 1, figsize = (16, 9))
 
 				if df == "interpolated":
-					plot_df = getattr(self, f"{entry}_df_interpolated")
+					plot_df = getattr(self, f"{entry}_df_interpolated").copy()
 
 				elif df == "truncated":
-					plot_df = getattr(self, f"{entry}_df_truncated")
+					plot_df = getattr(self, f"{entry}_df_truncated").copy()
 
 				else:
 					raise NameError("Wrong df.")
 
+				# change to hours !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				plot_df[f"time_{entry}"] = plot_df[f"time_{entry}"].values/3600
+
 				# No need to put colors bc each entry has its own plot
-				ax[0].plot(plot_df[f"time_{entry}"], plot_df[f"flow_{entry}"], label = f"flow_{entry}")
+				axes[0].plot(plot_df[f"time_{entry}"], plot_df[f"flow_{entry}"], label = f"flow_{entry}")
 
-				ax[0].plot(plot_df[f"time_{entry}"], plot_df[f"setpoint_{entry}"], "--", label = f"setpoint_{entry}")
+				axes[0].plot(plot_df[f"time_{entry}"], plot_df[f"setpoint_{entry}"], "--", label = f"setpoint_{entry}")
 
-				ax[1].plot(plot_df[f"time_{entry}"], plot_df[f"valve_{entry}"], "--", label = f"valve_{entry}")
+				axes[1].plot(plot_df[f"time_{entry}"], plot_df[f"valve_{entry}"], "--", label = f"valve_{entry}")
 
 				if entry != "ar":
-					ax[0].set_xlim([zoom1[0], zoom1[1]])
-					ax[0].set_ylim([zoom1[2], 10])
+					axes[0].set_xlim([zoom1[0], zoom1[1]])
+					axes[0].set_ylim([zoom1[2], 10])
 
-					ax[1].set_xlim([zoom2[0], zoom2[1]])
-					ax[1].set_ylim([zoom2[2], zoom2[3]])
+					axes[1].set_xlim([zoom2[0], zoom2[1]])
+					axes[1].set_ylim([zoom2[2], zoom2[3]])
 
 				else:
-					ax[0].set_xlim([zoom1[0], zoom1[1]])
-					ax[0].set_ylim([zoom1[2], zoom1[3]])
+					axes[0].set_xlim([zoom1[0], zoom1[1]])
+					axes[0].set_ylim([zoom1[2], zoom1[3]])
 
-					ax[1].set_xlim([zoom2[0], zoom2[1]])
-					ax[1].set_ylim([zoom2[2], zoom2[3]])
+					axes[1].set_xlim([zoom2[0], zoom2[1]])
+					axes[1].set_ylim([zoom2[2], zoom2[3]])
 
 				# cursor
 				try:
 					#mcolors.CSS4_COLORS["teal"]
 					for cursor_pos, cursor_lab in zip(cursor_positions, cursor_labels):
-						ax[0].axvline(cursor_pos, linestyle = "--", color = self.ammonia_conditions_colors[cursor_lab], linewidth = 1.5, label = cursor_lab)
-						ax[1].axvline(cursor_pos, linestyle = "--", color = self.ammonia_conditions_colors[cursor_lab], linewidth = 1.5, label = cursor_lab)
+						axes[0].axvline(cursor_pos, linestyle = "--", color = self.ammonia_conditions_colors[cursor_lab], linewidth = 1.5, label = cursor_lab)
+						axes[1].axvline(cursor_pos, linestyle = "--", color = self.ammonia_conditions_colors[cursor_lab], linewidth = 1.5, label = cursor_lab)
 
 				except (TypeError, KeyError):
 					print("No cursor")
 
-				finally:
-					ax[0].set_ylabel("Flow",fontsize=16)
-					ax[0].set_xlabel("Time (s)",fontsize=16)
-					ax[1].set_ylabel("Valve position",fontsize=16)
-					ax[1].set_xlabel("Time (s)",fontsize=16)
+				# vertical span color to show conditions
+				# dict for y positions of text depending on the valve
+				try:
+					#mcolors.CSS4_COLORS["teal"]
+					for x1, x2, l in zip(cursor_positions[:-1], cursor_positions[1:], cursor_labels):# range(len(cursor_positions)):#, cursor_lab in zip(cursor_positions, cursor_labels):
+						for j, ax in enumerate(axes):
+							ax.axvspan(x1, x2,
+								alpha = 0.2,
+								facecolor = self.ammonia_conditions_colors[l],
+								# label = l
+								)
 
-					ax[0].legend()
-					ax[1].legend()
+							ax.text(
+								x1 + (x2-x1)/2,
+								y = y_pos_text_valve[entry.lower()][j],
+								s = l,
+								fontsize = 25
+								)
+
+
+				finally:
+					axes[0].set_ylabel("Flow",fontsize=16)
+					axes[0].set_xlabel("Time (h)",fontsize=16)
+					axes[1].set_ylabel("Valve position",fontsize=16)
+					axes[1].set_xlabel("Time (h)",fontsize=16)
+
+					axes[0].legend(ncol=len(plot_entry_list))
+					axes[1].legend(ncol=len(plot_entry_list))
 
 					if save == True:
 						plt.tight_layout()
-						plt.savefig(f"Images/{fig_name}_{entry}.svg")
-						plt.savefig(f"Images/{fig_name}_{entry}.png")
+						plt.savefig(f"{fig_name}_{entry}.png")
 
-						print(f"Saved as Images/{fig_name}_{entry} in svg and png formats.")
+						print(f"Saved as {fig_name}_{entry} in png formats.")
 
 					plt.show()
 
@@ -409,22 +440,29 @@ class XCAT():
 			raise KeyError("Plot valves with Valves.plot_valves")
 
 
-	def plot_xcat_valves(self, df = "interpolated", save = False, fig_name = "xcat_valves", zoom1 = [None, None, None, None], zoom2 = [None, None, None, None], cursor_positions = [None], cursor_labels = [None]):
+	def plot_xcat_valves(self,
+						df = "interpolated",
+						save = False,
+						fig_name = "xcat_valves",
+						zoom1 = [None, None, None, None],
+						zoom2 = [None, None, None, None],
+						cursor_positions = [None],
+						cursor_labels = [None]):
 		try:
 
-			fig, ax = plt.subplots(2, 1, figsize = (16, 9))
+			fig, axes = plt.subplots(2, 1, figsize = (16, 9))
 
 			if df == "interpolated":
-				plot_df = getattr(self, "valve_df_interpolated")
+				plot_df = getattr(self, "valve_df_interpolated").copy()
 
 			elif df == "truncated":
-				plot_df = getattr(self, "valve_df_truncated")
+				plot_df = getattr(self, "valve_df_truncated").copy()
 
 			else:
 				raise NameError("Wrong df.")
 
-			ax[0].plot(plot_df["time_valve"], plot_df["valve_MRS"], label = "valve_MRS")
-			ax[1].plot(plot_df["time_valve"], plot_df["valve_MIX"], label = "valve_MIX")
+			axes[0].plot(plot_df["time_valve"], plot_df["valve_MRS"], label = "valve_MRS")
+			axes[1].plot(plot_df["time_valve"], plot_df["valve_MIX"], label = "valve_MIX")
 
 			# cursor
 			try:
@@ -437,25 +475,24 @@ class XCAT():
 
 			finally:
 
-				ax[0].set_xlim([zoom1[0], zoom1[1]])
-				ax[0].set_ylim([zoom1[2], zoom1[3]])
-				ax[1].set_xlim([zoom2[0], zoom2[1]])
-				ax[1].set_ylim([zoom2[2], zoom2[3]])
+				axes[0].set_xlim([zoom1[0], zoom1[1]])
+				axes[0].set_ylim([zoom1[2], zoom1[3]])
+				axes[1].set_xlim([zoom2[0], zoom2[1]])
+				axes[1].set_ylim([zoom2[2], zoom2[3]])
 
-				ax[0].set_ylabel("Valve position",fontsize=16)
-				ax[0].set_xlabel("Time (s)",fontsize=16)
-				ax[1].set_ylabel("Valve position",fontsize=16)
-				ax[1].set_xlabel("Time (s)",fontsize=16)
+				axes[0].set_ylabel("Valve position",fontsize=16)
+				axes[0].set_xlabel("Time (h)",fontsize=16)
+				axes[1].set_ylabel("Valve position",fontsize=16)
+				axes[1].set_xlabel("Time (h)",fontsize=16)
 
-				ax[0].legend()
-				ax[1].legend()
+				axes[0].legend()
+				axes[1].legend()
 
 				if save == True:
 					plt.tight_layout()
-					plt.savefig(f"Images/{fig_name}_{entry}.svg")
-					plt.savefig(f"Images/{fig_name}_{entry}.png")
+					plt.savefig(f"{fig_name}_{entry}.png")
 
-					print(f"Saved as Images/{fig_name}_{entry} in svg and png formats.")
+					print(f"Saved as {fig_name}_{entry} in png formats.")
 
 				plt.show()
 
@@ -469,7 +506,14 @@ class XCAT():
 
 	#### plotting functions for rga data ###
 
-	def plot_rga(self, interpolated_data = True, save = False, fig_name = "rga", plotted_columns = None, zoom = [None, None, None, None], cursor_positions = [None], cursor_labels = [None]):
+	def plot_rga(self,
+				interpolated_data = True,
+				save = False,
+				fig_name = "rga",
+				plotted_columns = None,
+				zoom = [None, None, None, None],
+				cursor_positions = [None],
+				cursor_labels = [None]):
 		"""Plot rga data
 		if plotted_columns = None, it plots all the columns
 		"""
@@ -479,18 +523,21 @@ class XCAT():
 		else:
 			norm_df = self.rga_data.copy()
 
+		# change to hours !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		norm_df = norm_df/3600
+
 		plt.figure(figsize=(18, 13), dpi=80, facecolor='w', edgecolor='k')
 
 		try:
 			for element in plotted_columns:
 				plt.plot(norm_df.time.values, norm_df[element].values,
-					linewidth = 2, label = f"Mass {element}", color = self.ammonia_reaction_colors[element])
+					linewidth = 2, label = f"{element}", color = self.ammonia_reaction_colors[element])
 		
 		# if plotted_columns is None		
 		except:
 			for element in norm_df.columns[1:]:
 				plt.plot(norm_df.time.values, norm_df[element].values,
-					linewidth = 2, label = f"Mass {element}", color = self.ammonia_reaction_colors[element])
+					linewidth = 2, label = f"{element}", color = self.ammonia_reaction_colors[element])
 
 		plt.semilogy()
 
@@ -510,7 +557,7 @@ class XCAT():
 			
 			plt.title(f"Pressure for each element", fontsize=24)
 
-			plt.xlabel('Time (s)',fontsize=16)
+			plt.xlabel('Time (h)',fontsize=16)
 			plt.ylabel('Pressure (mBar)',fontsize=16)
 			plt.legend(bbox_to_anchor=(0., -0.15, 1., .102), loc=3,
 			       ncol=5, mode="expand", borderaxespad=0.)
@@ -519,15 +566,20 @@ class XCAT():
 
 			if save == True:
 				plt.tight_layout()
-				plt.savefig(f"Images/{fig_name}.svg")
-				plt.savefig(f"Images/{fig_name}.png")
+				plt.savefig(f"{fig_name}.png")
 
-				print(f"Saved as Images/{fig_name} in svg and png formats.")
+				print(f"Saved as {fig_name} in png format.")
 
 			plt.show()
 
 
-	def plot_rga_norm_leak(self, interpolated_data = True, leak_values = [1], leak_positions = [None, None], save = False, fig_name = "rga_norm_leak", plotted_columns = None, zoom = [None, None, None, None], cursor_positions = [None], cursor_labels = [None]):
+	def plot_rga_norm_leak(self,
+							interpolated_data = True,
+							leak_values = [1],
+							leak_positions = [None, None],
+							save = False,
+							fig_name = "rga_norm_leak",
+							plotted_columns = None, zoom = [None, None, None, None], cursor_positions = [None], cursor_labels = [None]):
 		"""
 		Plot rga data normalized by the values given in leak_values on the intervals given by leak_positions
 		e.g. leak_values = [1.3, 2] and leak_positions = [100, 200, 500] will result in a division by 1.3 between indices 100 and 200
@@ -540,6 +592,9 @@ class XCAT():
 			norm_df = self.rga_df_interpolated.copy()
 		else:
 			norm_df = self.rga_data.copy()
+
+		# change to hours !!!!!!
+		norm_df = norm_df/3600
 
 		if len(leak_values) + 1 == len(leak_positions):
 
@@ -558,7 +613,7 @@ class XCAT():
 						normalized_values[leak_positions[j]:leak_positions[j+1]] = (normalized_values[leak_positions[j]:leak_positions[j+1]] / value)
 
 					plt.plot(norm_df.time.values, normalized_values,
-						linewidth = 2, label = f"Mass {element}", color = self.ammonia_reaction_colors[element])
+						linewidth = 2, label = f"{element}", color = self.ammonia_reaction_colors[element])
 			
 			# if plotted_columns is None
 			except:
@@ -573,7 +628,7 @@ class XCAT():
 						normalized_values[leak_positions[j]:leak_positions[j+1]] = (normalized_values[leak_positions[j]:leak_positions[j+1]] / value)
 
 					plt.plot(norm_df.time.values, normalized_values,
-						linewidth = 2, label = f"Mass {element}", color = self.ammonia_reaction_colors[element])
+						linewidth = 2, label = f"{element}", color = self.ammonia_reaction_colors[element])
 			
 			plt.semilogy()
 
@@ -593,7 +648,7 @@ class XCAT():
 
 				plt.title(f"Normalized by pressure in rga (leak valve)", fontsize=24)
 
-				plt.xlabel('Time (s)',fontsize=16)
+				plt.xlabel('Time (h)',fontsize=16)
 				plt.ylabel('Pressure (mBar)',fontsize=16)
 				plt.legend(bbox_to_anchor=(0., -0.15, 1., .102), loc=3,
 				       ncol=5, mode="expand", borderaxespad=0.)
@@ -602,10 +657,9 @@ class XCAT():
 
 				if save == True:
 					plt.tight_layout()
-					plt.savefig(f"Images/{fig_name}.svg")
-					plt.savefig(f"Images/{fig_name}.png")
+					plt.savefig(f"{fig_name}.png")
 
-					print(f"Saved as Images/{fig_name} in svg and png formats.")
+					print(f"Saved as {fig_name} in png format.")
 
 				plt.show()
 
@@ -613,7 +667,18 @@ class XCAT():
 			print("Length of leak_positions should be one more than leak_values.")
 
 
-	def plot_rga_norm_carrier(self, interpolated_data = True, save = False, fig_name = "rga_norm_carrier", carrier_gaz = "Argon", plotted_columns = None, zoom = [None, None, None, None], cursor_positions = [None], cursor_labels = [None]):
+	def plot_rga_norm_carrier(self,
+							interpolated_data = True,
+							save = False,
+							legend = True,
+							fig_name = "rga_norm_carrier",
+							carrier_gaz = "Ar",
+							plotted_columns = None,
+							zoom = [None, None, None, None], 
+							cursor_positions = [None], 
+							cursor_labels = [None],
+							vlines = [None],
+							title = False):
 		"""
 		Plot rga data normalized by one column (carrier_gaz)
 		works on rga_df_interpolated
@@ -625,13 +690,18 @@ class XCAT():
 		else:
 			norm_df = self.rga_data.copy()
 
-		plt.figure(figsize=(18, 13), dpi=80, facecolor='w', edgecolor='k')
-		
+		# change to hours !!!!!!
+		norm_df = norm_df/3600
+
+		plt.figure(figsize=(17, 10), dpi=150, facecolor='w', edgecolor='k')
+		plt.semilogy()
+
 		try:
 			if carrier_gaz in plotted_columns:
 				plotted_columns.remove(carrier_gaz)
 
 		except:
+			# No plotted_columns given
 			plotted_columns = list(norm_df.columns)
 			plotted_columns.remove(carrier_gaz)
 
@@ -639,47 +709,75 @@ class XCAT():
 			norm_df[element] = norm_df[element] / norm_df[carrier_gaz]
 
 			plt.plot(norm_df.time.values, norm_df[element].values,
-				linewidth = 2, label = f"Mass {element}", color = self.ammonia_reaction_colors[element])
+				linewidth = 2, label = f"{element}", color = self.ammonia_reaction_colors[element])
 
 		self.norm_carrier_gas_df = norm_df
 		print("Saved df as self.norm_carrier_gas_df.")
 				
-		plt.semilogy()
+		# Add vlines to help find good values
+		try:
+			for i in vlines:
+				plt.axvline(i, color = "r", linestyle= "--", linewidth = 1)
+		except:
+			pass
 
-		# cursor
+		# vertical span color to show conditions
 		try:
 			#mcolors.CSS4_COLORS["teal"]
-			for cursor_pos, cursor_lab in zip(cursor_positions, cursor_labels):
-				plt.axvline(cursor_pos,
-					linestyle = "--", color = self.ammonia_conditions_colors[cursor_lab], linewidth = 1.5, label = cursor_lab)
+			for x1, x2, l in zip(cursor_positions[:-1], cursor_positions[1:], cursor_labels):# range(len(cursor_positions)):#, cursor_lab in zip(cursor_positions, cursor_labels):
+				plt.axvspan(x1, x2,
+					alpha = 0.2,
+					facecolor = self.ammonia_conditions_colors[l],
+					# label = l
+					)
 
-		except (TypeError, KeyError):
-			print("No cursor")
+				plt.text(
+					x1 + (x2-x1)/2,
+					y = 0.1,
+					s = l,
+					fontsize = 25
+					)
+
+		except Exception as e:
+			raise e
+		# except (TypeError, KeyError):
+		# 	print("No cursor")
 
 		finally:
 			plt.xlim(zoom[0], zoom[1])
 			plt.ylim(zoom[2], zoom[3])
 
-			plt.title(f"Normalized by carrier gaz ({carrier_gaz}) pressure", fontsize=24)
+			if isinstance(title, str):
+				plt.title(title, fontsize=26)
 
-			plt.xlabel('Time (s)',fontsize=16)
-			plt.ylabel('Pressure (mBar)',fontsize=16)
-			plt.legend(bbox_to_anchor=(0., -0.15, 1., .102), loc=3,
-			       ncol=5, mode="expand", borderaxespad=0.)
+			plt.xlabel('Time (h)',fontsize = 35)
+			plt.ylabel('Pressure (a.u.)',fontsize = 35)
+			if legend:
+				plt.legend(bbox_to_anchor=(1.15, 1), loc="upper right",
+				       ncol=1, fontsize = 20, fancybox = True)
+
+			plt.xticks(fontsize = 30)
+			plt.yticks(fontsize = 30)
 			plt.grid(b=True, which='major', color='b', linestyle='-')
-			plt.grid(b=True, which='minor', color=mcolors.CSS4_COLORS["teal"], linestyle='-')
+			plt.grid(b=True, which='minor', color=mcolors.CSS4_COLORS["teal"], linestyle='--')
 
 			if save == True:
 				plt.tight_layout()
-				plt.savefig(f"Images/{fig_name}.svg")
-				plt.savefig(f"Images/{fig_name}.png")
+				plt.savefig(f"{fig_name}.png", bbox_inches='tight')
 
-				print(f"Saved as Images/{fig_name} in svg and png formats.")
+				print(f"Saved as {fig_name} in png format.")
 
 			plt.show()
 
 
-	def plot_rga_norm_ptot(self, interpolated_data = True, save = False, legend = True, fig_name = "rga_norm_ptot", plotted_columns = None, ptot = None, zoom = [None, None, None, None], cursor_positions = [None], cursor_labels = [None], title = "Normalized by total pressure"):
+	def plot_rga_norm_ptot(self,
+							interpolated_data = True,
+							save = False,
+							legend = True,
+							fig_name = "rga_norm_ptot",
+							plotted_columns = None,
+							ptot = None,
+							zoom = [None, None, None, None], cursor_positions = [None], cursor_labels = [None], title = False):
 		"""
 		Plot rga data normalized by the total pressure in the cell
 		works on rga_df_interpolated
@@ -700,6 +798,7 @@ class XCAT():
 		val[:,1:] = (val[:,1:].T * ptot_row).T
 
 		self.norm_df_ptot = pd.DataFrame(used_arr / val, columns = norm_df.columns)
+		
 		# change to hours !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		self.norm_df_ptot.time = self.norm_df_ptot.time.values/3600
 
@@ -750,10 +849,11 @@ class XCAT():
 			plt.xlim(zoom[0], zoom[1])
 			plt.ylim(zoom[2], zoom[3])
 
-			# plt.title(title, fontsize=26)
+			if isinstance(title, str):
+				plt.title(title, fontsize=26)
 
 			plt.xlabel('Time (h)',fontsize = 35)
-			plt.ylabel('Pressure (mBar)',fontsize = 35)
+			plt.ylabel('Pressure (a.u.)',fontsize = 35)
 			if legend:
 				plt.legend(bbox_to_anchor=(1.15, 1), loc="upper right",
 				       ncol=1, fontsize = 20, fancybox = True)
@@ -764,16 +864,26 @@ class XCAT():
 			plt.grid(b=True, which='minor', color=mcolors.CSS4_COLORS["teal"], linestyle='--')
 
 			if save == True:
-				# plt.tight_layout()
-				# plt.savefig(f"Images/{fig_name}.svg", bbox_inches='tight')
-				plt.savefig(f"Images/rga/{fig_name}.png", bbox_inches='tight')
+				plt.tight_layout()
+				plt.savefig(f"{fig_name}.png", bbox_inches='tight')
 
-				print(f"Saved as Images/rga/{fig_name} in svg and png formats.")
+				print(f"Saved as {fig_name} in png format.")
 
 			plt.show()
 
 
-	def plot_rga_norm_temp(self, start_heating, nb_points, amp_final, save = False, fig_name = "rga_norm_temp", interpolated_data = True, delta_time = 10, bins_nb = 1000, binning = False, plotted_columns = None, zoom = [None, None, None, None], cursor_positions = [None], cursor_labels = [None]):
+	def plot_rga_norm_temp(self, 
+							start_heating, 
+							nb_points, 
+							amp_final, save = False, 
+							fig_name = "rga_norm_temp", 
+							interpolated_data = True, 
+							delta_time = 10, 
+							bins_nb = 1000, binning = False, 
+							plotted_columns = None, 
+							zoom = [None, None, None, None], 
+							cursor_positions = [None], 
+							cursor_labels = [None]):
 		"""
 		Plot rga data normalized by the values given in intensity_values on the intervals given by leak_positions
 		e.g. intensity_values = [1.3, 2] and leak_positions = [100, 200, 500] will result in a division by 1.3 between indices 100 and 200
@@ -786,6 +896,9 @@ class XCAT():
 			norm_df = self.rga_df_interpolated.copy()
 		else:
 			norm_df = self.rga_data.copy()
+
+		# change to hours !!!!!!
+		norm_df = norm_df/3600
 
 		# recreate points that were used during data acquisition
 		# amperage = np.round(np.concatenate((np.linspace(0, amp_final, nb_points*delta_time, endpoint=False), np.linspace(amp_final, 0, nb_points*delta_time))), 2)
@@ -821,7 +934,7 @@ class XCAT():
 
 				if not binning:
 					plt.plot(temperature_real, data_column,
-						linewidth = 2, linestyle = "dashdot", label = f"Mass {element}", color = self.ammonia_reaction_colors[element])
+						linewidth = 2, linestyle = "dashdot", label = f"{element}", color = self.ammonia_reaction_colors[element])
 					if max(data_column[element]) > max_plot:
 						max_plot = max(data_column[element])
 		
@@ -837,9 +950,9 @@ class XCAT():
 						self.rga_during_heating[element],
 						linewidth = 2,
 						linestyle = "dashdot",
-						label = f"Mass {element}", 
+						label = f"{element}", 
 						color = self.ammonia_reaction_colors[element])
-					# plt.plot(temperature_real, data_column, linewidth = 2, label = f"Mass {element}")
+					# plt.plot(temperature_real, data_column, linewidth = 2, label = f"{element}")
 					if max(self.rga_during_heating[element]) > max_plot:
 						max_plot = max(self.rga_during_heating[element])
 
@@ -901,14 +1014,21 @@ class XCAT():
 
 			if save == True:
 				plt.tight_layout()
-				plt.savefig(f"{fig_name}.svg")
-				plt.savefig(f"{fig_name}.png")
+				plt.savefig(f"{fig_name}.png", bbox_inches='tight')
 
-				print(f"Saved as {fig_name} in svg and png formats.")
+				print(f"Saved as {fig_name} in png format.")
 			plt.show()
 
 
-	def fit_error_function(self, initial_guess, new_amper_vect, interpolated_data = True, fitted_columns = None, binning = False, zoom = [None, None, None, None], cursor_positions = [None], cursor_labels = [None]):
+	def fit_error_function(self, 
+							initial_guess, 
+							new_amper_vect, 
+							interpolated_data = True, 
+							fitted_columns = None, 
+							binning = False, 
+							zoom = [None, None, None, None], 
+							cursor_positions = [None], 
+							cursor_labels = [None]):
 		"""fit pressure vs temperature dta with error function"""
 
 		def error_function(z, a, b, c, d):
@@ -923,44 +1043,44 @@ class XCAT():
 			used_df = self.binned_data.copy()
 			xdata = used_df.temperature
 
-		fig, ax = plt.subplots(1, 1, figsize = (18, 13), dpi = 80, facecolor = 'w', edgecolor = 'k')
+		fig, axes = plt.subplots(1, 1, figsize = (18, 13), dpi = 80, facecolor = 'w', edgecolor = 'k')
 
 		try:
 			for element in fitted_columns:
 				ydata = used_df[element]
 				popt, pcov = curve_fit(error_function, xdata, ydata, p0 = initial_guess)
-				# ax.plot(xdata, func(xdata, *guessErf))
-				ax.plot(xdata, ydata, linewidth = 2, linestyle = "dashdot", label = f"Mass {element}")
-				#ax.plot(xdata, func(xdata, *popt))
-				ax.plot(longer_temp_vect, error_function(longer_temp_vect, *popt), linewidth = 2, linestyle = "dashdot", label = f"Mass {element}")
+				# axes.plot(xdata, func(xdata, *guessErf))
+				axes.plot(xdata, ydata, linewidth = 2, linestyle = "dashdot", label = f"{element}")
+				#axes.plot(xdata, func(xdata, *popt))
+				axes.plot(longer_temp_vect, error_function(longer_temp_vect, *popt), linewidth = 2, linestyle = "dashdot", label = f"{element}")
 
 		except:
 			for element in used_df.columns[1:]:
 				ydata = used_df[element]
 				popt, pcov = curve_fit(error_function, xdata, ydata, p0 = initial_guess)
-				# ax.plot(xdata, func(xdata, *guessErf))
-				ax.plot(xdata, ydata, linewidth = 2, linestyle = "dashdot", label = f"Mass {element}")
-				#ax.plot(xdata, func(xdata, *popt))
-				ax.plot(longer_temp_vect, error_function(longer_temp_vect, *popt), linewidth = 2, linestyle = "dashdot", label = f"Mass {element}")
+				# axes.plot(xdata, func(xdata, *guessErf))
+				axes.plot(xdata, ydata, linewidth = 2, linestyle = "dashdot", label = f"{element}")
+				#axes.plot(xdata, func(xdata, *popt))
+				axes.plot(longer_temp_vect, error_function(longer_temp_vect, *popt), linewidth = 2, linestyle = "dashdot", label = f"{element}")
 
 		# cursor
 		try:
 			#mcolors.CSS4_COLORS["teal"]
 			for cursor_pos in cursor_positions:
-				ax.axvline(x = cursor_pos, linestyle = "--", color = "#bb1e10")
+				axes.axvline(x = cursor_pos, linestyle = "--", color = "#bb1e10")
 		except TypeError:
 			print("No cursor")
 
 		finally:
-			ax.set_xlim(zoom[0], zoom[1])
-			ax.set_ylim(zoom[2], zoom[3])
+			axes.set_xlim(zoom[0], zoom[1])
+			axes.set_ylim(zoom[2], zoom[3])
 
-			ax.set_xlabel('Temperature (°C)',fontsize=16)
-			ax.set_ylabel('Pressure (mBar)',fontsize=16)
-			ax.legend(bbox_to_anchor=(0., -0.1, 1., .102), loc=3,
+			axes.set_xlabel('Temperature (°C)',fontsize=16)
+			axes.set_ylabel('Pressure (mBar)',fontsize=16)
+			axes.legend(bbox_to_anchor=(0., -0.1, 1., .102), loc=3,
 			       ncol=5, mode="expand", borderaxespad=0.)
-			ax.grid(b=True, which='major', color='b', linestyle='-')
-			ax.grid(b=True, which='minor', color=mcolors.CSS4_COLORS["teal"], linestyle='--')
+			axes.grid(b=True, which='major', color='b', linestyle='-')
+			axes.grid(b=True, which='minor', color=mcolors.CSS4_COLORS["teal"], linestyle='--')
 
 			plt.title("Temperature vs pressure graphs fitted with error functions")
 			plt.show()
