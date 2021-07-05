@@ -1,4 +1,4 @@
-#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python
+#!/home/david/anaconda3/envs/linux.BCDI_MI/bin/python3
 
 # BCDI: tools for pre(post)-processing Bragg coherent X-ray diffraction imaging data
 #   (c) 07/2017-06/2019 : CNRS UMR 7344 IM2NP
@@ -79,8 +79,8 @@ sys.stdout = open(README_file, "a")
 
 """end of personal script"""
 
-support_threshold = 0.35  # threshold for support determination
-voxel_size = [11.4, 10.4, 11.3]   # tuple of 3 numbers, voxel size of the real-space reconstruction in each dimension
+support_threshold = 0.3  # threshold for support determination
+voxel_size = [7.9, 8.7, 9.8]   # tuple of 3 numbers, voxel size of the real-space reconstruction in each dimension
 upsampling_factor = 2  # integer, factor for upsampling the reconstruction in order to have a smoother surface
 reflection = np.array([1, 1, 1])  # measured crystallographic reflection
 projection_axis = 1  # the projection will be performed on the equatorial plane perpendicular to that axis (0, 1 or 2)
@@ -98,8 +98,8 @@ corners_coord = 310  # coordination threshold for isolating corners, 310 seems t
 ########################################################
 # parameters only used in the stereographic projection #
 ########################################################
-threshold_south = -2500  # background threshold in the stereographic projection from South of the density of normals
-threshold_north = -500  # background threshold in the stereographic projection from North of the density of normals
+threshold_south = -1250  # background threshold in the stereographic projection from South of the density of normals
+threshold_north = -1250  # background threshold in the stereographic projection from North of the density of normals
 max_angle = 95  # maximum angle in degree of the stereographic projection (should be larger than 90)
 stereo_scale = 'linear'  # 'linear' or 'log', scale of the colorbar in the stereographic plot
 
