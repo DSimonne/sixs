@@ -61,22 +61,30 @@ for scan in scans:
         pass
 
     try:
-        shutil.copy("/home/experiences/sixs/simonne/Packages/lib/python3.7/site-packages/phdutils/bcdi/pynx_run.txt", f"{TG_folder}S{scan}/pynxraw")
+        shutil.copy("/home/experiences/sixs/simonne/Documents/phdutils/phdutils/bcdi/pynx_run.txt", f"{TG_folder}S{scan}/pynxraw")
         print(f"Copied pynx-run-no-support.txt to {TG_folder}S{scan}/pynxraw")
     except FileExistsError:
         print(f"{TG_folder}S{scan}/pynxraw/pynx-run-no-support.txt exists")
         pass
 
     try:
-        # filename = glob.glob(f"{OG_folder}*mu*{scan}*.nxs", recursive=True)[0]
-        filename = glob.glob(f"{OG_folder}*omega*{scan}*.nxs", recursive=True)[0]
+        filename = glob.glob(f"{OG_folder}*mu*{scan}*.nxs", recursive=True)[0]
+        print("Mu scan.")
         shutil.copy2(filename, f"{TG_folder}S{scan}/data")
         print(f"Copied {filename} to {TG_folder}S{scan}/data")
     except FileExistsError:
         print(f"{TG_folder}S{scan}/data/{filename} exists")
         pass
     except IndexError:
-        print("Not an omega scan")
-        # print("Not a mu scan")
-        pass
+        try:
+            filename = glob.glob(f"{OG_folder}*omega*{scan}*.nxs", recursive=True)[0]
+            print("Omega scan.")
+            shutil.copy2(filename, f"{TG_folder}S{scan}/data")
+            print(f"Copied {filename} to {TG_folder}S{scan}/data")
+        except FileExistsError:
+            print(f"{TG_folder}S{scan}/data/{filename} exists")
+            pass
+        except IndexError:
+            print("Not a mu or an omega scan.")
+            pass
     print("\n")

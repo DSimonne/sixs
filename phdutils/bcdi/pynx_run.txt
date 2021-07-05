@@ -4,10 +4,10 @@ mask = ""
 data2cxi = True
 #object = "pynx-cdi-input-S61-2018-06-07T11-33-51_LLK000.488.npz"
 auto_center_resize = False #
-#support= ""
+#support= "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/supports/support_168_170_190_1_2_2_3116.npz"
 #support_type = 'square' # (will be a sphere or cube in 3d)
 #support_size = 20, 10, 20  # half-size of the initial support (radius for a sphere)
-support_threshold = 0.23, 0.3 # pick a random number between these two numbers
+support_threshold = 0.23, 0.30 # pick a random number between these two numbers
 support_only_shrink = False
 support_update_period = 20
 support_smooth_width_begin = 2
@@ -25,7 +25,7 @@ nb_er = 300
 nb_ml = 0
 
 nb_run = 50
-nb_run_keep = 10
+nb_run_keep = 17
 
 zero_mask = auto # masked pixels will start from imposed 0 and then let free
 # max_size = 256 
@@ -43,8 +43,7 @@ pixel_size_detector = 55e-6   # eiger 75e-6, maxipix 55e-6
 wavelength = 0.14586e-9
 verbose = 100
 output_format= 'cxi'  # 'npz' # 'cxi' #
-live_plot = True
+live_plot = False
 # gpu = "K20"
 # gpu="M2090"
-
-save_plot = True
+# save_plot = True

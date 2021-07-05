@@ -37,8 +37,13 @@ else:
 # Load data
 for scan in scans:
     print(scan)
-    # filename = glob.glob(f"{root_folder}{sample_name}{scan}/data/*mu*{scan}*")[0]
-    filename = glob.glob(f"{root_folder}{sample_name}{scan}/data/*omega*{scan}*")[0]
+    try:
+        filename = glob.glob(f"{root_folder}{sample_name}{scan}/data/*omega*{scan}*")[0]
+        rocking_angle = 'omega'
+    except:
+        filename = glob.glob(f"{root_folder}{sample_name}{scan}/data/*mu*{scan}*")[0]
+        rocking_angle = 'mu'
+
     f_copy = filename.split(".nxs")[0] + "_R.nxs"
     
     shutil.copy2(filename, f_copy)
@@ -50,14 +55,19 @@ for scan in scans:
 
         # Get data
         try:
+            # if rocking_angle == "omega":
             data_og = f.root.com.scan_data.data_10[:]
-            print("Calling merlin the enchanter ...")
+            # elif rocking_angle == "mu":
+            #     data_og = f.root.com.scan_data.merlin_image[:]
+            print("Calling merlin the enchanter in SBS...")
+            scan_type = "SBS"
         except:
             try:
-                data_og = f.root.com.scan_data.data_02[:]
-                print("Trying to climb eiger ...")
+                data_og = f.root.com.scan_data.test_image[:]
+                print("Calling merlin the enchanter in FLY...")
+                scan_type = "FLY"
             except:
-                print("This data does not result from Eiger nor Merlin :/")
+                print("This data does not result from Merlin :/")
 
         # Just an index for plotting schemes
         half = int(data_og.shape[0]/2)
@@ -87,9 +97,9 @@ for scan in scans:
 
         # Overwrite data in copied file
         try:
-            f.root.com.scan_data.data_10[:] = data
+            if scan_type == "SBS":
+                f.root.com.scan_data.data_10[:] = data
+            elif scan_type == "FLY":
+                f.root.com.scan_data.test_image[:] = data
         except:
-            try:
-                f.root.com.scan_data.data_02[:] = data
-            except:
-                print("Could not overwrite data ><")
+            print("Could not overwrite data ><")
