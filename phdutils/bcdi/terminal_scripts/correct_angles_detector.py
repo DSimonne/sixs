@@ -51,6 +51,8 @@ import os
 import glob
 import pickle
 
+# print(rd.__file__)
+
 # Print help
 try:
     print ('Data dir:',  sys.argv[1])
@@ -96,7 +98,7 @@ print("Template: ", template_imagefile)
 save_dir = scan_folder + "postprocessing/corrections/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
 
 # CSV file if iterating on scans
-csv_file = "/nfs/ruche-sixs/sixs-soleil/com-sixs/2021/Run3/20201572_Richard/reconstructions/scans_data.csv"
+# csv_file = "/nfs/ruche-sixs/sixs-soleil/com-sixs/2021/Run3/20201572_Richard/reconstructions/scans_data.csv"
 
 README_file = f"{save_dir}README_correct_angles.md"
 print("Save folder:", save_dir)
@@ -165,9 +167,10 @@ roi_detector = None
 # [y_bragg - 290, y_bragg + 350, x_bragg - 350, x_bragg + 350]  # Ar  # HC3207  x_bragg = 430
 # leave it as None to use the full detector. Use with center_fft='do_nothing' if you want this exact size.
 high_threshold = 1000000  # everything above will be considered as hotpixel
-hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/mask_merlin_better_flipped.npy"
-#hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_better.npy"
-#hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_Jan_2021/masks/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
+hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"
+# hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/mask_merlin_better_flipped.npy"
+# hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/masks/mask_merlin_better.npy"
+# hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_Jan_2021/masks/mask_merlin.npy"  # root_folder + 'hotpixels_HS4670.npz'  # non empty file path or None
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
 # template_imagefile ="Pt_Al2O3_ascan_mu_%05d_R.nxs"
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
@@ -507,13 +510,15 @@ data = rd.DataSet(filename)
 # Add new data
 DF = pd.DataFrame([[scan, particle, q, qnorm, dist_plane, bragg_inplane, bragg_outofplane, data.x[0], data.y[0], data.z[0], data.mu[0], data.delta[0], data.omega[0],
                     data.gamma[0], data.gamma[0] - data.mu[0], (data.mu[-1] - data.mu[-0]) / len(data.mu), data.integration_time[0], len(data.integration_time), 
-                    data.ssl3hg[0], data.ssl3vg[0], interp_fwhm, bragg_x, bragg_y, tilt_values[z0],
-                    # data.ssl1hg[0],
-                    # data.ssl1vg[0]
+                    interp_fwhm, bragg_x, bragg_y, tilt_values[z0],
+                    data.ssl3hg[0], data.ssl3vg[0], 
+                    data.ssl1hg[0], data.ssl1vg[0]
                     ]],
                     columns = [
                         "scan", "particle", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle", "x", "y", "z", "mu", "delta", "omega","gamma", 'gamma-mu',
-                        "step size", "integration time", "steps", "ssl3hg", "ssl3vg", "FWHM", "bragg_x", "bragg_y", "COM_rocking_curve"
+                        "step size", "integration time", "steps", "FWHM", "bragg_x", "bragg_y", "COM_rocking_curve",
+                        "ssl3hg", "ssl3vg", 
+                        "ssl1hg", "ssl1vg", 
                     ])
 
 # Load all the data
