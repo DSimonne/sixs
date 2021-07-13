@@ -894,7 +894,15 @@ class DataSets(object):
 		print(f"Saved as {save_as}")
 
 
-	def fit_bragg(self, scan_to_fit, fit_range = [2.75, 2.95], x_axis = "q", peak_nb = 1, peak_pos = [2.85], peak_amp = [1e5], peak_sigma = [0.0008], back = [10, 0, 100]):
+	def fit_bragg(self,
+		scan_to_fit,
+		fit_range = [2.75, 2.95],
+		x_axis = "q",
+		peak_nb = 1,
+		peak_pos = [2.85],
+		peak_amp = [1e5],
+		peak_sigma = [0.0008],
+		back = [10, 0, 100]):
 		"""docstring"""
 
 		# Create a dictionnary for the peak to be able to iterate on their names

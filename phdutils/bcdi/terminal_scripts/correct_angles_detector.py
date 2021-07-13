@@ -99,6 +99,7 @@ save_dir = scan_folder + "postprocessing/corrections/"  # images will be saved h
 
 # CSV file if iterating on scans
 # csv_file = "/nfs/ruche-sixs/sixs-soleil/com-sixs/2021/Run3/20201572_Richard/reconstructions/scans_data.csv"
+csv_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/Pt_Al2O3/temp_ramp.csv"
 
 README_file = f"{save_dir}README_correct_angles.md"
 print("Save folder:", save_dir)
@@ -127,7 +128,7 @@ sys.stdout = open(README_file, "a")
 # sample_name = "S"
 filtered_data = False  # set to True if the data is already a 3D array, False otherwise
 # Should be the same shape as in specfile
-peak_method = 'com'  # Bragg peak determination: 'max', 'com' or 'maxcom'.
+peak_method = 'maxcom'  # Bragg peak determination: 'max', 'com' or 'maxcom'.
 normalize_flux = 'skip'  # 'monitor' to normalize the intensity by the default monitor values, 'skip' to do nothing
 debug = False  # True to see more plots
 
@@ -188,8 +189,8 @@ beam_direction = (1, 0, 0)  # beam along z
 sample_offsets = None  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # convention: the sample offsets will be subtracted to the motor values
 directbeam_x = 271  # x horizontal,  cch2 in xrayutilities
-# directbeam_y = 271 # SIXS jan 2021   # y vertical,  cch1 in xrayutilities
-directbeam_y = 236 #271 SIXS june 2021   # y vertical,  cch1 in xrayutilities
+directbeam_y = 213 # SIXS jan 2021   # y vertical,  cch1 in xrayutilities
+# directbeam_y = 236 # SIXS june 2021   # y vertical,  cch1 in xrayutilities
 direct_inplane = 0.0  # outer angle in xrayutilities
 direct_outofplane = 0.0
 sdd = 1.18  # sample to detector distance in m
@@ -408,6 +409,10 @@ print(
     f"\nBragg peak at (gam={setup.inplane_angle}, del={setup.outofplane_angle}) (X, Y): ({bragg_x:.2f}, {bragg_y:.2f})"
 )
 
+# add error on bragg peak position to computer errorbars
+# bragg_y+=5
+# bragg_x+=5
+
 bragg_inplane = setup.inplane_angle + setup.inplane_coeff * (
     detector.pixelsize_x * (bragg_x - x_direct_0) / sdd * 180 / np.pi
 )  # inplane_coeff is +1 or -1
@@ -549,5 +554,7 @@ with open(README_file, 'a') as outfile:
 # End of added script
 
 print("End of script \n")
+plt.close()
 plt.ioff()
-plt.show()
+# plt.show()
+plt.close()
