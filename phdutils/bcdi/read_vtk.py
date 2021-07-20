@@ -144,6 +144,9 @@ class Facets(object):
 		self.field_data['n0'] = np.zeros(self.nb_facets)
 		self.field_data['n1'] = np.zeros(self.nb_facets)
 		self.field_data['n2'] = np.zeros(self.nb_facets)
+		self.field_data['c0'] = np.zeros(self.nb_facets)
+		self.field_data['c1'] = np.zeros(self.nb_facets)
+		self.field_data['c2'] = np.zeros(self.nb_facets)
 		self.field_data['FacetIds'] = np.zeros(self.nb_facets)
 		self.field_data['absFacetSize'] = np.zeros(self.nb_facets)
 		self.field_data['interplanarAngles'] = np.zeros(self.nb_facets)
@@ -153,6 +156,9 @@ class Facets(object):
 		    self.field_data['n0'][i] = fieldData.GetArray('facetNormals').GetValue(3*i)
 		    self.field_data['n1'][i] = fieldData.GetArray('facetNormals').GetValue(3*i+1)
 		    self.field_data['n2'][i] = fieldData.GetArray('facetNormals').GetValue(3*i+2)
+		    self.field_data['c0'][i] = fieldData.GetArray('FacetCenters').GetValue(3*i)
+		    self.field_data['c1'][i] = fieldData.GetArray('FacetCenters').GetValue(3*i+1)
+		    self.field_data['c2'][i] = fieldData.GetArray('FacetCenters').GetValue(3*i+2)
 		    self.field_data['FacetIds'][i] = fieldData.GetArray('FacetIds').GetValue(i)
 		    self.field_data['absFacetSize'][i] = fieldData.GetArray('absFacetSize').GetValue(i)
 		    self.field_data['interplanarAngles'][i] = fieldData.GetArray('interplanarAngles').GetValue(i)
@@ -538,19 +544,19 @@ class Facets(object):
 		ax = fig.add_subplot(1, 1, 1)
 
 		# Major x ticks every 5, minor ticks every 1
-		major_x_ticks = np.arange(0, self.nb_facets, 5)
-		minor_x_ticks = np.arange(0, self.nb_facets, 1)
+		major_x_ticks_facet = np.arange(0, self.nb_facets+5, 5)
+		minor_x_ticks_facet = np.arange(0, self.nb_facets+5, 1)
 
-		ax.set_xticks(major_x_ticks)
-		ax.set_xticks(minor_x_ticks, minor=True)
+		ax.set_xticks(major_x_ticks_facet)
+		ax.set_xticks(minor_x_ticks_facet, minor=True)
 		plt.xticks(fontsize = self.ticks_fontsize)
 
 		# Major y ticks every 0.5, minor ticks every 0.1
-		major_y_ticks = np.arange(-3, 3, 0.5)
-		minor_y_ticks = np.arange(-3, 3, 0.1)
+		major_y_ticks_facet = np.arange(-3, 3, 0.5)
+		minor_y_ticks_facet = np.arange(-3, 3, 0.1)
 
-		ax.set_yticks(major_y_ticks)
-		ax.set_yticks(minor_y_ticks, minor=True)
+		ax.set_yticks(major_y_ticks_facet)
+		ax.set_yticks(minor_y_ticks_facet, minor=True)
 		plt.yticks(fontsize = self.ticks_fontsize)
 
 		for j, row in self.field_data.iterrows():
@@ -574,16 +580,16 @@ class Facets(object):
 		ax = fig.add_subplot(1, 1, 1)
 
 		# Major x ticks every 5, minor ticks every 1
-		ax.set_xticks(major_x_ticks)
-		ax.set_xticks(minor_x_ticks, minor=True)
+		ax.set_xticks(major_x_ticks_facet)
+		ax.set_xticks(minor_x_ticks_facet, minor=True)
 		plt.xticks(fontsize = self.ticks_fontsize)
 
 		# Major y ticks every 0.5, minor ticks every 0.1
-		major_y_ticks = np.arange(-0.0004, 0.0004, 0.0001)
-		minor_y_ticks = np.arange(-0.0004, 0.0004, 0.00005)
+		major_y_ticks_facet = np.arange(-0.0004, 0.0004, 0.0001)
+		minor_y_ticks_facet = np.arange(-0.0004, 0.0004, 0.00005)
 
-		ax.set_yticks(major_y_ticks)
-		ax.set_yticks(minor_y_ticks, minor=True)
+		ax.set_yticks(major_y_ticks_facet)
+		ax.set_yticks(minor_y_ticks_facet, minor=True)
 		plt.yticks(fontsize = self.ticks_fontsize)
 
 		for j, row in self.field_data.iterrows():
@@ -609,8 +615,8 @@ class Facets(object):
 		plt.yticks(fontsize = self.ticks_fontsize)
 
 		# Major ticks every 20, minor ticks every 5
-		major_x_ticks = np.arange(0, 180, 20)
-		minor_x_ticks = np.arange(0, 180, 5)
+		major_x_ticks = np.arange(0, 200, 20)
+		minor_x_ticks = np.arange(0, 200, 5)
 
 		ax0.set_xticks(major_x_ticks)
 		ax0.set_xticks(minor_x_ticks, minor=True)
