@@ -314,13 +314,13 @@ class Facets(object):
 			try:
 				mask = self.field_data.loc[self.field_data["facet_id"] == facet_id]
 
-				n0 = self.field_data.loc[mask, "n0"]
-				n1 = self.field_data.loc[mask, "n1"]
-				n2 = self.field_data.loc[mask, "n2"]
+				n0 = mask.n0.values[0]
+				n1 = mask.n1.values[0]
+				n2 = mask.n2.values[0]
 				print(f"Facet normal: [{n0}, {n1}, {n2}].")
-			except:
-				# Not yet defined 
-				pass
+			except Exception as e:
+				raise e
+				# pass
 
 		ind_Facet_new = list(set(ind_Facet))
 		results = {}
