@@ -79,46 +79,35 @@ class Facets(object):
 		print("Number of cells = %s" % str(vtkdata.GetNumberOfCells()))
 
 		self.vtk_data = {}
-		self.vtk_data['disp'] = np.zeros(vtkdata.GetNumberOfPoints())
-		self.vtk_data['strain'] = np.zeros(vtkdata.GetNumberOfPoints())
-		self.vtk_data['x'] = np.zeros(vtkdata.GetNumberOfPoints())
-		self.vtk_data['y'] = np.zeros(vtkdata.GetNumberOfPoints())
-		self.vtk_data['z'] = np.zeros(vtkdata.GetNumberOfPoints())
 
-		# pointData.GetArrayName(1) # to get the name of the array
-		# get the positions of the points-voxels // vtkdata.GetPoint(0)[0] or vtkdata.GetPoint(0)
-		for i in range(vtkdata.GetNumberOfPoints()):
-		    self.vtk_data['x'][i] = vtkdata.GetPoint(i)[0]
-		    self.vtk_data['y'][i] = vtkdata.GetPoint(i)[1]
-		    self.vtk_data['z'][i] = vtkdata.GetPoint(i)[2]
-		    self.vtk_data['strain'][i] = pointData.GetArray('strain').GetValue(i)
-		    self.vtk_data['disp'][i] = pointData.GetArray('disp').GetValue(i)
+		self.vtk_data['x'] = [vtkdata.GetPoint(i)[0] for i in range(vtkdata.GetNumberOfPoints())]
+		self.vtk_data['y'] = [vtkdata.GetPoint(i)[1] for i in range(vtkdata.GetNumberOfPoints())]
+		self.vtk_data['z'] = [vtkdata.GetPoint(i)[2] for i in range(vtkdata.GetNumberOfPoints())]
+		self.vtk_data['strain'] = [pointData.GetArray('strain').GetValue(i) for i in range(vtkdata.GetNumberOfPoints())]
+		self.vtk_data['disp'] = [pointData.GetArray('disp').GetValue(i) for i in range(vtkdata.GetNumberOfPoints())]
 
 
 		# Get cell data
 		cellData = vtkdata.GetCellData()
-		self.vtk_data['FacetProbabilities'] = np.zeros(vtkdata.GetNumberOfCells())
-		self.vtk_data['FacetIds'] = np.zeros(vtkdata.GetNumberOfCells())
-		self.vtk_data['x0'] = np.zeros(vtkdata.GetNumberOfCells())
-		self.vtk_data['y0'] = np.zeros(vtkdata.GetNumberOfCells())
-		self.vtk_data['z0'] = np.zeros(vtkdata.GetNumberOfCells())
 
-		for i in range(vtkdata.GetNumberOfCells()):
-		    self.vtk_data['FacetProbabilities'][i] = cellData.GetArray('FacetProbabilities').GetValue(i)
-		    self.vtk_data['FacetIds'][i] = cellData.GetArray('FacetIds').GetValue(i)
-		    self.vtk_data['x0'][i] = vtkdata.GetCell(i).GetPointId(0)
-		    self.vtk_data['y0'][i] = vtkdata.GetCell(i).GetPointId(1)
-		    self.vtk_data['z0'][i] = vtkdata.GetCell(i).GetPointId(2)
+		self.vtk_data['facet_probabilities'] = [cellData.GetArray('FacetProbabilities').GetValue(i) for i in range(vtkdata.GetNumberOfCells())]
+		self.vtk_data['facet_id'] = [cellData.GetArray('FacetIds').GetValue(i) for i in range(vtkdata.GetNumberOfCells())]
+		self.vtk_data['x0'] = [vtkdata.GetCell(i).GetPointId(0) for i in range(vtkdata.GetNumberOfCells())]
+		self.vtk_data['y0'] = [vtkdata.GetCell(i).GetPointId(1) for i in range(vtkdata.GetNumberOfCells())]
+		self.vtk_data['z0'] = [vtkdata.GetCell(i).GetPointId(2) for i in range(vtkdata.GetNumberOfCells())]
 
-		self.nb_facets = int(max(self.vtk_data['FacetIds']))
+		self.nb_facets = int(max(self.vtk_data['facet_id']))
 		print("Number of facets = %s" % str(self.nb_facets))
 
 		# Get means
-		facet_indices = np.arange(1, int(self.nb_facets) + 1, 1) # indices from 1 to x
+		facet_indices = np.arange(1, int(self.nb_facets) + 1, 1) # indices from 1 to n_facets
+
 		strain_mean = np.zeros(self.nb_facets) # stored later in field data
 		strain_std = np.zeros(self.nb_facets) # stored later in field data
 		disp_mean = np.zeros(self.nb_facets) # stored later in field data
 		disp_std = np.zeros(self.nb_facets) # stored later in field data
+
+		# For future analysis
 		self.strain_mean_facets=[]
 		self.disp_mean_facets=[]
 
@@ -132,44 +121,29 @@ class Facets(object):
 
 
 		# Get field data
-		self.field_data = {}
+		self.field_data = pd.DataFrame()
 		fieldData = vtkdata.GetFieldData()
 
-		self.field_data['facet'] = facet_indices
+		self.field_data['facet_id'] = [fieldData.GetArray('FacetIds').GetValue(i) for i in range(self.nb_facets)]
 		self.field_data['strain_mean'] = strain_mean
 		self.field_data['strain_std'] = strain_std
 		self.field_data['disp_mean'] = disp_mean
 		self.field_data['disp_std'] = disp_std
+		self.field_data['n0'] = [fieldData.GetArray('facetNormals').GetValue(3*i) for i in range(self.nb_facets)]
+		self.field_data['n1'] = [fieldData.GetArray('facetNormals').GetValue(3*i+1) for i in range(self.nb_facets)]
+		self.field_data['n2'] = [fieldData.GetArray('facetNormals').GetValue(3*i+2) for i in range(self.nb_facets)]
+		self.field_data['c0'] = [fieldData.GetArray('FacetCenters').GetValue(3*i) for i in range(self.nb_facets)]
+		self.field_data['c1'] = [fieldData.GetArray('FacetCenters').GetValue(3*i+1) for i in range(self.nb_facets)]
+		self.field_data['c2'] = [fieldData.GetArray('FacetCenters').GetValue(3*i+2) for i in range(self.nb_facets)]
+		self.field_data['interplanar_angles'] = [fieldData.GetArray('interplanarAngles').GetValue(i) for i in range(self.nb_facets)]
+		self.field_data['abs_facet_size'] = [fieldData.GetArray('absFacetSize').GetValue(i) for i in range(self.nb_facets)]
+		self.field_data['rel_facet_size'] = [fieldData.GetArray('relFacetSize').GetValue(i) for i in range(self.nb_facets)]
 
-		self.field_data['n0'] = np.zeros(self.nb_facets)
-		self.field_data['n1'] = np.zeros(self.nb_facets)
-		self.field_data['n2'] = np.zeros(self.nb_facets)
-		self.field_data['c0'] = np.zeros(self.nb_facets)
-		self.field_data['c1'] = np.zeros(self.nb_facets)
-		self.field_data['c2'] = np.zeros(self.nb_facets)
-		self.field_data['FacetIds'] = np.zeros(self.nb_facets)
-		self.field_data['absFacetSize'] = np.zeros(self.nb_facets)
-		self.field_data['interplanarAngles'] = np.zeros(self.nb_facets)
-		self.field_data['relFacetSize'] = np.zeros(self.nb_facets)
-
-		for i in range(self.nb_facets):
-		    self.field_data['n0'][i] = fieldData.GetArray('facetNormals').GetValue(3*i)
-		    self.field_data['n1'][i] = fieldData.GetArray('facetNormals').GetValue(3*i+1)
-		    self.field_data['n2'][i] = fieldData.GetArray('facetNormals').GetValue(3*i+2)
-		    self.field_data['c0'][i] = fieldData.GetArray('FacetCenters').GetValue(3*i)
-		    self.field_data['c1'][i] = fieldData.GetArray('FacetCenters').GetValue(3*i+1)
-		    self.field_data['c2'][i] = fieldData.GetArray('FacetCenters').GetValue(3*i+2)
-		    self.field_data['FacetIds'][i] = fieldData.GetArray('FacetIds').GetValue(i)
-		    self.field_data['absFacetSize'][i] = fieldData.GetArray('absFacetSize').GetValue(i)
-		    self.field_data['interplanarAngles'][i] = fieldData.GetArray('interplanarAngles').GetValue(i)
-		    self.field_data['relFacetSize'][i] = fieldData.GetArray('relFacetSize').GetValue(i)
-
-		# Save also as dataframe
-		self.field_data = pd.DataFrame(self.field_data)
+		self.field_data = self.field_data.astype({'facet_id': np.int8})
 
 		# Get normals
 		# Don't use array index but facet number in case we sort the dataframe !!
-		normals = {f"facet_{row.facet}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
+		normals = {f"facet_{row.facet_id}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
 
 		# Update legend
 		legend = []
@@ -208,7 +182,7 @@ class Facets(object):
 		rotation matrix"""
 
 		# Get normals, again to make sure that we have the good ones
-		normals = {f"facet_{row.facet}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
+		normals = {f"facet_{row.facet_id}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
 
 		try:
 		    for e in normals.keys():
@@ -221,7 +195,7 @@ class Facets(object):
 		v0, v1, v2 = [], [], []
 		for k, v in normals.items():
 			# we make sure that we use the same facets !!
-			mask = self.field_data["facet"] == int(k.split("facet_")[-1])
+			mask = self.field_data["facet_id"] == int(k.split("facet_")[-1])
 			self.field_data.loc[mask, 'n0'] = v[0]
 			self.field_data.loc[mask, 'n1'] = v[1]
 			self.field_data.loc[mask, 'n2'] = v[2]
@@ -242,7 +216,7 @@ class Facets(object):
 		self.ref_normal = self.hkl/np.linalg.norm(self.hkl)
 
 		# Get normals, again to make sure that we have the good ones
-		normals = {f"facet_{row.facet}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
+		normals = {f"facet_{row.facet_id}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
 
 		# Interplanar angle recomputed from a fixed reference plane, between the experimental facets
 		new_angles = []
@@ -261,7 +235,7 @@ class Facets(object):
 		    if m:
 		        new_angles[j] = 0
 
-		self.field_data['interplanarAngles'] = new_angles
+		self.field_data['interplanar_angles'] = new_angles
 
 		# Save angles for indexation, using facets that we should see or usually see on Pt nanoparticles (WK form)
 		normals = [[1, 1, 0], [-1, 1, 0], [-1, -1, 0],
@@ -330,15 +304,15 @@ class Facets(object):
 		"""
 
 		ind_Facet = []
-		for i in range(len(self.vtk_data['FacetIds'])):
-		    if (int(self.vtk_data['FacetIds'][i]) == facet_id):
+		for i in range(len(self.vtk_data['facet_id'])):
+		    if (int(self.vtk_data['facet_id'][i]) == facet_id):
 		        ind_Facet.append(self.vtk_data['x0'][i])
 		        ind_Facet.append(self.vtk_data['y0'][i])
 		        ind_Facet.append(self.vtk_data['z0'][i])
 		
 		if plot:
 			try:
-				mask = self.field_data.loc[self.field_data["facet"] == facet_id]
+				mask = self.field_data.loc[self.field_data["facet_id"] == facet_id]
 
 				n0 = self.field_data.loc[mask, "n0"]
 				n1 = self.field_data.loc[mask, "n1"]
@@ -511,7 +485,7 @@ class Facets(object):
 
 		    disp_mean_facet = np.zeros(results['disp'].shape)
 		    disp_mean_facet.fill(results['disp_mean'])
-		    self.disp_mean_facets=np.append(self.strain_mean_facets, disp_mean_facet,axis=0)
+		    self.disp_mean_facets=np.append(self.disp_mean_facets, disp_mean_facet,axis=0)
 
 		    p = ax.scatter(
 		    	results['x'],
@@ -560,7 +534,7 @@ class Facets(object):
 		plt.yticks(fontsize = self.ticks_fontsize)
 
 		for j, row in self.field_data.iterrows():
-		    ax.errorbar(row['facet'], row['disp_mean'], row['disp_std'], fmt='o', label = row["legend"])
+		    ax.errorbar(row['facet_id'], row['disp_mean'], row['disp_std'], fmt='o', label = row["legend"])
 		
 		ax.set_title("Average displacement vs facet index", fontsize = self.title_fontsize)
 		ax.set_xlabel('Facet index', fontsize = self.axes_fontsize)
@@ -593,7 +567,7 @@ class Facets(object):
 		plt.yticks(fontsize = self.ticks_fontsize)
 
 		for j, row in self.field_data.iterrows():
-		    ax.errorbar(row['facet'], row['strain_mean'], row['strain_std'], fmt='o', label = row["legend"])
+		    ax.errorbar(row['facet_id'], row['strain_mean'], row['strain_std'], fmt='o', label = row["legend"])
 		
 		ax.set_title("Average strain vs facet index", fontsize = self.title_fontsize)
 		ax.set_xlabel('Facet index', fontsize = self.axes_fontsize)
@@ -638,7 +612,7 @@ class Facets(object):
 		        fmt='s'
 		    if (lx<=0 and ly<=0):
 		        fmt = '+'
-		    ax0.errorbar(row['interplanarAngles'], row['disp_mean'], row['disp_std'], fmt=fmt,capsize=2, label = row["legend"])
+		    ax0.errorbar(row['interplanar_angles'], row['disp_mean'], row['disp_std'], fmt=fmt,capsize=2, label = row["legend"])
 		ax0.set_ylabel('Retrieved <disp> (A)', fontsize = self.axes_fontsize)
 		ax0.legend(loc='upper left', bbox_to_anchor=(1, 1), ncol=1, fancybox=True, shadow=True, fontsize = self.legend_fontsize+3)
 		ax0.grid(which='minor', alpha=0.2)
@@ -666,7 +640,7 @@ class Facets(object):
 		        fmt='s'
 		    if (lx<=0 and ly<=0):
 		        fmt = '+'
-		    ax1.errorbar(row['interplanarAngles'], row['strain_mean'], row['strain_std'], fmt=fmt,capsize=2, label = row["legend"])
+		    ax1.errorbar(row['interplanar_angles'], row['strain_mean'], row['strain_std'], fmt=fmt,capsize=2, label = row["legend"])
 		ax1.set_ylabel('Retrieved <strain>', fontsize = self.axes_fontsize)
 		ax1.grid(which='minor', alpha=0.2)
 		ax1.grid(which='major', alpha=0.5)
@@ -692,7 +666,7 @@ class Facets(object):
 		        fmt='s'
 		    if (lx<=0 and ly<=0):
 		        fmt = '+'
-		    ax2.plot(row['interplanarAngles'], row['relFacetSize'],'o', label = row["legend"])
+		    ax2.plot(row['interplanar_angles'], row['rel_facet_size'],'o', label = row["legend"])
 		ax2.set_xlabel('Angle (deg.)', fontsize = self.axes_fontsize)
 		ax2.set_ylabel('Relative facet size', fontsize = self.axes_fontsize)
 		ax2.grid(which='minor', alpha=0.2)
