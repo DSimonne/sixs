@@ -11,14 +11,14 @@ support_threshold = 0.23, 0.30 # pick a random number between these two numbers
 support_only_shrink = False
 support_update_period = 20
 support_smooth_width_begin = 2
-support_smooth_width_end = 1
+support_smooth_width_end = 0.5
 support_post_expand = 1,-2,1
 
 #mask_interp=8,2
 #confidence_interval_factor_mask=0.5,1.2
 
 #algorithm=(Sup*ER**20)**5 * PSF**100*RAAR**10 * (Sup*RAAR**20)**10 * PSF**100*ER**10 * (Sup*ER**10)**5 * PSF**100*RAAR**10 * (Sup*RAAR**20)**10 * (Sup*ER**10)**5 * (Sup*RAAR**20)**10
-psf = True # For partial coherence
+psf = "gaussian,0.5,20"  # For partial coherence
 nb_raar = 1000
 nb_hio = 400
 nb_er = 300
@@ -40,7 +40,8 @@ rebin = 1,1,1
 # Generic parameters
 detector_distance = 1.18 # in m 
 pixel_size_detector = 55e-6   # eiger 75e-6, maxipix 55e-6
-wavelength = 0.14586e-9
+wavelength = 9.5373e-11
+#wavelength = 0.14586e-9
 verbose = 100
 output_format= 'cxi'  # 'npz' # 'cxi' #
 live_plot = False
