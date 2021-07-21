@@ -65,11 +65,11 @@ for scan in scans:
         print(f"{TG_folder}S{scan}/pynxraw/pynx_run_ID01.txt exists")
         pass
 
-        try:
-            shutil.copy("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/PhasingNotebook.ipynb.txt", f"{TG_folder}S{scan}/pynxraw")
-            print(f"Copied PhasingNotebook.ipynb.txt to {TG_folder}S{scan}/pynxraw")
-        except FileExistsError:
-            print(f"{TG_folder}S{scan}/pynxraw/PhasingNotebook.ipynb.txt exists")
-            pass
+    try:
+        shutil.copy("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/PhasingNotebook.ipynb", f"{TG_folder}S{scan}/pynxraw")
+        print(f"Copied PhasingNotebook.ipynb.txt to {TG_folder}S{scan}/pynxraw")
+    except FileExistsError:
+        print(f"{TG_folder}S{scan}/pynxraw/PhasingNotebook.ipynb exists")
+        pass
 
     print("\n")
