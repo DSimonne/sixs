@@ -301,7 +301,7 @@ use_central_pixel = False # to use the angles from the nexus file
 # calculate the correct angles beforehand !!
 print("I hope you have used the right angles ...")
 outofplane_angle = (
-    28.11 # detector angle in deg (rotation around x outboard, typically delta),
+    0 # detector angle in deg (rotation around x outboard, typically delta),
 )
 # corrected for the direct beam position. Leave None to use the uncorrected position.
 inplane_angle = (

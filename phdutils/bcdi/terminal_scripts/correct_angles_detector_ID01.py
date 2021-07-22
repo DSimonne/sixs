@@ -62,6 +62,12 @@ scan = int(sys.argv[2])
 particle = sys.argv[1].split("/")[-2]
 print("Particle (from file name):", particle)
 
+condition = sys.argv[1].split("/")[-3]
+print("Condition (from file name):", condition)
+
+given_temperature = sys.argv[1].split("/")[-4]
+print("Given temp (from file name):", given_temperature)
+
 # folder of the experiment, where all scans are stored
 root_folder = os.getcwd() + "/" + sys.argv[1] 
 print("Root folder:", root_folder)
@@ -132,7 +138,7 @@ custom_motors = None
 # CRISTAL: mgomega, gamma, delta
 # P10: om, phi, chi, mu, gamma, delta
 # SIXS: beta, mu, gamma, delta
-rocking_angle = "inplane"  # "outofplane" or "inplane"
+rocking_angle = "outofplane"  # "outofplane" or "inplane"
 specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
 # template for ID01: name of the spec file without '.spec'
 # template for SIXS_2018: full path of the alias dictionnary 'alias_dict.txt', typically: root_folder + 'alias_dict.txt'
@@ -484,17 +490,20 @@ np.savez(save_dir + "correct_detector_data.npz",
     interp_curve = interp_curve,
     COM_rocking_curve = tilt_values[z0],
     detector_data_COM = abs(data[int(round(z0)), :, :]),
-    interp_fwhm = interp_fwhm
+    interp_fwhm = interp_fwhm,
+    particle = particle,
+    condition = condition,
+    given_temperature = given_temperature
     )
 
 print(f"Saved data in {save_dir}correct_detector_data.npz")
 
 # Add new data
-DF = pd.DataFrame([[scan, particle, q, qnorm, dist_plane, bragg_inplane, bragg_outofplane,
+DF = pd.DataFrame([[scan, particle, given_temperature, condition, q, qnorm, dist_plane, bragg_inplane, bragg_outofplane,
                     interp_fwhm, bragg_x, bragg_y, tilt_values[z0]
                     ]],
                     columns = [
-                        "scan", "particle", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle",
+                        "scan", "particle", "given_temperature", "condition", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle",
                         "FWHM", "bragg_x", "bragg_y", "COM_rocking_curve"
                     ])
 
@@ -515,7 +524,7 @@ except FileNotFoundError:
 result.to_csv(csv_file,
             index = False,
             columns = [
-            "scan", "particle", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle",
+            "scan", "particle", "given_temperature", "condition", "q", "q_norm", "plane", "inplane_angle", "out_of_plane_angle",
             "FWHM", "bragg_x", "bragg_y", "COM_rocking_curve"
             ])
 print(f"Saved in {csv_file}")
