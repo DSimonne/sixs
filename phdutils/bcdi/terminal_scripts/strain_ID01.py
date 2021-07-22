@@ -102,15 +102,10 @@ for i, element in enumerate(sys.argv):
 # folder of the experiment, where all scans are stored
 root_folder = os.getcwd() + "/" + sys.argv[1] 
 print("Root folder:", root_folder)
-data_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/detector/2021_07_20_085405_ni"
 
 #Scan folder
 scan_folder = root_folder + f"S{scan}/"
 print("Scan folder:", scan_folder)
-
-# Data folder
-data_folder = scan_folder + "data/" # folder of the experiment, where all scans are stored
-print("Data folder:", data_folder)
 
 save_dir = scan_folder + "result_crystal_frame/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
 # save_dir = None
@@ -135,6 +130,7 @@ with open(README_file, 'w') as outfile:
 sys.stdout = open(README_file, "a")
 
 """end of personal script"""
+root_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/"  # folder of the experiment, where all scans are stored
 
 #########################################################
 # parameters used when averaging several reconstruction #
@@ -188,7 +184,7 @@ centering_method = 'max_com'  # 'com' (center of mass), 'max', 'max_com' (max th
 beamline = "ID01"  # name of the beamline, used for data loading and normalization by monitor and orthogonalisation
 # supported beamlines: 'ID01', 'SIXS_2018', 'SIXS_2019', 'CRISTAL', 'P10', '34ID'
 actuators = None
-rocking_angle = "inplane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
+rocking_angle = "outofplane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
 # around y vertical up, does not matter for energy scan
 #  "inplane" e.g. phi @ ID01, mu @ SIXS "outofplane" e.g. eta @ ID01
 sdd = 0.83  # sample to detector distance in m
@@ -199,9 +195,9 @@ beam_direction = np.array(
 # outofplane_angle = -0.01815149389135301 # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
 # inplane_angle = 37.51426377175866  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
 # tilt_angle = 0.007737016574585642  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
-sample_offsets = None  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
+sample_offsets = (1.1562481, 0, 0)  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # the sample offsets will be subtracted to the motor values
-specfile_name = "/data/id01/inhouse/data/IHR/hc4050/id01/spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
+specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
 # template for ID01: name of the spec file without '.spec'
 # template for SIXS_2018: full path of the alias dictionnary, typically root_folder + 'alias_dict_2019.txt'
 # template for all other beamlines: ''
@@ -524,7 +520,7 @@ pretty.pprint(detector.params)
 root = tk.Tk()
 root.withdraw()
 file_path = filedialog.askopenfilenames(
-    initialdir=detector.scandir,
+    initialdir=os.getcwd() + "/" + sys.argv[1],
     filetypes=[("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi"), ("HDF5", "*.h5")],
 )
 nbfiles = len(file_path)

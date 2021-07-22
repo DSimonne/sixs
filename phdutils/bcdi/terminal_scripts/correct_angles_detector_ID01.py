@@ -168,7 +168,7 @@ template_imagefile = root_folder + 'detector/2021_07_20_085405_ni/data_mpx4_%05d
 # define setup related parameters #
 ###################################
 beam_direction = (1, 0, 0)  # beam along z
-sample_offsets =  [1.1562481, 0, 0] # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
+sample_offsets = (1.1562481, 0, 0) # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # convention: the sample offsets will be subtracted to the motor values
 directbeam_x = 159.555  # direct beam vertical position in the full unbinned detector for xrayutilities 2D detector calibration
 directbeam_y = 729.561  # direct beam horizontal position in the full unbinned detector for xrayutilities 2D detector calibration
