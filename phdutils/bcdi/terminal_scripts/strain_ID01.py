@@ -34,7 +34,7 @@ import bcdi.graph.graph_utils as gu
 import bcdi.experiment.experiment_utils as exp
 import bcdi.postprocessing.postprocessing_utils as pu
 import bcdi.preprocessing.preprocessing_utils as pru
-import bcdi.simulation.simulation_utils_sixs as simu
+import bcdi.simulation.simulation_utils as simu
 import bcdi.utils.utilities as util
 import bcdi.utils.validation as valid
 
@@ -74,7 +74,7 @@ try:
     print ('Data dir:',  sys.argv[1])
     print ('Scan:',  sys.argv[2])
     print ('Delta:',  sys.argv[3])
-    print ('Gamma:',  sys.argv[4])
+    print ('Phi:',  sys.argv[4])
     print ('Tilt angle:',  sys.argv[5])
 except IndexError:
     print("""
@@ -188,11 +188,11 @@ centering_method = 'max_com'  # 'com' (center of mass), 'max', 'max_com' (max th
 beamline = "ID01"  # name of the beamline, used for data loading and normalization by monitor and orthogonalisation
 # supported beamlines: 'ID01', 'SIXS_2018', 'SIXS_2019', 'CRISTAL', 'P10', '34ID'
 actuators = None
-rocking_angle = "outoflane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
+rocking_angle = "inplane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
 # around y vertical up, does not matter for energy scan
 #  "inplane" e.g. phi @ ID01, mu @ SIXS "outofplane" e.g. eta @ ID01
-sdd = 0.8  # sample to detector distance in m
-energy = 13000  # x-ray energy in eV, 6eV offset at ID01
+sdd = 0.83  # sample to detector distance in m
+energy = 12994  # x-ray energy in eV, 6eV offset at ID01
 beam_direction = np.array(
     [1, 0, 0]
 )  # incident beam along z, in the frame (z downstream, y vertical up, x outboard)
@@ -281,8 +281,8 @@ align_axis = False  # for visualization, if True rotates the crystal to align ax
 ref_axis = "y"  # will align axis_to_align to that axis
 axis_to_align = np.array([-0.011662456997498807, 0.957321364700986, -0.28879022106682123])
 # axis to align with ref_axis in the order x y z (axis 2, axis 1, axis 0)
-strain_range = 0.002  # for plots 0.001?
-phase_range = np.pi  # for plotsn np.pi/2 ?
+strain_range = 0.001  # for plots 0.001?
+phase_range = np.pi/2  # for plotsn np.pi/2 ?
 grey_background = True  # True to set the background to grey in phase and strain plots
 tick_spacing = 100  # for plots, in nm
 tick_direction = 'inout'  # 'out', 'in', 'inout'
@@ -1429,7 +1429,6 @@ else:
     fig.text(0.60, 0.10, "No phase averaging", size=20)
 if save:
     plt.savefig(detector.savedir + f"S{scan}_strain" + comment + ".png")
-
 
 # Added script
 sys.stdout.close()

@@ -41,7 +41,6 @@ Remenber that you may have to change the mask, the central pixel, the rocking an
 """
 
 import pandas as pd
-#from phdutils.sixs import ReadNxs4 as rd
 import ast
 import os
 import glob
@@ -133,7 +132,7 @@ custom_motors = None
 # CRISTAL: mgomega, gamma, delta
 # P10: om, phi, chi, mu, gamma, delta
 # SIXS: beta, mu, gamma, delta
-rocking_angle = "outofplane"  # "outofplane" or "inplane"
+rocking_angle = "inplane"  # "outofplane" or "inplane"
 specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
 # template for ID01: name of the spec file without '.spec'
 # template for SIXS_2018: full path of the alias dictionnary 'alias_dict.txt', typically: root_folder + 'alias_dict.txt'
