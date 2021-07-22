@@ -74,14 +74,14 @@ try:
     print ('Data dir:',  sys.argv[1])
     print ('Scan:',  sys.argv[2])
     print ('Delta:',  sys.argv[3])
-    print ('Phi:',  sys.argv[4])
+    print ('Mu:',  sys.argv[4])
     print ('Tilt angle:',  sys.argv[5])
 except IndexError:
     print("""
         Arg 1: Path of target directory (before /S{scan} ... )
         Arg 2: Scan(s) number, list or single value
         Arg 3: Delta
-        Arg 4: Gamma
+        Arg 4: Mu
         Arg 5: Tilt angle
         """)
     exit()

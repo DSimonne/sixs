@@ -383,11 +383,11 @@ y_direct_0 = (
 
 
 print(
-    f"\nDirect beam at (gam={direct_inplane}, del={direct_outofplane}) (X, Y): {directbeam_x}, {directbeam_y}"
+    f"\nDirect beam at (mu={direct_inplane}, del={direct_outofplane}) (X, Y): {directbeam_x}, {directbeam_y}"
 )
-print(f"Direct beam at (gam=0, del=0) (X, Y): ({x_direct_0:.2f}, {y_direct_0:.2f})")
+print(f"Direct beam at (mu=0, del=0) (X, Y): ({x_direct_0:.2f}, {y_direct_0:.2f})")
 print(
-    f"\nBragg peak at (gam={setup.inplane_angle}, del={setup.outofplane_angle}) (X, Y): ({bragg_x:.2f}, {bragg_y:.2f})"
+    f"\nBragg peak at (mu={setup.inplane_angle}, del={setup.outofplane_angle}) (X, Y): ({bragg_x:.2f}, {bragg_y:.2f})"
 )
 
 # add error on bragg peak position to computer errorbars
@@ -408,10 +408,10 @@ bragg_outofplane = (
 )  # outofplane_coeff is +1 or -1
 
 print(
-    f"\nBragg angles before correction (gam, del): ({setup.inplane_angle:.4f}, {setup.outofplane_angle:.4f})"
+    f"\nBragg angles before correction (mu, del): ({setup.inplane_angle:.4f}, {setup.outofplane_angle:.4f})"
 )
 print(
-    f"Bragg angles after correction (gam, del): ({bragg_inplane:.4f}, {bragg_outofplane:.4f})"
+    f"Bragg angles after correction (mu, del): ({bragg_inplane:.4f}, {bragg_outofplane:.4f})"
 )
 
 # update setup with the corrected detector angles
