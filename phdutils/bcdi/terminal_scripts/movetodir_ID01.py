@@ -59,6 +59,12 @@ for scan in scans:
         pass
 
     try:
+        os.mkdir(f"{TG_folder}S{scan}/pynxraw/reconstructions")
+        print(f"Created {TG_folder}S{scan}/pynxraw/reconstructions")
+    except FileExistsError:
+        print(f"{TG_folder}S{scan}/pynxraw/reconstructionsexists")
+        pass
+    try:
         os.mkdir(f"{TG_folder}S{scan}/postprocessing")
         print(f"Created {TG_folder}S{scan}/postprocessing")
     except FileExistsError:
