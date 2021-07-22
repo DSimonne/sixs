@@ -59,6 +59,13 @@ for scan in scans:
         pass
 
     try:
+        os.mkdir(f"{TG_folder}S{scan}/postprocessing")
+        print(f"Created {TG_folder}S{scan}/postprocessing")
+    except FileExistsError:
+        print(f"{TG_folder}S{scan}/postprocessing exists")
+        pass
+
+    try:
         shutil.copy("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/pynx_run_ID01.txt", f"{TG_folder}S{scan}/pynxraw")
         print(f"Copied pynx_run_ID01.txt to {TG_folder}S{scan}/pynxraw")
     except FileExistsError:
@@ -71,5 +78,13 @@ for scan in scans:
     except FileExistsError:
         print(f"{TG_folder}S{scan}/pynxraw/PhasingNotebook.ipynb exists")
         pass
+
+    try:
+        shutil.copy("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/CompareFacetsEvolution.ipynb", f"{TG_folder}S{scan}/postprocessing")
+        print(f"Copied CompareFacetsEvolution.ipynb.txt to {TG_folder}S{scan}/postprocessing")
+    except FileExistsError:
+        print(f"{TG_folder}S{scan}/postprocessing/CompareFacetsEvolution.ipynb exists")
+        pass
+
 
     print("\n")

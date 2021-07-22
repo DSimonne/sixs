@@ -1,5 +1,0 @@
-#!/bin/sh
-rsync_local_SIXSJan
-rsync_local_ML
-rsync_local_GUIBCDI
-rsync_local_Scripts
