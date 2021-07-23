@@ -15,5 +15,5 @@ echo preprocess_bcdi_ID01.py $1 $2 "reload=True"
 preprocess_bcdi_ID01.py $1 $2
 
 echo "Ready to launch phase retrieval !"
-echo cd $2S$3/pynxraw
+echo cd S$2$3/pynxraw
 echo quick_phase_retrieval.sh

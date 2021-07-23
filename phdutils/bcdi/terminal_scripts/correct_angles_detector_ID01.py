@@ -86,7 +86,7 @@ sample_name = "S"  # str or list of str of sample names (string in front of the 
 save_dir = scan_folder + "postprocessing/corrections/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
 
 # CSV file if iterating on scans
-csv_file = "/data/id01/inhouse/david/ID01_July_2021/temp_ramp.csv"
+csv_file = "/data/id01/inhouse/david/ID01_July_2021/scan_data.csv"
 
 README_file = f"{save_dir}README_correct_angles.md"
 print("Save folder:", save_dir)

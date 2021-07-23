@@ -224,7 +224,7 @@ custom_scan = False  # set it to True for a stack of images acquired without sca
 custom_images = None  # np.arange(11353, 11453, 1)  # list of image numbers for the custom_scan, None otherwise
 custom_monitor = None  # monitor values for normalization for the custom_scan, None otherwise
 
-rocking_angle = "outofplane"  # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
+rocking_angle = "inplane"  # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
 # around y vertical up, "energy"
 
 follow_bragg = False  # only for energy scans, set to True if the detector was also scanned to follow the Bragg peak

@@ -18,9 +18,9 @@ support_post_expand = 1,-2,1
 #confidence_interval_factor_mask=0.5,1.2
 
 #algorithm=(Sup*ER**20)**5 * PSF**100*RAAR**10 * (Sup*RAAR**20)**10 * PSF**100*ER**10 * (Sup*ER**10)**5 * PSF**100*RAAR**10 * (Sup*RAAR**20)**10 * (Sup*ER**10)**5 * (Sup*RAAR**20)**10
-psf = "gaussian,0.5,20"  # For partial coherence
+psf = "pseudo-voigt,0.5,0,1,10"  # For partial coherence
 nb_raar = 1000
-nb_hio = 400
+nb_hio = 150
 nb_er = 300
 nb_ml = 0
 
@@ -48,3 +48,4 @@ live_plot = False
 # gpu = "K20"
 # gpu="M2090"
 # save_plot = True
+mpi=run
