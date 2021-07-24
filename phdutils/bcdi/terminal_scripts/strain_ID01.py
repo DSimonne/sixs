@@ -73,15 +73,15 @@ import sys
 try:
     print ('Data dir:',  sys.argv[1])
     print ('Scan:',  sys.argv[2])
-    print ('Delta:',  sys.argv[3])
-    print ('Mu:',  sys.argv[4])
+    print ('Outofplane angle:',  sys.argv[3])
+    print ('Inplane angle:',  sys.argv[4])
     print ('Tilt angle:',  sys.argv[5])
 except IndexError:
     print("""
         Arg 1: Path of target directory (before /S{scan} ... )
         Arg 2: Scan(s) number, list or single value
-        Arg 3: Delta
-        Arg 4: Mu
+        Arg 3: Outofplane angle
+        Arg 4: Inplane angle
         Arg 5: Tilt angle
         """)
     exit()
@@ -130,7 +130,8 @@ with open(README_file, 'w') as outfile:
 sys.stdout = open(README_file, "a")
 
 """end of personal script"""
-root_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/"  # folder of the experiment, where all scans are stored
+# root_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/"  # folder of the experiment, where all scans are stored
+root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/"  # folder of the experiment, where all scans are stored
 
 #########################################################
 # parameters used when averaging several reconstruction #
@@ -168,7 +169,7 @@ save_frame = 'crystal'  # 'crystal', 'laboratory' or 'lab_flat_sample'
 # 'lab_flat_sample' to save the data in the laboratory frame, with all sample angles rotated back to 0
 # rotations for 'laboratory' and 'lab_flat_sample' are realized after the strain calculation
 # (which is done in the crystal frame along ref_axis_q)
-isosurface_strain = 0.5  # threshold use for removing the outer layer (strain is undefined at the exact surface voxel)
+isosurface_strain = 0.3  # threshold use for removing the outer layer (strain is undefined at the exact surface voxel)
 strain_method = 'default'  # 'default' or 'defect'. If 'defect', will offset the phase in a loop and keep the smallest
 # magnitude value for the strain. See: F. Hofmann et al. PhysRevMaterials 4, 013801 (2020)
 phase_offset = 0  # manual offset to add to the phase, should be 0 in most cases
@@ -184,7 +185,7 @@ centering_method = 'max_com'  # 'com' (center of mass), 'max', 'max_com' (max th
 beamline = "ID01"  # name of the beamline, used for data loading and normalization by monitor and orthogonalisation
 # supported beamlines: 'ID01', 'SIXS_2018', 'SIXS_2019', 'CRISTAL', 'P10', '34ID'
 actuators = None
-rocking_angle = "outofplane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
+rocking_angle = "inplane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
 # around y vertical up, does not matter for energy scan
 #  "inplane" e.g. phi @ ID01, mu @ SIXS "outofplane" e.g. eta @ ID01
 sdd = 0.83  # sample to detector distance in m
@@ -197,8 +198,8 @@ beam_direction = np.array(
 # tilt_angle = 0.007737016574585642  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
 sample_offsets = (1.1562481, 0, 0)  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # the sample offsets will be subtracted to the motor values
-specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
-# template for ID01: name of the spec file without '.spec'
+# specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
+specfile_name = "spec/2021_07_24_083204_test" #'analysis/alias_dict_2021.txt'# template for ID01: name of the spec file without '.spec'
 # template for SIXS_2018: full path of the alias dictionnary, typically root_folder + 'alias_dict_2019.txt'
 # template for all other beamlines: ''
 
@@ -221,6 +222,8 @@ nb_pixel_x = None  # fix to declare a known detector but with less pixels (e.g. 
 nb_pixel_y = None  # fix to declare a known detector but with less pixels (e.g. one tile HS), leave None otherwise
 pixel_size = None  # use this to declare the pixel size of the "Dummy" detector if different from 55e-6
 template_imagefile = 'data_mpx4_%05d.edf.gz'
+# template_imagefile = root_folder + 'detector/2021_07_20_085405_ni/data_mpx4_%05d.edf.gz'
+# template_imagefile = root_folder + 'detector/2021_07_24_072032_b8_s1_p2/data_mpx4_%05d.edf.gz'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
 # template for SIXS_2018: 'align.spec_ascan_mu_%05d.nxs'
 # template for SIXS_2019: 'spare_ascan_mu_%05d.nxs'

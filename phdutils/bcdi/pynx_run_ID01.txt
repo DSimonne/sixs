@@ -18,14 +18,14 @@ support_post_expand = 1,-2,1
 #confidence_interval_factor_mask=0.5,1.2
 
 #algorithm=(Sup*ER**20)**5 * PSF**100*RAAR**10 * (Sup*RAAR**20)**10 * PSF**100*ER**10 * (Sup*ER**10)**5 * PSF**100*RAAR**10 * (Sup*RAAR**20)**10 * (Sup*ER**10)**5 * (Sup*RAAR**20)**10
-psf = "pseudo-voigt,0.5,0,1,10"  # For partial coherence
+psf = "pseudo-voigt,1,0.05,20"  # For partial coherence
 nb_raar = 1000
 nb_hio = 150
 nb_er = 300
 nb_ml = 0
 
 nb_run = 50
-nb_run_keep = 17
+nb_run_keep = 20
 
 zero_mask = auto # masked pixels will start from imposed 0 and then let free
 # max_size = 256 

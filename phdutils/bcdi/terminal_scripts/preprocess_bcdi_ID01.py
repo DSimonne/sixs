@@ -139,7 +139,8 @@ sys.stdout = open(README_file, "a")
 # bad_indices = np.argwhere(scans == 738)
 # scans = np.delete(scans, bad_indices)
 
-root_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/"  # folder of the experiment, where all scans are stored
+# root_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/"  # folder of the experiment, where all scans are stored
+root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/"  # folder of the experiment, where all scans are stored
 # save_dir = None  # images will be saved here, leave it to None otherwise
 # data_dirname = None  # leave None to use the beamline default, '' empty string when there is no subfolder
 # (data directly in the scan folder), or a non-empty string for the subfolder name
@@ -228,7 +229,8 @@ rocking_angle = "inplane"  # "outofplane" for a sample rotation around x outboar
 # around y vertical up, "energy"
 
 follow_bragg = False  # only for energy scans, set to True if the detector was also scanned to follow the Bragg peak
-specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
+# specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
+specfile_name = "spec/2021_07_24_083204_test" #'analysis/alias_dict_2021.txt'
 # template for ID01: name of the spec file without '.spec'
 # template for SIXS: full path of the alias dictionnary, typically root_folder + 'alias_dict_2020.txt'
 # template for all other beamlines: ''
@@ -256,7 +258,8 @@ background_file = None  # root_folder + 'background.npz'  # non empty file path 
 # hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"
 hotpixels_file = None
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
-template_imagefile = root_folder + 'detector/2021_07_20_085405_ni/data_mpx4_%05d.edf.gz'
+# template_imagefile = root_folder + 'detector/2021_07_20_085405_ni/data_mpx4_%05d.edf.gz'
+template_imagefile = root_folder + 'detector/2021_07_24_072032_b8_s1_p2/data_mpx4_%05d.edf.gz'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
 # template for SIXS_2018: 'align.spec_ascan_mu_%05d.nxs'
 # template for SIXS_2019: 'spare_ascan_mu_%05d.nxs'

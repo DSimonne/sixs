@@ -13,6 +13,7 @@ env | grep CUDA
 scontrol --details show jobs \$SLURM_JOBID |grep RES
 
 cd $1
+pwd
 echo "running modes analysis reconstructions ..."
 echo "/sware/exp/pynx/devel.p9/bin/pynx-cdi-analysis.py *LLK* modes=1 > README_modes.md"
-mpiexec -n $SLURM_NTASKS /sware/exp/pynx/devel.p9/bin/pynx-cdi-analysis.py *LLK* modes=1 > README_modes.md
+mpiexec -n $SLURM_NTASKS /sware/exp/pynx/devel.p9/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes_job.h5 > README_modes.md
