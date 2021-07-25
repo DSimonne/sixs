@@ -142,6 +142,9 @@ save_dir = scan_folder + "result_crystal_frame/"  # images will be saved here, l
 comment = ''  # comment in filenames, should start with _
 sample_name = "S"  # str or list of str of sample names (string in front of the scan number in the folder name).
 
+# Path to modes
+file_path = save_dir + "all/modes_job.h5"
+
 # Save all the prints from the script
 stdoutOrigin=sys.stdout
 
@@ -549,16 +552,34 @@ pretty.pprint(detector.params)
 ################
 # preload data #
 ################
-root = tk.Tk()
-root.withdraw()
-file_path = filedialog.askopenfilenames(
-    initialdir=os.getcwd() + "/" + sys.argv[1],
-    filetypes=[("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi"), ("HDF5", "*.h5")],
-)
-nbfiles = len(file_path)
-plt.ion()
 
-obj, extension = util.load_file(file_path[0])
+# Modify this part of the script to automate
+# root = tk.Tk()
+# root.withdraw()
+# file_path = filedialog.askopenfilenames(
+#     initialdir=os.getcwd() + "/" + sys.argv[1],
+#     filetypes=[("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi"), ("HDF5", "*.h5")],
+# )
+# nbfiles = len(file_path)
+# plt.ion()
+
+# obj, extension = util.load_file(file_path[0])
+
+h5file = h5py.File(file_path, "r")
+group_key = list(h5file.keys())[0]
+if group_key == "mask":  # mask object for Nanomax data
+    dataset = h5file["/" + group_key][:]
+else:  # modes.h5 file output of PyNX phase retrieval
+    subgroup_key = list(h5file[group_key])
+    dataset = h5file["/" + group_key + "/" + subgroup_key[0] + "/data"][
+        0
+    ]  # select only first mode
+
+obj, extension = dataset, ".h5"
+
+# end of personal script
+
+
 if extension == ".h5":
     comment = comment + "_mode"
 
