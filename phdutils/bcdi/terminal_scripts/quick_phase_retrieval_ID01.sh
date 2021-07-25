@@ -2,10 +2,13 @@
 cwd=$(pwd)
 ssh simonne@slurm-access << EOF
 
-	sbatch pynx_ID01.slurm $cwd/$1S$2/pynxraw
+	sbatch pynx_ID01.slurm $cwd $1 $2
     
     echo "Phase retrieval is running ..."
     
 	exit
 
 EOF
+
+echo "Will also run strain analysis"
+echo strain_ID01.py $1 $2

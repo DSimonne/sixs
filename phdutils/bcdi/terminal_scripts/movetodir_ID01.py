@@ -27,6 +27,15 @@ except IndexError:
 TG_folder = sys.argv[1]
 scan_list = sys.argv[2]
 
+
+# Create dir
+# try:
+#     os.mkdir(f"{TG_folder}S{scan}/data")
+#     print(f"Created {TG_folder}S{scan}/data")
+# except FileExistsError:
+#     print(f"{TG_folder}S{scan}/data exists")
+#     pass
+
 # transform string of list into python list object
 if scan_list.startswith("["):
     scans = ast.literal_eval(scan_list)

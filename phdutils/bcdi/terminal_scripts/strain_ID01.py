@@ -143,7 +143,7 @@ comment = ''  # comment in filenames, should start with _
 sample_name = "S"  # str or list of str of sample names (string in front of the scan number in the folder name).
 
 # Path to modes
-file_path = save_dir + "all/modes_job.h5"
+file_path = [scan_folder + "pynxraw/all/modes_job.h5"] 
 
 # Save all the prints from the script
 stdoutOrigin=sys.stdout
@@ -554,18 +554,11 @@ pretty.pprint(detector.params)
 ################
 
 # Modify this part of the script to automate
-# root = tk.Tk()
-# root.withdraw()
-# file_path = filedialog.askopenfilenames(
-#     initialdir=os.getcwd() + "/" + sys.argv[1],
-#     filetypes=[("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi"), ("HDF5", "*.h5")],
-# )
-# nbfiles = len(file_path)
-# plt.ion()
+obj, extension = util.load_file(file_path[0])
 
-# obj, extension = util.load_file(file_path[0])
-
-h5file = h5py.File(file_path, "r")
+nbfiles = 1
+plt.ion()
+h5file = h5py.File(file_path[0] , "r")
 group_key = list(h5file.keys())[0]
 if group_key == "mask":  # mask object for Nanomax data
     dataset = h5file["/" + group_key][:]
@@ -575,10 +568,20 @@ else:  # modes.h5 file output of PyNX phase retrieval
         0
     ]  # select only first mode
 
-obj, extension = dataset, ".h5"
+obj = dataset
+extension = ".h5"
 
 # end of personal script
 
+
+# root = tk.Tk()
+# root.withdraw()
+# file_path = filedialog.askopenfilenames(
+#     initialdir=os.getcwd() + "/" + sys.argv[1],
+#     filetypes=[("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi"), ("HDF5", "*.h5")],
+# )
+# nbfiles = len(file_path)
+# plt.ion()
 
 if extension == ".h5":
     comment = comment + "_mode"
@@ -651,7 +654,7 @@ for counter, value in enumerate(sorted_obj):
             plot_colorbar=True,
             title="1st mode after centering",
         )
-        fig.waitforbuttonpress()
+        # fig.waitforbuttonpress()
         plt.close(fig)
     # use the range of interest defined above
     obj = util.crop_pad(obj, [2 * zrange, 2 * yrange, 2 * xrange], debugging=False)
