@@ -17,3 +17,4 @@ preprocess_bcdi_ID01.py $1 $2
 echo "Ready to launch phase retrieval !"
 echo cd S$2$3/pynxraw
 echo quick_phase_retrieval_ID01.sh $1 $2
+quick_phase_retrieval_ID01.sh $1 $2

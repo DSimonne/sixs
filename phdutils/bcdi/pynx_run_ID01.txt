@@ -7,11 +7,11 @@ auto_center_resize = False #
 #support= "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/supports/support_168_170_190_1_2_2_3116.npz"
 #support_type = 'square' # (will be a sphere or cube in 3d)
 #support_size = 20, 10, 20  # half-size of the initial support (radius for a sphere)
-support_threshold = 0.23, 0.30 # pick a random number between these two numbers
+support_threshold = 0.13, 0.20 # pick a random number between these two numbers
 support_only_shrink = False
-support_update_period = 20
+support_update_period = 50
 support_smooth_width_begin = 2
-support_smooth_width_end = 0.5
+support_smooth_width_end = 1 
 support_post_expand = 1,-2,1
 
 #mask_interp=8,2
@@ -20,8 +20,8 @@ support_post_expand = 1,-2,1
 #algorithm=(Sup*ER**20)**5 * PSF**100*RAAR**10 * (Sup*RAAR**20)**10 * PSF**100*ER**10 * (Sup*ER**10)**5 * PSF**100*RAAR**10 * (Sup*RAAR**20)**10 * (Sup*ER**10)**5 * (Sup*RAAR**20)**10
 psf = "pseudo-voigt,1,0.05,20"  # For partial coherence
 nb_raar = 1000
-nb_hio = 150
-nb_er = 300
+nb_hio = 50
+nb_er = 800
 nb_ml = 0
 
 nb_run = 50

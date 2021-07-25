@@ -68,14 +68,14 @@ Remember that you may have to change the mask, the central pixel, the rocking an
 
 import glob
 import sys
-
+import pandas as pd
 # Print help
 try:
     print ('Data dir:',  sys.argv[1])
     print ('Scan:',  sys.argv[2])
-    print ('Outofplane angle:',  sys.argv[3])
-    print ('Inplane angle:',  sys.argv[4])
-    print ('Tilt angle:',  sys.argv[5])
+    #  ('Outofplane angle:',  sys.argv[3])
+    #  ('Inplane angle:',  sys.argv[4])
+    #  ('Tilt angle:',  sys.argv[5])
 except IndexError:
     print("""
         Arg 1: Path of target directory (before /S{scan} ... )
@@ -87,9 +87,38 @@ except IndexError:
     exit()
 
 scan = int(sys.argv[2])
-outofplane_angle = float(sys.argv[3]) # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
-inplane_angle = float(sys.argv[4])  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
-tilt_angle = float(sys.argv[5])  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
+
+# Load inplane and outofplane values from correct_detector_ID01.py scripts, they are stored ina csv file
+csv_file = os.getcwd() + "/scan_data.csv"
+
+# Load all the data
+try:
+    df = pd.read_csv(csv_file)
+
+    # Replace old data linked to this scan, no problem if this row does not exist yet
+    mask = df[df['scan'] == scan]
+    inplane_angle = mask.inplane_angle.values[0]
+    outofplane_angle = mask.out_of_plane_angle.values[0]
+    tilt_angle = 0.007
+
+except FileNotFoundError:
+    print("No csv file found, taking values from the command line")
+    try:
+        outofplane_angle = float(sys.argv[3]) # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
+        inplane_angle = float(sys.argv[4])  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
+        tilt_angle = float(sys.argv[5])  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
+
+    except IndexError:
+        print("""
+            Arg 1: Path of target directory (before /S{scan} ... )
+            Arg 2: Scan(s) number, list or single value
+            Arg 3: Outofplane angle
+            Arg 4: Inplane angle
+            Arg 5: Tilt angle
+            """)
+
+print("Inplane angle", inplane_angle)
+print("Outofplane angle", outofplane_angle)
 
 for i, element in enumerate(sys.argv):
     if "flip" in element:
@@ -185,7 +214,7 @@ centering_method = 'max_com'  # 'com' (center of mass), 'max', 'max_com' (max th
 beamline = "ID01"  # name of the beamline, used for data loading and normalization by monitor and orthogonalisation
 # supported beamlines: 'ID01', 'SIXS_2018', 'SIXS_2019', 'CRISTAL', 'P10', '34ID'
 actuators = None
-rocking_angle = "inplane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
+rocking_angle = "outofplane"  # # "outofplane" for a sample rotation around x outboard, "inplane" for a sample rotation
 # around y vertical up, does not matter for energy scan
 #  "inplane" e.g. phi @ ID01, mu @ SIXS "outofplane" e.g. eta @ ID01
 sdd = 0.83  # sample to detector distance in m

@@ -31,8 +31,11 @@ cd all/
 # Apply a standard deviation filter
 echo "Applying a standard deviation filter"
 std_filter.py
+cwd=$(pwd)
 
-# Running modes decomposition
+# Running modes decomposition in lid01
+# ssh_lid01
+# cd cwd
 echo "Running modes decomposition ..."
 echo "/sware/exp/pynx/devel.p9/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes_job.h5 > README_modes.md"
-mpiexec -n $SLURM_NTASKS /sware/exp/pynx/devel.p9/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes_job.h5 > README_modes.md
+/sware/exp/pynx/devel.p9/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes_job.h5 > README_modes.md
