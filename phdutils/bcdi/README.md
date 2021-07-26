@@ -25,9 +25,12 @@ If you want to use the scripts for BCDI at ID01 or SIXS, you need to:
 * Have cloned and installed the repository
 * Make sure that the `phdutils/bcdi/terminal_scripts` folder is in your PATH and PYTHONPATH
 * Make sure that the first line of the scripts using the bcdi environment (`#!/users/simonne/anaconda3/envs/rnice.BCDI/bin/python3` for me) is replaced by an up-to-date BCDI environment for you. Sadly you do not have the authorization to use mine =D
-* Respect the following architecture for the folders:
+* Respect the following architecture for the folders, there folder you need to create by hand:
 	* ./Temperature/Condition/ParticleName/ScanNumber/...
 	* e.g.: `./350/Helium/III_B2/`
+* Make sure that the spec files, template image file, data folders, rocking angle, etc are exact in the scripts.
+* You must launch all the scripts from the `./` folder, the following directories will be created.
+* In the `./` folder, launch `quick_process_ID01.sh` with the first argument the path up to the Sxxx folder and as second argument the scan number, e.g. `quick_process_ID01.sh 350/Helium/III_B2/ 603`
 
 In the scan folder, different subfodlers with be automatically generated, for example:
 * `/data` : contains the .nxs data (for SIXS, otherwise empty)
