@@ -1,5 +1,3 @@
-# PhDUtils
-
 If you want to use the scripts for BCDI at ID01 or SIXS, you need to:
 * Clone the repository.
 * Make sure that the phdutils/bcdi/terminal_scripts folder is your PATH and PYTHONPATH

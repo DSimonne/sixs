@@ -12,3 +12,6 @@ EOF
 
 echo "Will also run strain analysis"
 echo strain_ID01.py $1 $2
+
+echo "If you have the conjugated object run:"
+echo strain_ID01.py $1 $2 flip=True
