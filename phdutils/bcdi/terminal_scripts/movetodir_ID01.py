@@ -71,7 +71,7 @@ for scan in scans:
         os.mkdir(f"{TG_folder}S{scan}/pynxraw/reconstructions")
         print(f"Created {TG_folder}S{scan}/pynxraw/reconstructions")
     except FileExistsError:
-        print(f"{TG_folder}S{scan}/pynxraw/reconstructionsexists")
+        print(f"{TG_folder}S{scan}/pynxraw/reconstructions exists")
         pass
     try:
         os.mkdir(f"{TG_folder}S{scan}/postprocessing")

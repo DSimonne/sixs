@@ -163,7 +163,8 @@ sys.stdout = open(README_file, "a")
 
 """end of personal script"""
 # root_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/"  # folder of the experiment, where all scans are stored
-root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/"  # folder of the experiment, where all scans are stored
+# root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/"  # folder of the experiment, where all scans are stored
+root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/test/BCDI_2021_07_26_165851/"  # folder of the experiment, 
 
 #########################################################
 # parameters used when averaging several reconstruction #
@@ -231,7 +232,8 @@ beam_direction = np.array(
 sample_offsets = (1.1562481, 0, 0)  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # the sample offsets will be subtracted to the motor values
 # specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
-specfile_name = "spec/2021_07_24_083204_test" #'analysis/alias_dict_2021.txt'# template for ID01: name of the spec file without '.spec'
+# specfile_name = "spec/2021_07_24_083204_test" #'analysis/alias_dict_2021.txt'
+specfile_name = "spec/BCDI_2021_07_26_165851" #'analysis/alias_dict_2021.txt'
 # template for SIXS_2018: full path of the alias dictionnary, typically root_folder + 'alias_dict_2019.txt'
 # template for all other beamlines: ''
 
@@ -253,7 +255,8 @@ detector = "Maxipix"    # "Eiger2M", "Maxipix", "Eiger4M", "Merlin" or "Timepix"
 nb_pixel_x = None  # fix to declare a known detector but with less pixels (e.g. one tile HS), leave None otherwise
 nb_pixel_y = None  # fix to declare a known detector but with less pixels (e.g. one tile HS), leave None otherwise
 pixel_size = None  # use this to declare the pixel size of the "Dummy" detector if different from 55e-6
-template_imagefile = 'data_mpx4_%05d.edf.gz'
+# template_imagefile = root_folder + 'detector/2021_07_24_072032_b8_s1_p2/data_mpx4_%05d.edf.gz'
+template_imagefile = root_folder + 'mpx/data_mpx4_%05d.edf.gz'
 # template_imagefile = root_folder + 'detector/2021_07_20_085405_ni/data_mpx4_%05d.edf.gz'
 # template_imagefile = root_folder + 'detector/2021_07_24_072032_b8_s1_p2/data_mpx4_%05d.edf.gz'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
