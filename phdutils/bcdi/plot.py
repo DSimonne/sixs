@@ -34,6 +34,8 @@ warnings.filterwarnings("ignore")
 # mpl.rcParams['ytick.direction'] = 'out'
 
 
+### Use widgets to interact with files (.cxi or .npz)
+
 def plotting_npz(file, axplot, datapath, ComplexNumber):
 	"""For .npz files"""
 
