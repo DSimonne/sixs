@@ -4,9 +4,6 @@
 # In[ ]:
 
 """
-The gui is accessible  through the Class thorondor.gui.Interface()
-"""
+Welcome to phdutils, the package is divided in several modules listed under."""
 
 __all__ = ["analysis", "bcdi", "binoculars", "sixs", "xcat"]
-
-from . import analysis, bcdi, binoculars, sixs, xcat
