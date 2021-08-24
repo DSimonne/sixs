@@ -27,7 +27,8 @@ import tkinter as tk
 from tkinter import filedialog
 import gc
 import bcdi.graph.graph_utils as gu
-import bcdi.experiment.experiment_utils as exp
+from bcdi.experiment.detector import Detector
+from bcdi.experiment.setup import Setup
 import bcdi.postprocessing.postprocessing_utils as pu
 import bcdi.preprocessing.preprocessing_utils as pru
 import bcdi.utils.utilities as util
@@ -263,7 +264,7 @@ photon_filter = 'loading'  # 'loading' or 'postprocessing', when the photon thre
 # if 'loading', it is applied before binning; if 'postprocessing', it is applied at the end of the script before saving
 background_file = None  # root_folder + 'background.npz'  # non empty file path or None
 # hotpixels_file = "/home/david/Documents/PhD_local/PhDScripts/SIXS_January_2021/analysis/mask_merlin.npy"
-hotpixels_file = "/home/experiences/sixs/simonne/Documents/SIXS_June_2021/ruche_dir/reconstructions/analysis/mask_merlin_better_flipped.npy"
+hotpixels_file = "/home/david/Documents/PhDScripts/SIXS_June_2021/reconstructions/analysis/mask_merlin_better_flipped.npy"
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
 # template_imagefile = 'Pt_Al2O3_ascan_mu_%05d_R.nxs'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
@@ -334,8 +335,6 @@ tilt = 0  # tilt parameter from xrayutilities 2D detector calibration
 ##################################
 # end of user-defined parameters #
 ##################################
-
-
 def close_event(event):
     """
     This function handles closing events on plots.
@@ -348,8 +347,9 @@ def close_event(event):
 
 def on_click(event):
     """
-    Function to interact with a plot, return the position of clicked pixel. If flag_pause==1 or
-    if the mouse is out of plot axes, it will not register the click
+    Function to interact with a plot, return the position of clicked pixel.
+
+    If flag_pause==1 or if the mouse is out of plot axes, it will not register the click
 
     :param event: mouse click event
     """
@@ -365,7 +365,8 @@ def on_click(event):
                 previous_axis = event.inaxes
         else:  # the click is not in the same subplot, restart collecting points
             print(
-                "Please select mask polygon vertices within the same subplot: restart masking..."
+                "Please select mask polygon vertices within "
+                "the same subplot: restart masking..."
             )
             xy = []
             previous_axis = None
@@ -377,8 +378,7 @@ def press_key(event):
 
     :param event: button press event
     """
-    global original_data, original_mask, updated_mask, data, mask, frame_index, width, flag_aliens, flag_mask
-    global flag_pause, xy, fig_mask, max_colorbar, ax0, ax1, ax2, ax3, previous_axis, info_text, my_cmap
+    global original_data, original_mask, updated_mask, data, mask, frame_index, width, flag_aliens, flag_mask, flag_pause, xy, fig_mask, max_colorbar, ax0, ax1, ax2, ax3, previous_axis, info_text, my_cmap
 
     try:
         if event.inaxes == ax0:
@@ -491,7 +491,8 @@ if len(scans) > 1:
     if center_fft not in ["crop_asymmetric_ZYX", "pad_Z", "pad_asymmetric_ZYX"]:
         center_fft = "skip"
         # avoid croping the detector plane XY while centering the Bragg peak
-        # otherwise outputs may have a different size, which will be problematic for combining or comparing them
+        # otherwise outputs may have a different size,
+        # which will be problematic for combining or comparing them
 if len(fix_size) != 0:
     print('"fix_size" parameter provided, roi_detector will be set to []')
     roi_detector = []
@@ -517,7 +518,8 @@ else:
 if rocking_angle == "energy":
     use_rawdata = False  # you need to interpolate the data in QxQyQz for energy scans
     print(
-        "Energy scan: defaulting use_rawdata to False, the data will be interpolated using xrayutilities"
+        "Energy scan: defaulting use_rawdata to False,"
+        " the data will be interpolated using xrayutilities"
     )
 
 if reload_orthogonal:
@@ -530,7 +532,8 @@ if use_rawdata:
 else:
     if interp_method not in {"xrayutilities", "linearization"}:
         raise ValueError(
-            'Incorrect value for interp_method, allowed values are "xrayutilities" and "linearization"'
+            "Incorrect value for interp_method,"
+            ' allowed values are "xrayutilities" and "linearization"'
         )
     if rocking_angle == "energy":
         interp_method = "xrayutilities"
@@ -580,17 +583,17 @@ plt.rcParams["keymap.fullscreen"] = [""]
 #######################
 # Initialize detector #
 #######################
-kwargs = {}  # create dictionnary
-kwargs["is_series"] = is_series
-kwargs["preprocessing_binning"] = preprocessing_binning
-kwargs[
-    "nb_pixel_x"
-] = nb_pixel_x  # fix to declare a known detector but with less pixels (e.g. one tile HS)
-kwargs[
-    "nb_pixel_y"
-] = nb_pixel_y  # fix to declare a known detector but with less pixels (e.g. one tile HS)
-kwargs["linearity_func"] = linearity_func
-detector = exp.Detector(
+kwargs = {
+    "is_series": is_series,
+    "preprocessing_binning": preprocessing_binning,
+    "nb_pixel_x": nb_pixel_x,  # fix to declare a known detector but with less pixels
+    # (e.g. one tile HS)
+    "nb_pixel_y": nb_pixel_y,  # fix to declare a known detector but with less pixels
+    # (e.g. one tile HS)
+    "linearity_func": linearity_func,
+}
+
+detector = Detector(
     name=detector,
     template_imagefile=template_imagefile,
     roi=roi_detector,
@@ -601,7 +604,7 @@ detector = exp.Detector(
 ####################
 # Initialize setup #
 ####################
-setup = exp.Setup(
+setup = Setup(
     beamline=beamline,
     detector=detector,
     energy=energy,
@@ -672,7 +675,8 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
         comment += "_ortho"
         if interp_method == "linearization":
             comment += "_lin"
-            # load the goniometer positions needed in the calculation of the transformation matrix
+            # load the goniometer positions needed in the calculation
+            # of the transformation matrix
             (
                 tilt_angle,
                 setup.grazing_angle,
@@ -685,7 +689,8 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
                 follow_bragg=follow_bragg,
             )
             setup.tilt_angle = (tilt_angle[1:] - tilt_angle[0:-1]).mean()
-            # override detector motor positions if the corrected values (taking into account the direct beam position)
+            # override detector motor positions if the corrected values
+            # (taking into account the direct beam position)
             # are provided by the user
             setup.inplane_angle = (
                 inplane_angle if inplane_angle is not None else inplane
@@ -829,7 +834,8 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
                 data=data,
             )
             if save_to_mat:
-                # save to .mat, the new order is x y z (outboard, vertical up, downstream)
+                # save to .mat, the new order is x y z
+                # (outboard, vertical up, downstream)
                 savemat(
                     detector.savedir
                     + "S"
@@ -873,14 +879,16 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
                 hxrd = xu.experiment.HXRD(
                     sample_inplane, sample_outofplane, en=energy, qconv=qconv
                 )
-                # the first 2 arguments in HXRD are the inplane reference direction along the beam and surface normal
-                # of the sample
+                # the first 2 arguments in HXRD are the inplane reference direction
+                # along the beam and surface normal of the sample
 
-                # Update the direct beam vertical position, take into account the roi and binning
+                # Update the direct beam vertical position,
+                # take into account the roi and binning
                 cch1 = (cch1 - detector.roi[0]) / (
                     detector.preprocessing_binning[1] * detector.binning[1]
                 )
-                # Update the direct beam horizontal position, take into account the roi and binning
+                # Update the direct beam horizontal position,
+                # take into account the roi and binning
                 cch2 = (cch2 - detector.roi[2]) / (
                     detector.preprocessing_binning[2] * detector.binning[2]
                 )
@@ -910,7 +918,8 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
                     tiltazimuth=tiltazimuth,
                     tilt=tilt,
                 )
-                # first two arguments in init_area are the direction of the detector, checked for ID01 and SIXS
+                # first two arguments in init_area are the direction of the detector,
+                # checked for ID01 and SIXS
 
                 data, mask, q_values, frames_logical = pru.grid_bcdi_xrayutil(
                     data=data,
@@ -925,8 +934,10 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
                     debugging=debug,
                 )
             else:  # 'linearization'
-                # for q values, the frame used is (qx downstream, qy outboard, qz vertical up)
-                # for reference_axis, the frame is z downstream, y vertical up, x outboard but the order must be x,y,z
+                # for q values, the frame used is
+                # (qx downstream, qy outboard, qz vertical up)
+                # for reference_axis, the frame is z downstream, y vertical up,
+                # x outboard but the order must be x,y,z
                 data, mask, q_values = pru.grid_bcdi_labframe(
                     data=data,
                     mask=mask,
@@ -1017,7 +1028,8 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
     # optional masking of zero photon events #
     ##########################################
     if mask_zero_event:
-        # mask points when there is no intensity along the whole rocking curve - probably dead pixels
+        # mask points when there is no intensity along the whole rocking curve
+        # probably dead pixels
         temp_mask = np.zeros((ny, nx))
         temp_mask[np.sum(data, axis=0) == 0] = 1
         mask[np.repeat(temp_mask[np.newaxis, :, :], repeats=nz, axis=0) == 1] = 1
@@ -1038,8 +1050,8 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
     )
     if debug:
         plt.savefig(
-            detector.savedir
-            + f"data_before_masking_sum_S{scan_nb}_{nz}_{ny}_{nx}_{detector.binning[0]}_"
+            detector.savedir + f"data_before_masking_sum_S{scan_nb}_{nz}_{ny}_{nx}_"
+            f"{detector.binning[0]}_"
             f"{detector.binning[1]}_{detector.binning[2]}.png"
         )
     if flag_interact:
@@ -1401,9 +1413,10 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
         if not flag_interact:
             plt.close(fig)
 
-    ################################################################################################
-    # bin the stacking axis if needed, the detector plane was already binned when loading the data #
-    ################################################################################################
+    ##################################################
+    # bin the stacking axis if needed, the detector  #
+    # plane was already binned when loading the data #
+    ##################################################
     if (
         detector.binning[0] != 1 and not reload_orthogonal
     ):  # data was already binned for reload_orthogonal
@@ -1421,7 +1434,7 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
     ##################################################################
     # final check of the shape to comply with FFT shape requirements #
     ##################################################################
-    final_shape = pru.smaller_primes(data.shape, maxprime=7, required_dividers=(2,))
+    final_shape = util.smaller_primes(data.shape, maxprime=7, required_dividers=(2,))
     com = tuple(map(lambda x: int(np.rint(x)), center_of_mass(data)))
     crop_center = pu.find_crop_center(
         array_shape=data.shape, crop_shape=final_shape, pivot=com
@@ -1532,7 +1545,8 @@ with open(README_file, 'a') as outfile:
     outfile.write("```")
 
 # Create file for phase retrieval
-with open("/home/experiences/sixs/simonne/Documents/phdutils/phdutils/bcdi/pynx_run.txt", "r") as f:
+# with open("/home/experiences/sixs/simonne/Documents/phdutils/phdutils/bcdi/pynx_run_SIXS.txt", "r") as f:
+with open("/home/david/Documents/PhDScripts/phdutils/phdutils/bcdi/pynx_run_SIXS.txt", "r") as f:
     text_file = f.readlines()
     
     text_file[1] = f"data = S{scan_nb}_pynx{comment}.npz\"\n"
