@@ -1,4 +1,15 @@
-Trying to make bcdi work with Jupyter notebook
+# BCDI and ipywidgets
+
+## To do
+* use handlers to disable widgets that are for example useless with SIXS data
+* automate the architecture specified in `https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/`
+* automate the rotation for SIXS data
+* try to merge the notebooks of phase retrieval (`https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/
+PhasingNotebook.ipynb `) and facet analysis (`https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/CompareFacetsEvolution.ipynb`) with the GUI
+* merge the solutions for data visualisation in jupyter notebook(`https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/plot.py`)
+* Create a Dataset object that would used as iterable for the gui class, its attribute would then be all the parameters used for preprocessing, phase retrieval, facet retrieval, so that an external scientist could easily visualize the parameters used in the workflow
+* clean the code at the end
+
 
 Some screenshots of the work so far:
 ![Tab1](https://user-images.githubusercontent.com/51970962/130641516-ffe670b1-7b72-4b86-bef4-3b8bf4b7a797.png)
