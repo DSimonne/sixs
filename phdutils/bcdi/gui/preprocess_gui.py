@@ -34,24 +34,6 @@ import bcdi.preprocessing.preprocessing_utils as pru
 import bcdi.utils.utilities as util
 import bcdi.utils.validation as valid
 
-
-helptext = """
-Prepare experimental data for Bragg CDI phasing: crop/pad, center, mask, normalize and
-filter the data.
-
-Beamlines currently supported: ESRF ID01, SOLEIL CRISTAL, SOLEIL SIXS, PETRAIII P10 and
-APS 34ID-C.
-
-Output: data and mask as numpy .npz or Matlab .mat 3D arrays for phasing
-
-File structure should be (e.g. scan 1):
-specfile, hotpixels file and flatfield file in:    /rootdir/
-data in:                                           /rootdir/S1/data/
-
-output files saved in:   /rootdir/S1/pynxraw/ or /rootdir/S1/pynx/ depending on the
-'use_rawdata' option
-"""
-
 def preprocess_bcdi(
     scans, root_folder, save_dir, data_dirname, sample_name, user_comment, debug, binning,
     flag_interact, background_plot,
@@ -65,8 +47,21 @@ def preprocess_bcdi(
     use_rawdata, interp_method, fill_value_mask, beam_direction, sample_offsets, sdd, energy, custom_motors,
     align_q, ref_axis_q, outofplane_angle, inplane_angle, 
     sample_inplane, sample_outofplane, offset_inplane, cch1, cch2, detrot, tiltazimuth, tilt):
-    """Takes as argument all the user defined parameters of preprocesss bcdi"""
+    """
+    Prepare experimental data for Bragg CDI phasing: crop/pad, center, mask, normalize and
+    filter the data.
 
+    Beamlines currently supported: ESRF ID01, SOLEIL CRISTAL, SOLEIL SIXS, PETRAIII P10 and
+    APS 34ID-C.
+
+    Output: data and mask as numpy .npz or Matlab .mat 3D arrays for phasing
+
+    File structure should be (e.g. scan 1):
+    specfile, hotpixels file and flatfield file in:    /rootdir/
+    data in:                                           /rootdir/S1/data/
+
+    output files saved in:   /rootdir/S1/pynxraw/ or /rootdir/S1/pynx/ depending on the
+    'use_rawdata' option"""
 
     def close_event(event):
         """

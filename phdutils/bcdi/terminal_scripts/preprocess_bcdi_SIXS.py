@@ -71,7 +71,7 @@ except IndexError:
         """)
     exit()
 
-# reolad mask
+# reload mask
 for i, element in enumerate(sys.argv):
     if "reload" in element:
         if "true" in element.lower():

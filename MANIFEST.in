@@ -1,4 +1,3 @@
-include phdutils/bcdi/*
 include phdutils/bcdi/gui/*
 include phdutils/bcdi/terminal_scripts/*
 

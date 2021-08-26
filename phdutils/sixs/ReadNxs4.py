@@ -60,7 +60,8 @@ class DataSet(object):
             #
         except :#FileNotFoundError:
             try:
-                self._alias_dict = pickle.load(open('/home/david/Documents/PhD_local/PhDScripts/phdutils/phdutils/sixs/alias_dict_2021.txt','rb'))
+                inspect.getfile(phdutils).split("__")[0]
+                self._alias_dict = pickle.load(open(inspect.getfile(phdutils).split("__")[0] + '/sixs/alias_dict_2021.txt','rb'))
             except:
                 print('NO ALIAS FILE')
                 self._alias_dict = None
