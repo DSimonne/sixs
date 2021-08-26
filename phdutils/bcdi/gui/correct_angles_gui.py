@@ -31,7 +31,7 @@ def correct_angles_detector(
     high_threshold,
     save_dir,
     csv_file,
-    scan
+    scan,
     root_folder,
     sample_name,
     filtered_data,
@@ -40,7 +40,7 @@ def correct_angles_detector(
     debug,
     beamline,
     actuators,
-    is_series
+    is_series,
     custom_scan,
     custom_images,
     custom_monitor,
@@ -49,7 +49,7 @@ def correct_angles_detector(
     specfile_name,
     detector,
     x_bragg,
-    y_bragg
+    y_bragg,
     roi_detector,
     hotpixels_file,
     flatfield_file,
@@ -331,6 +331,9 @@ def correct_angles_detector(
             material="Pt",
         )
 
+    else:
+        temperature = None
+
     #########################
     # calculate voxel sizes #
     #########################
@@ -374,7 +377,7 @@ def correct_angles_detector(
         "COM_rocking_curve" : tilt_values[z0],
         "detector_data_COM" : abs(data[int(round(z0)), :, :]),
         "interp_fwhm" : interp_fwhm,
-        "temperature" : given_temperature,
+        "temperature" : temperature,
         "bragg_x" : bragg_x, 
         "bragg_y" : bragg_y,
         "q" : q, 

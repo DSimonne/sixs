@@ -1371,6 +1371,10 @@ class Interface(object):
                 energy = self.energy,
             )
 
+            # Save metadata
+            for keys, values in self.metadata.items():
+                setattr(self, keys, values)
+
         if not angles_bool:
             clear_output(True)
 
