@@ -36,8 +36,7 @@ import warnings
 import tables as tb
 
 # Import preprocess_bcdi modified for gui and usable as a function
-from phdutils.bcdi.gui.preprocess_gui import *
-from phdutils.bcdi.gui.correct_angles_gui import *
+from phdutils.bcdi.gui.gui_functions import *
 from phdutils.sixs import ReadNxs4 as rd
 
 class Interface(object):

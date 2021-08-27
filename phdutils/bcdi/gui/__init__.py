@@ -6,4 +6,4 @@
 """
 Welcome to phdutils.bcdi.gui"""
 
-__all__ = ["GUI_BCDI", "preprocess_gui"]
+__all__ = ["gui", "gui_functions"]
