@@ -114,14 +114,14 @@ class Interface(object):
                 placeholder = "Comment regarding dataset...",
                 style = {'description_width': 'initial'}),
 
-            debug = widgets.ToggleButton(
+            debug = widgets.Checkbox(
                 value = False,
                 description = 'Debug',
                 disabled = False,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
                 tooltip = 'True to interact with plots, False to close it automatically',
-                icon = 'check',
-                layout = Layout(width='40%'),
+                indent = False,
                 continuous_update = False,
                 style = {'description_width': 'initial'}),
 
@@ -130,9 +130,8 @@ class Interface(object):
                 description = 'Initialize directories ...',
                 disabled = False,
                 button_style = '', # 'success', 'info', 'warning', 'danger' or ''
-                icon = 'check',
+                icon = 'step-forward',
                 layout = Layout(width='40%'),
-                continuous_update = False,
                 style = {'description_width': 'initial'}),
             )
         self._list_widgets_init.children[7].observe(self.init_handler, names = "value")
@@ -154,34 +153,6 @@ class Interface(object):
                 tooltip = "Name of the beamline, used for data loading and normalization by monitor",
                 style = {'description_width': 'initial'}),
 
-            rocking_angle = widgets.Dropdown(
-                options = ['inplane', 'outofplane', 'energy'],
-                value = "inplane",
-                continuous_update = False,
-                description = 'Rocking angle',
-                disabled = True,
-                tooltip = "Name of the beamline, used for data loading and normalization by monitor",
-                style = {'description_width': 'initial'}),
-
-            specfile_name = widgets.Text(
-                placeholder = "alias_dict_2019.txt",
-                value = "",
-                description = 'Specfile name',
-                disabled = True,
-                continuous_update = False,
-                tooltip = """For ID01: name of the spec file without, for SIXS_2018: full path of the alias dictionnary, typically root_folder + 'alias_dict_2019.txt',
-                .fio for P10, not used for CRISTAL and SIXS_2019""",
-                style = {'description_width': 'initial'}),
-
-            follow_bragg = widgets.ToggleButton(
-                value = False,
-                description = 'Follow bragg',
-                disabled = True,
-                continuous_update = False,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
-                tooltip = 'Only for energy scans, set to True if the detector was also scanned to follow the Bragg peak',
-                icon = 'check'),
-
             actuators = widgets.Text(
                 value = "{}",
                 placeholder = "{}",
@@ -192,21 +163,22 @@ class Interface(object):
                 style = {'description_width': 'initial'},
                 disabled = True),
 
-            is_series = widgets.ToggleButton(
+            is_series = widgets.Checkbox(
                 value = False,
                 description = 'Is series (P10)',
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 continuous_update = False,
                 tooltip = 'specific to series measurement at P10',
                 icon = 'check'),
 
-            custom_scan = widgets.ToggleButton(
+            custom_scan = widgets.Checkbox(
                 value = False,
                 description = 'Custom scan',
                 continuous_update = False,
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'set it to True for a stack of images acquired without scan, e.g. with ct in a macro, or when there is no spec/log file available',
                 icon = 'check'),
 
@@ -224,19 +196,52 @@ class Interface(object):
                 disabled = True,
                 style = {'description_width': 'initial'}),
 
+            specfile_name = widgets.Text(
+                placeholder = "alias_dict_2019.txt",
+                value = "",
+                description = 'Specfile name',
+                disabled = True,
+                continuous_update = False,
+                tooltip = """For ID01: name of the spec file without, for SIXS_2018: full path of the alias dictionnary, typically root_folder + 'alias_dict_2019.txt',
+                .fio for P10, not used for CRISTAL and SIXS_2019""",
+                style = {'description_width': 'initial'}),
+
+            rocking_angle = widgets.Dropdown(
+                options = ['inplane', 'outofplane', 'energy'],
+                value = "inplane",
+                continuous_update = False,
+                description = 'Rocking angle',
+                disabled = True,
+                tooltip = "Name of the beamline, used for data loading and normalization by monitor",
+                layout = Layout(height = "50px"),
+                style = {'description_width': 'initial'}),
+
+            follow_bragg = widgets.Checkbox(
+                value = False,
+                description = 'Follow bragg',
+                disabled = True,
+                continuous_update = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                tooltip = 'Only for energy scans, set to True if the detector was also scanned to follow the Bragg peak',
+                layout = Layout(height = "50px"),
+                icon = 'check'),
+
+
             ### Parameters used in masking
             label_masking = widgets.HTML(
                 description="<p style='font-weight: bold;font-size:1.2em'>Parameters used in masking", # 
                 style = {'description_width': 'initial'},
                 layout = Layout(width='90%', height = "35px")),
 
-            flag_interact = widgets.ToggleButton(
+            flag_interact = widgets.Checkbox(
                 value = False,
                 description = 'Manual masking',
                 continuous_update = False,
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'True to interact with plots and manually mask points',
+                layout = Layout(height = "50px"),
                 icon = 'check'),
 
             background_plot = widgets.FloatText(
@@ -246,11 +251,12 @@ class Interface(object):
                 min = 0,
                 continuous_update = False,
                 description = 'Background plot:',
-                layout = Layout(width='30%'),
+                layout = Layout(width='30%', height = "50px"),
                 tooltip = "In level of grey in [0,1], 0 being dark. For visual comfort during masking",
                 readout = True,
                 style = {'description_width': 'initial'},
                 disabled = True),
+
 
             ### Parameters related to data cropping/padding/centering
             label_centering = widgets.HTML(
@@ -258,7 +264,7 @@ class Interface(object):
                 style = {'description_width': 'initial'},
                 layout = Layout(width='90%', height = "35px")),
 
-            centering  = widgets.Dropdown(
+            centering = widgets.Dropdown(
                 options = ["max", "com", "manual"],
                 value = "max",
                 description = 'Centering of Bragg peak method:',
@@ -289,6 +295,7 @@ class Interface(object):
                 value = "crop_asym_ZYX",
                 description = 'Center FFT',
                 continuous_update = False,
+                layout = Layout(height = "50px"),
                 disabled = True,
                 style = {'description_width': 'initial'}),
 
@@ -297,7 +304,7 @@ class Interface(object):
                 description = 'Array size after padding', # used in 'pad_sym_Z_crop_sym_YX', 'pad_sym_Z', 'pad_sym_ZYX'
                 disabled = True,
                 continuous_update = False,
-                layout = Layout(width='50%'),
+                layout = Layout(width='50%', height = "50px"),
                 style = {'description_width': 'initial'}), 
 
             ### Parameters used in intensity normalization
@@ -307,9 +314,10 @@ class Interface(object):
                 description = 'Normalize flux',
                 disabled = True,
                 continuous_update = False,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                layout = Layout(height = "50px"),
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'Monitor to normalize the intensity by the default monitor values, skip to do nothing',
-                icon = 'check',
+                # icon = 'check',
                 style = {'description_width': 'initial'}),
 
 
@@ -317,14 +325,15 @@ class Interface(object):
             label_filtering = widgets.HTML(
                 description="""<p style='font-weight: bold;font-size:1.2em'>Parameters for data filtering</p>""", 
                 style = {'description_width': 'initial'},
-                layout = Layout(width='90%', height = "50px")),
+                layout = Layout(width='90%', height = "35px")),
 
-            mask_zero_event = widgets.ToggleButton(
+            mask_zero_event = widgets.Checkbox(
                 value = False,
                 description = 'Mask zero event',
                 disabled = True,
                 continuous_update = False,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'Mask pixels where the sum along the rocking curve is zero - may be dead pixels',
                 icon = 'check'),
 
@@ -351,7 +360,7 @@ class Interface(object):
                 description = 'Binning for phasing',
                 disabled = True,
                 continuous_update = False,
-                layout = Layout(width='20%'),
+                layout = Layout(width='20%', height = "50px"),
                 style = {'description_width': 'initial'},
                 tooltip = "binning that will be used for phasing (stacking dimension, detector vertical axis, detector horizontal axis)"),
 
@@ -361,21 +370,25 @@ class Interface(object):
                 style = {'description_width': 'initial'},
                 layout = Layout(width='90%', height = "35px")),
 
-            reload_previous = widgets.ToggleButton(
+            reload_previous = widgets.Checkbox(
                 value = False,
                 description = 'Reload previous',
                 continuous_update = False,
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                layout = Layout(height = "50px"),
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'True to resume a previous masking (load data and mask)',
                 icon = 'check'),
 
-            reload_orthogonal = widgets.ToggleButton(
+            reload_orthogonal = widgets.Checkbox(
                 value = False,
                 description = 'Reload orthogonal',
                 continuous_update = False,
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                layout = Layout(height = "50px"),
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'True if the reloaded data is already intepolated in an orthonormal frame',
                 icon = 'check'),
 
@@ -385,7 +398,7 @@ class Interface(object):
                 description = 'Binning used in data to be reloaded',
                 disabled = True,
                 continuous_update = False,
-                layout = Layout(width='30%'),
+                layout = Layout(width='30%', height = "50px"),
                 style = {'description_width': 'initial'},
                 tooltip = "binning that will be used for phasing (stacking dimension, detector vertical axis, detector horizontal axis)"),
 
@@ -395,48 +408,58 @@ class Interface(object):
                 style = {'description_width': 'initial'},
                 layout = Layout(width='90%', height = "35px")),
 
-            save_rawdata = widgets.ToggleButton(
+            save_rawdata = widgets.Checkbox(
                 value = False,
                 description = 'Save raw data',
                 disabled = True,
                 continuous_update = False,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                layout = Layout(width = "20%", height = "50px"),
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'Save also the raw data when use_rawdata is False',
                 icon = 'check'),
 
-            save_to_npz = widgets.ToggleButton(
+            save_to_npz = widgets.Checkbox(
                 value = True,
                 description = 'Save to npz',
                 disabled = True,
                 continuous_update = False,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                layout = Layout(width = "20%", height = "50px"),
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'True to save the processed data in npz format',
                 icon = 'check'),
 
-            save_to_mat = widgets.ToggleButton(
+            save_to_mat = widgets.Checkbox(
                 value = False,
                 description = 'Save to mat',
                 disabled = True,
                 continuous_update = False,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                layout = Layout(width = "20%", height = "50px"),
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'True to save also in .mat format',
                 icon = 'check'),
 
-            save_to_vti = widgets.ToggleButton(
+            save_to_vti = widgets.Checkbox(
                 value = False,
                 description = 'Save to vti',
                 continuous_update = False,
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                layout = Layout(width = "20%", height = "50px"),
                 tooltip = 'Save the orthogonalized diffraction pattern to VTK file',
                 icon = 'check'),
 
-            save_asint = widgets.ToggleButton(
+            save_asint = widgets.Checkbox(
                 value = False,
                 description = 'Save as integers',
                 continuous_update = False,
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                layout = Layout(width = "20%", height = "50px"),
                 tooltip = 'if True, the result will be saved as an array of integers (save space)',
                 icon = 'check'),
 
@@ -457,14 +480,14 @@ class Interface(object):
             x_bragg = widgets.IntText(
                 value = 160,
                 continuous_update = False,
-                description = 'X Bragg, used for roi defintion:',
+                description = 'X Bragg, used for roi definition:',
                 disabled = True,
                 tooltip = "Horizontal pixel number of the Bragg peak, can be used for the definition of the ROI",
                 style = {'description_width': 'initial'}),
 
             y_bragg = widgets.IntText(
                 value = 325,
-                description = 'Y Bragg, used for roi defintion:',
+                description = 'Y Bragg, used for roi definition:',
                 continuous_update = False,
                 disabled = True,
                 tooltip = "Vertical pixel number of the Bragg peak, can be used for the definition of the ROI",
@@ -548,12 +571,13 @@ class Interface(object):
                 style = {'description_width': 'initial'},
                 layout = Layout(width='90%', height = "35px")),
 
-            use_rawdata = widgets.ToggleButton(
+            use_rawdata = widgets.Checkbox(
                 value = False,
                 continuous_update = False,
                 description = 'Orthogonalize data',
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'False for using data gridded in laboratory frame/ True for using data in detector frame',
                 icon = 'check'),
 
@@ -610,6 +634,7 @@ class Interface(object):
                 description = 'X-ray energy in eV',
                 continuous_update = False,
                 disabled = True,
+                layout = Layout(height = "50px"),
                 style = {'description_width': 'initial'}),
 
             custom_motors = widgets.Text(
@@ -618,7 +643,7 @@ class Interface(object):
                 description = 'Custom motors',
                 disabled = True,
                 continuous_update = False,
-                layout = Layout(width='90%'),
+                layout = Layout(width='90%', height = "50px"),
                 style = {'description_width': 'initial'},
                 tooltip = "Use this to declare motor positions"),
             # {"mu": 0, "phi": -15.98, "chi": 90, "theta": 0, "delta": -0.5685, "gamma": 33.3147}
@@ -639,12 +664,14 @@ class Interface(object):
                 layout = Layout(width='90%', height = "35px")),
 
             #xrayutilities uses the xyz crystal frame: for incident angle = 0, x is downstream, y outboard, and z vertical up
-            align_q = widgets.ToggleButton(
+            align_q = widgets.Checkbox(
                 value = True,
                 description = 'Align q',
                 continuous_update = False,
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                indent = False,
+                layout = Layout(width='20%'),
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = """used only when interp_method is 'linearization', if True it rotates the crystal to align q along one axis of the array""",
                 icon = 'check'),
 
@@ -730,9 +757,8 @@ class Interface(object):
                 min = 0,
                 max = 360,
                 continuous_update = False,
-                description = 'Direct inplane angle:',
+                description = 'Direct inplane angle:', # detector angle in deg(rotation around y vertical up, typically gamma), corrected
                 layout = Layout(width='30%'),
-                tooltip = "In level of grey in [0,1], 0 being dark. For visual comfort during masking",
                 readout = True,
                 style = {'description_width': 'initial'},
                 disabled = True),
@@ -743,9 +769,8 @@ class Interface(object):
                 min = 0,
                 max = 360,
                 continuous_update = False,
-                description = 'Direct outofplane angle:',
+                description = 'Direct outofplane angle:',# detector angle in deg (rotation around x outboard, typically delta), corrected
                 layout = Layout(width='30%'),
-                tooltip = "In level of grey in [0,1], 0 being dark. For visual comfort during masking",
                 readout = True,
                 style = {'description_width': 'initial'},
                 disabled = True),
@@ -794,7 +819,7 @@ class Interface(object):
                 button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'},
-                icon = 'check')
+                icon = 'fast-forward')
             )
         self._list_widgets_preprocessing.children[1].observe(self.beamline_handler, names = "value")
         self._list_widgets_preprocessing.children[8].observe(self.energy_scan_handler, names = "value")
@@ -819,13 +844,13 @@ class Interface(object):
                 layout = Layout(width='90%'),
                 style = {'description_width': 'initial'}),
 
-            temp_bool = widgets.ToggleButton(
+            temp_bool = widgets.Checkbox(
                 value = False,
                 description = 'Estimate the temperature (Pt only)',
                 disabled = True,
-                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'Click to estimate the mean temperature of the sample from the Bragg peak angles',
-                icon = 'check',
+                # icon = 'check',
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'}),
 
@@ -867,12 +892,531 @@ class Interface(object):
                 disabled = True,
                 button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 tooltip = 'Click to correct the Bragg peak angles',
-                icon = 'check',
+                icon = 'fast-forward',
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'}),
             )
         self._list_widgets_correct.children[2].observe(self.temp_handler, names = "value")
         self._list_widgets_correct.children[-2].observe(self.correct_angles_handler, names = "value")
+
+        # Widgets for strain
+        self._list_widgets_strain = interactive(self.strain_gui,
+            label_averaging = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Parameters used when averaging several reconstruction", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+
+            sort_method = widgets.Dropdown(
+                options = ['mean_amplitude', 'variance', 'variance/mean', 'volume'],
+                value = "variance/mean",
+                description = 'Sorting method',
+                disabled = False,
+                style = {'description_width': 'initial'}),
+
+            correlation_threshold = widgets.FloatText(
+                value = 0.9,
+                step = 0.01,
+                max = 1,
+                min = 0,
+                continuous_update = False,
+                description = 'Correlation threshold:',
+                style = {'description_width': 'initial'},
+                disabled = False),
+
+            label_FFT = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Parameters relative to the FFT window and voxel sizes", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+
+            original_size = widgets.Text(
+                placeholder = "[256, 512, 512]",
+                description = 'Size of the FFT array before binning',
+                disabled = False,
+                layout = Layout(width='45%'),
+                continuous_update = False,
+                style = {'description_width': 'initial'}),
+
+            phasing_binning = widgets.Text(
+                value = "(1, 1, 1)",
+                placeholder = "(1, 1, 1)",
+                description = 'Binning factor used in phase retrieval',
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='45%'),
+                style = {'description_width': 'initial'},
+                ),
+
+            preprocessing_binning = widgets.Text(
+                value = "(1, 1, 1)",
+                placeholder = "(1, 1, 1)",
+                description = 'Binning factors used in preprocessing',
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='45%'),
+                style = {'description_width': 'initial'},
+                ),
+
+            output_size = widgets.Text(
+                placeholder = "[256, 512, 512]",
+                description = 'Output size',
+                disabled = False,
+                continuous_update = False,
+                style = {'description_width': 'initial'}),
+
+            keep_size = widgets.Checkbox(
+                value = False,
+                description = 'Keep the initial array size for orthogonalization (slower)',# True to keep the initial array size for orthogonalization (slower), it will be cropped otherwise
+                disabled = False,
+                layout = Layout(width='45%'),
+                # icon = 'check',
+                style = {'description_width': 'initial'}),
+
+            fix_voxel = widgets.BoundedIntText(
+                placeholder = "10",
+                description = 'Fix voxel size, put 0 to set free:',
+                min = 0,
+                max = 9999999,
+                disabled = False,
+                continuous_update = False,
+                style = {'description_width': 'initial'}),
+
+            label_disp_strain = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Parameters related to displacement and strain calculation", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+
+            data_frame = widgets.ToggleButtons(
+                options = ['detector', 'crystal', "laboratory"],
+                value = "detector",
+                description = 'Data frame',
+                tooltips = [
+                    "If the data is still in the detector frame",
+                    "If the data was interpolated into the crystal frame using (xrayutilities) or (transformation matrix + align_q=True)", 
+                    "If the data was interpolated into the laboratory frame using the transformation matrix (align_q = False)"
+                    ],
+                disabled = False,
+                style = {'description_width': 'initial'}),
+
+            ref_axis_q = widgets.Dropdown(
+                options = ["x", "y", "z"],
+                value = "y",
+                description = 'Ref axis q',
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='15%'),
+                tooltip = "q will be aligned along that axis",
+                style = {'description_width': 'initial'}),
+
+            save_frame = widgets.ToggleButtons(
+                options = ['crystal', 'laboratory', "lab_flat_sample"],
+                value = "crystal",
+                description = 'Final frame',
+                tooltips = [
+                    "Save the data with q aligned along ref_axis_q",
+                    "Save the data in the laboratory frame (experimental geometry)", 
+                    "Save the data in the laboratory frame, with all sample angles rotated back to 0"
+                    ],
+                # rotations for 'laboratory' and 'lab_flat_sample' are realized after the strain calculation
+                # (which is done in the crystal frame along ref_axis_q)
+                disabled = False,
+                style = {'description_width': 'initial'}),
+
+            isosurface_strain = widgets.FloatText(
+                value = 0.5,
+                step = 0.01,
+                max = 1,
+                min = 0,
+                continuous_update = False,
+                description = 'Isosurface strain:',
+                tooltip = "Threshold use for removing the outer layer (strain is undefined at the exact surface voxel)",
+                readout = True,
+                layout = Layout(width='20%'),
+                style = {'description_width': 'initial'},
+                disabled = False),
+
+            strain_method = widgets.ToggleButtons(
+                options = ['default', 'defect'],
+                value = "default",
+                description = 'Strain method',
+                tooltips = [
+                    "",
+                    "Will offset the phase in a loop and keep the smallest magnitude value for the strain. See: F. Hofmann et al. PhysRevMaterials 4, 013801 (2020)"
+                    ],
+                disabled = False,
+                style = {'description_width': 'initial'}),
+
+            phase_offset = widgets.FloatText(
+                value = 0,
+                step = 0.01,
+                min = 0,
+                max = 360,
+                continuous_update = False,
+                description = 'Phase offset:',
+                layout = Layout(width='15%'),
+                readout = True,
+                style = {'description_width': 'initial'},
+                disabled = False),
+
+            phase_offset_origin = widgets.Text(
+                placeholder = "(x, y, z), leave None for automatic.",
+                description = 'Phase offset origin',
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='40%'),
+                style = {'description_width': 'initial'},
+                ),
+
+            offset_method = widgets.Dropdown(
+                options = ["COM", "mean"],
+                value = "mean",
+                description = 'Offset method:',
+                continuous_update = False,
+                disabled = False,
+                layout = Layout(width='20%'),
+                style = {'description_width': 'initial'}),
+
+            centering_method = widgets.Dropdown(
+                options = ["COM", "max", "max_COM"],
+                value = "max_COM",
+                description = 'Centering method:',
+                continuous_update = False,
+                disabled = False,
+                layout = Layout(width='25%'),
+                style = {'description_width': 'initial'}),
+
+            label_refraction = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Parameters related to the refraction correction", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+
+            correct_refraction = widgets.Checkbox(
+                value = False,
+                description = 'Correct refraction',
+                disabled = False,
+                # icon = 'check',
+                style = {'description_width': 'initial'}
+                ),
+            
+            optical_path_method = widgets.ToggleButtons(
+                options = ['threshold', 'defect'],
+                value = "threshold",
+                description = 'Optical path method',
+                tooltips = [
+                    "Uses isosurface_strain to define the support  for the optical path calculation",
+                    "Tries to remove only outer layers even if the amplitude is lower than isosurface_strain inside the crystal"
+                    ],
+                disabled = True,
+                style = {'description_width': 'initial'}),
+            
+            dispersion = widgets.FloatText(
+                value = 0.000050328,
+                continuous_update = False,
+                description = 'Dispersion (delta):',
+                readout = True,
+                style = {'description_width': 'initial'},
+                disabled = True),
+            
+            absorption = widgets.FloatText(
+                value = 0.000050328,
+                continuous_update = False,
+                description = 'Absorption (beta):',
+                readout = True,
+                style = {'description_width': 'initial'},
+                disabled = True),
+            
+            threshold_unwrap_refraction = widgets.FloatText(
+                value = 0.05,
+                # threshold used to calculate the optical path
+                # the threshold for refraction/absorption corrections should be low, to correct for an object larger than the real one,
+                # otherwise it messes up the phase
+                step = 0.01,
+                continuous_update = False,
+                description = 'Threshold unwrap refraction:',
+                readout = True,
+                style = {'description_width': 'initial'},
+                disabled = True),
+            
+            label_options = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Options", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+            
+            simu_flag = widgets.Checkbox(
+                value = False,
+                description = 'Simulated data',
+                disabled = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
+                layout = Layout(width='33%'),
+                style = {'description_width': 'initial'}
+                ),
+            
+            invert_phase = widgets.Checkbox(
+                value = True, # False only for simulations
+                description = 'Invert phase', # True for the displacement to have the right sign (FFT convention), False only for simulations
+                disabled = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
+                layout = Layout(width='33%'),
+                style = {'description_width': 'initial'}
+                ),
+            
+            flip_reconstruction = widgets.Checkbox(
+                value = False,
+                description = 'Get conjugated object',  # True if you want to get the conjugate object
+                disabled = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
+                layout = Layout(width='33%'),
+                style = {'description_width': 'initial'}
+                ),
+            
+            phase_ramp_removal = widgets.Dropdown(
+                options = ["gradient", "upsampling"],
+                value = "gradient",
+                description = 'Phase ramp removal:',
+                continuous_update = False,
+                disabled = False,
+                style = {'description_width': 'initial'}),
+            
+            threshold_gradient = widgets.FloatText(
+                value = 1.0,
+                step = 0.01,
+                continuous_update = False,
+                description = 'Upper threshold gradient:',# upper threshold of the gradient of the phase, use for ramp removal
+                readout = True,
+                style = {'description_width': 'initial'},
+                disabled = False),
+            
+            save_raw = widgets.Checkbox(
+                value = False,
+                description = 'Save raw data', # True to save the amp-phase.vti before orthogonalizatio
+                disabled = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
+                style = {'description_width': 'initial'}
+                ),
+            
+            save_support = widgets.Checkbox(
+                value = False,
+                description = 'Save support',# True to save the non-orthogonal support for later phase retrieval
+                disabled = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
+                style = {'description_width': 'initial'}
+                ),
+            
+            save = widgets.Checkbox(
+                value = True,
+                description = 'Save output',  # True to save amp.npz, phase.npz, strain.npz and vtk files
+                disabled = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
+                style = {'description_width': 'initial'}
+                ),
+            
+            debug = widgets.Checkbox(
+                value = False,
+                description = 'Debug', # set to True to show all plots for debugging
+                disabled = False,
+                # icon = 'check',
+                style = {'description_width': 'initial'}
+                ),
+            
+            roll_modes = widgets.Text(
+                value = "(0, 0, 0)",
+                placeholder = "(0, 0, 0)",
+                description = 'Roll modes', # axis=(0, 1, 2), correct a roll of few pixels after the decomposition into modes in PyNX
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='30%'),
+                style = {'description_width': 'initial'},
+                ),
+            
+            label_data_vis = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Parameters related to data visualization", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+            
+            align_axis = widgets.Checkbox(
+                value = False,
+                description = 'Align axis', # if True rotates the crystal to align axis_to_align along ref_axis after the calculation of the strain
+                disabled = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
+                style = {'description_width': 'initial'}
+                ),
+            
+            ref_axis = widgets.Dropdown(
+                options = ["x", "y", "z"],
+                value = "y",
+                description = 'Ref axis for align axis',  # will align axis_to_align to that axis
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='20%'),
+                tooltip = "q will be aligned along that axis",
+                style = {'description_width': 'initial'}),
+            
+            axis_to_align = widgets.Text(
+                value = "[0.0, 0.0, 0.0]",
+                placeholder = "[0.0, 0.0, 0.0]",
+                description = 'Axis to align for ref axis', # axis to align with ref_axis in the order x y z (axis 2, axis 1, axis 0)
+                disabled = False,
+                continuous_update = False,
+                style = {'description_width': 'initial'}),
+            
+            strain_range = widgets.FloatText(
+                value = 0.002,
+                step = 0.0001,
+                continuous_update = False,
+                description = 'Strain range:',
+                readout = True,
+                style = {'description_width': 'initial'},
+                disabled = False),
+            
+            phase_range = widgets.FloatText(
+                value = np.round(np.pi, 3),
+                step = 0.001,
+                continuous_update = False,
+                description = 'Phase range:',
+                readout = True,
+                style = {'description_width': 'initial'},
+                disabled = False),
+            
+            grey_background = widgets.Checkbox(
+                value = True,
+                description = 'Grey background in plots',  # True to set the background to grey in phase and strain plots
+                disabled = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
+                layout = Layout(width='25%'),
+                style = {'description_width': 'initial'}
+                ),
+            
+            tick_spacing =  widgets.BoundedIntText(
+                value = "100",
+                description = 'Tick spacing:',
+                min = 0,
+                max = 5000,
+                layout = Layout(width='25%'),
+                disabled = False,
+                continuous_update = False,
+                style = {'description_width': 'initial'}),
+            
+            tick_direction = widgets.Dropdown(
+                options = ["out", "in", "inout"],
+                value = "inout",
+                description = 'Tick direction:',
+                layout = Layout(width='25%'),
+                continuous_update = False,
+                disabled = False,
+                style = {'description_width': 'initial'}),
+            
+            tick_length =  widgets.BoundedIntText(
+                value = "3",
+                description = 'Tick length:',
+                min = 0,
+                max = 50,
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='20%'),
+                style = {'description_width': 'initial'}),
+            
+            tick_width =  widgets.BoundedIntText(
+                value = "1",
+                description = 'Tick width:',
+                min = 0,
+                max = 10,
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='45%'),
+                style = {'description_width': 'initial'}),
+            
+            label_average = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Parameters for averaging several reconstructed objects", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+            
+            avg_method = widgets.Dropdown(
+                options = ["reciprocal_space", "real_space"],
+                value = "reciprocal_space",
+                description = 'Average method:',
+                continuous_update = False,
+                disabled = False,
+                style = {'description_width': 'initial'}),
+            
+            avg_threshold = widgets.FloatText(
+                value = 0.90,
+                step = 0.01,
+                continuous_update = False,
+                description = 'Average threshold:',  # minimum correlation within reconstructed object for averaging
+                readout = True,
+                style = {'description_width': 'initial'},
+                disabled = False),
+            
+            label_apodize = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Setup for phase averaging or apodization", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+                        
+            apodize_flag = widgets.Checkbox(
+                value = True,
+                description = 'Multiply diffraction pattern by filtering window',
+                disabled = False,
+                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                # icon = 'check',
+                style = {'description_width': 'initial'}
+                ),
+            
+            apodize_window = widgets.Dropdown(
+                options = ["normal", "tukey", "blackman"],
+                value = "blackman",
+                description = 'Filtering window',
+                disabled = False,
+                continuous_update = False,
+                style = {'description_width': 'initial'}),
+            
+            hwidth = widgets.BoundedIntText(
+                value = 1,
+                continuous_update = False,
+                description = 'Width of apodizing window:',
+                readout = True,
+                style = {'description_width': 'initial'},
+                disabled = False),
+
+            mu = widgets.Text(
+                value = "[0.0, 0.0, 0.0]",
+                placeholder = "[0.0, 0.0, 0.0]",
+                description = 'Mu of gaussian window',
+                disabled = False,
+                continuous_update = False,
+                style = {'description_width': 'initial'}),
+            
+            sigma = widgets.Text(
+                value = "[0.30, 0.30, 0.30]",
+                placeholder = "[0.30, 0.30, 0.30]",
+                description = 'Sigma of gaussian window',
+                disabled = False,
+                continuous_update = False,
+                style = {'description_width': 'initial'}),
+            
+            alpha = widgets.Text(
+                value = "[1.0, 1.0, 1.0]",
+                placeholder = "[1.0, 1.0, 1.0]",
+                description = 'Alpha of gaussian window',
+                disabled = False,
+                continuous_update = False,
+                style = {'description_width': 'initial'}),
+
+            run_strain = widgets.ToggleButton(
+                value = False,
+                description = 'Run strain analysis',
+                disabled = False,
+                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                icon = 'fast-forward',
+                layout = Layout(width='40%'),
+                style = {'description_width': 'initial'}),
+                )
 
         # Widgets for logs
         self.tab_logs = interactive(self.display_logs,
@@ -895,7 +1439,7 @@ class Interface(object):
                 description = 'Show logs',
                 disabled = False,
                 button_style = '', # 'success', 'info', 'warning', 'danger' or ''
-                icon = 'check',
+                icon = 'fast-forward',
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'}),
             )
@@ -928,7 +1472,7 @@ class Interface(object):
                 description = 'Load data',
                 disabled = False,
                 button_style = '', # 'success', 'info', 'warning', 'danger' or ''
-                icon = 'check',
+                icon = 'fast-forward',
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'}),
             )
@@ -958,7 +1502,7 @@ class Interface(object):
                 description = 'Load vtk data',
                 disabled = False,
                 button_style = '', # 'success', 'info', 'warning', 'danger' or ''
-                icon = 'check',
+                icon = 'fast-forward',
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'}),
             )
@@ -985,43 +1529,9 @@ class Interface(object):
             self._list_widgets_init.children[3],
             self._list_widgets_init.children[4],
             self._list_widgets_init.children[5],
-            widgets.HBox(self._list_widgets_init.children[6:8]),
+            self._list_widgets_init.children[6],
+            self._list_widgets_init.children[7],
             self._list_widgets_init.children[-1],
-            ])
-
-        self.tab_beamline = widgets.VBox([
-            self._list_widgets_preprocessing.children[0],
-            self._list_widgets_preprocessing.children[1],
-            widgets.HBox(self._list_widgets_preprocessing.children[2:4]),
-            self._list_widgets_preprocessing.children[4],
-            widgets.HBox(self._list_widgets_preprocessing.children[5:7]),
-            self._list_widgets_preprocessing.children[7],
-            widgets.HBox(self._list_widgets_preprocessing.children[8:10]),
-            self._list_widgets_preprocessing.children[10],
-            widgets.HBox(self._list_widgets_preprocessing.children[11:13]),
-            ])
-
-        self.tab_reduction = widgets.VBox([
-            self._list_widgets_preprocessing.children[13],
-            widgets.HBox(self._list_widgets_preprocessing.children[14:16]), 
-            widgets.HBox(self._list_widgets_preprocessing.children[17:20]),
-            self._list_widgets_preprocessing.children[20],
-            widgets.HBox(self._list_widgets_preprocessing.children[21:24]),
-            self._list_widgets_preprocessing.children[24],
-            ])
-
-        self.tab_save_load = widgets.VBox([
-            self._list_widgets_preprocessing.children[25],
-            widgets.HBox(self._list_widgets_preprocessing.children[26:29]),
-            self._list_widgets_preprocessing.children[29],
-            widgets.HBox(self._list_widgets_preprocessing.children[30:35]),
-            ])
-        
-        # Put some tabs together to gain some horizontal space
-        self.tab_parameters = widgets.VBox([
-            self.tab_beamline,
-            self.tab_reduction,
-            self.tab_save_load
             ])
 
         self.tab_detector = widgets.VBox([
@@ -1051,7 +1561,37 @@ class Interface(object):
             widgets.HBox(self._list_widgets_preprocessing.children[67:70]),
             ])
 
-        self.tab_run = widgets.VBox([
+        self.tab_beamline = widgets.VBox([
+            self._list_widgets_preprocessing.children[0],
+            self._list_widgets_preprocessing.children[1],
+            widgets.HBox(self._list_widgets_preprocessing.children[2:4]),
+            widgets.HBox(self._list_widgets_preprocessing.children[4:7]),
+            self._list_widgets_preprocessing.children[7],
+            widgets.HBox(self._list_widgets_preprocessing.children[8:10]),
+            self._list_widgets_preprocessing.children[10],
+            widgets.HBox(self._list_widgets_preprocessing.children[11:13]),
+            ])
+
+        self.tab_reduction = widgets.VBox([
+            self._list_widgets_preprocessing.children[13],
+            widgets.HBox(self._list_widgets_preprocessing.children[14:16]), 
+            widgets.HBox(self._list_widgets_preprocessing.children[17:20]),
+            self._list_widgets_preprocessing.children[20],
+            widgets.HBox(self._list_widgets_preprocessing.children[21:24]),
+            self._list_widgets_preprocessing.children[24],
+            ])
+
+        self.tab_save_load = widgets.VBox([
+            self._list_widgets_preprocessing.children[25],
+            widgets.HBox(self._list_widgets_preprocessing.children[26:29]),
+            self._list_widgets_preprocessing.children[29],
+            widgets.HBox(self._list_widgets_preprocessing.children[30:35]),
+            ])
+
+        self.tab_preprocess = widgets.VBox([
+            self.tab_beamline,
+            self.tab_reduction,
+            self.tab_save_load,
             self._list_widgets_preprocessing.children[-3],
             self._list_widgets_preprocessing.children[-2],
             self._list_widgets_preprocessing.children[-1]
@@ -1066,29 +1606,61 @@ class Interface(object):
             self._list_widgets_correct.children[-1],
             ])
 
+        self.tab_strain = widgets.VBox([
+            self._list_widgets_strain.children[0],
+            widgets.HBox(self._list_widgets_strain.children[1:3]),
+            self._list_widgets_strain.children[3],
+            widgets.HBox(self._list_widgets_strain.children[4:6]),
+            widgets.HBox(self._list_widgets_strain.children[6:8]),
+            widgets.HBox(self._list_widgets_strain.children[8:10]),
+            self._list_widgets_strain.children[10],
+            widgets.HBox(self._list_widgets_strain.children[11:13]),
+            widgets.HBox(self._list_widgets_strain.children[13:16]),
+            widgets.HBox(self._list_widgets_strain.children[16:20]),
+            self._list_widgets_strain.children[20],
+            widgets.HBox(self._list_widgets_strain.children[21:23]),
+            widgets.HBox(self._list_widgets_strain.children[23:26]),
+            self._list_widgets_strain.children[26],
+            widgets.HBox(self._list_widgets_strain.children[27:30]),
+            widgets.HBox(self._list_widgets_strain.children[30:32]),
+            widgets.HBox(self._list_widgets_strain.children[32:35]),
+            widgets.HBox(self._list_widgets_strain.children[35:37]),
+            self._list_widgets_strain.children[37],
+            widgets.HBox(self._list_widgets_strain.children[38:41]),
+            widgets.HBox(self._list_widgets_strain.children[41:43]),
+            self._list_widgets_strain.children[43],
+            widgets.HBox(self._list_widgets_strain.children[44:48]),
+            self._list_widgets_strain.children[48],
+            widgets.HBox(self._list_widgets_strain.children[49:51]),
+            self._list_widgets_strain.children[51],
+            widgets.HBox(self._list_widgets_strain.children[52:55]),
+            widgets.HBox(self._list_widgets_strain.children[55:58]),
+            self._list_widgets_strain.children[-2],
+            self._list_widgets_strain.children[-1],
+            ])
+
         self.window = widgets.Tab(
                         children=[
                             self.tab_init,
-                            # self.tab_beamline, self.tab_reduction, self.tab_save_load, self.tab_detector,
-                            self.tab_parameters,
                             self.tab_detector,
                             self.tab_ortho, 
-                            self.tab_run,
+                            self.tab_preprocess,
                             self.tab_correct, 
                             self.tab_logs,
+                            self.tab_strain,
                             self.tab_plot,
                             self.tab_facet,
                             self.tab_readme,
                         ])
         self.window.set_title(0, 'Scan detail')
-        self.window.set_title(1, "Data reduction")
-        self.window.set_title(2, 'Detector')
-        self.window.set_title(3, 'Orthogonalization')
-        self.window.set_title(4, 'Preprocess')
-        self.window.set_title(5, 'Correct')
-        self.window.set_title(6, 'Logs')
+        self.window.set_title(1, 'Detector')
+        self.window.set_title(2, 'Setup')
+        self.window.set_title(3, "Preprocess")
+        self.window.set_title(4, 'Correct')
+        self.window.set_title(5, 'Logs')
+        # self.window.set_title(6, 'PyNX')
+        self.window.set_title(6, 'Strain')
         self.window.set_title(7, 'Plot data')
-        # self.window.set_title(8, 'PyNX')
         self.window.set_title(8, 'Facets')
         self.window.set_title(9, 'Readme')
 
@@ -1248,20 +1820,80 @@ class Interface(object):
 
 
     def initialize_parameters(self,
-        label_beamline, beamline, actuators, is_series, custom_scan, custom_images, custom_monitor, specfile_name, rocking_angle, follow_bragg,
-        label_masking, flag_interact, background_plot,
-        label_centering, centering, fix_bragg, fix_size, center_fft, pad_size,
+        label_beamline,
+        beamline, 
+        actuators, 
+        is_series, 
+        custom_scan, 
+        custom_images, 
+        custom_monitor, 
+        specfile_name, 
+        rocking_angle, 
+        follow_bragg,
+        label_masking, 
+        flag_interact, 
+        background_plot,
+        label_centering, 
+        centering, 
+        fix_bragg, 
+        fix_size, 
+        center_fft, 
+        pad_size,
         normalize_flux, 
-        label_filtering, mask_zero_event, flag_medianfilter, medfilt_order, binning,
-        label_reload, reload_previous, reload_orthogonal, preprocessing_binning,
-        label_saving, save_rawdata, save_to_npz, save_to_mat, save_to_vti, save_asint,
-        label_detector, detector, x_bragg, y_bragg, photon_threshold, photon_filter, background_file, hotpixels_file, flatfield_file,
+        label_filtering, 
+        mask_zero_event, 
+        flag_medianfilter, 
+        medfilt_order, 
+        binning,
+        label_reload, 
+        reload_previous, 
+        reload_orthogonal, 
+        preprocessing_binning,
+        label_saving, 
+        save_rawdata, 
+        save_to_npz, 
+        save_to_mat, 
+        save_to_vti, 
+        save_asint,
+        label_detector, 
+        detector, 
+        x_bragg, 
+        y_bragg, 
+        photon_threshold, 
+        photon_filter, 
+        background_file, 
+        hotpixels_file, 
+        flatfield_file,
         #  template_imagefile,
-        nb_pixel_x, nb_pixel_y,
-        label_ortho, use_rawdata, interp_method, fill_value_mask, beam_direction, sample_offsets, sdd, energy, custom_motors,
-        label_xru, align_q, ref_axis_q, outofplane_angle, inplane_angle, 
-        sample_inplane, sample_outofplane, offset_inplane, cch1, cch2, direct_inplane, direct_outofplane, detrot, tiltazimuth, tilt,
-        label_preprocess, run_preprocess):
+        nb_pixel_x, 
+        nb_pixel_y,
+        label_ortho, 
+        use_rawdata, 
+        interp_method, 
+        fill_value_mask, 
+        beam_direction, 
+        sample_offsets, 
+        sdd, 
+        energy, 
+        custom_motors,
+        label_xru, 
+        align_q, 
+        ref_axis_q, 
+        outofplane_angle, 
+        inplane_angle, 
+        sample_inplane, 
+        sample_outofplane, 
+        offset_inplane, 
+        cch1, 
+        cch2, 
+        direct_inplane, 
+        direct_outofplane, 
+        detrot, 
+        tiltazimuth, 
+        tilt,
+        label_preprocess, 
+        run_preprocess
+        ):
 
         if run_preprocess:
             # Disable all widgets until the end of the program, will update automatticaly after
@@ -1339,14 +1971,14 @@ class Interface(object):
             self.tilt = tilt
 
             # Extract dict, list and tuple from strings
-            self.list_parameters = ["fix_bragg", "fix_size", "pad_size"]
+            list_parameters = ["fix_bragg", "fix_size", "pad_size"]
 
-            self.tuple_parameters = ["binning", "preprocessing_binning", "beam_direction", "sample_offsets", "sample_inplane", "sample_outofplane"]
+            tuple_parameters = ["binning", "preprocessing_binning", "beam_direction", "sample_offsets", "sample_inplane", "sample_outofplane"]
 
-            self.dict_parameters = ["actuators", "custom_motors"]
+            dict_parameters = ["actuators", "custom_motors"]
 
             try:
-                for p in self.list_parameters:
+                for p in list_parameters:
                     if getattr(self, p) == "":
                         setattr(self, p, [])
                     else:
@@ -1356,7 +1988,7 @@ class Interface(object):
                 print(f"Wrong list syntax for {p}")
 
             try:
-                for p in self.tuple_parameters:
+                for p in tuple_parameters:
                     if getattr(self, p) == "":
                         setattr(self, p, ())
                     else:
@@ -1366,7 +1998,7 @@ class Interface(object):
                 print(f"Wrong tuple syntax for {p}")
 
             try:
-                for p in self.dict_parameters:
+                for p in dict_parameters:
                     if getattr(self, p) == "":
                         setattr(self, p, None) # or {}
                     else:
@@ -1572,9 +2204,284 @@ class Interface(object):
 
             self.extract_metadata()
 
+            # Save corrected angles in the widgets
+            print("Saving corrected angles values")
+            self._list_widgets_preprocessing.children[58].value = self.metadata["bragg_outofplane"]
+            self._list_widgets_preprocessing.children[59].value = self.metadata["bragg_inplane"]
+            self.tilt_angle = np.round(np.mean(self.metadata["tilt_values"][1:] - self.metadata["tilt_values"][:-1]), 4)
+
         if not angles_bool:
             clear_output(True)
 
+
+    def strain_gui(self,
+        label_averaging,
+        sort_method, 
+        correlation_threshold,
+        label_FFT,
+        phasing_binning, 
+        original_size, 
+        preprocessing_binning, 
+        output_size, 
+        keep_size, 
+        fix_voxel,
+        label_disp_strain,
+        data_frame,
+        save_frame,
+        ref_axis_q,
+        isosurface_strain,
+        strain_method,
+        phase_offset,
+        phase_offset_origin,
+        offset_method,
+        centering_method,
+        label_refraction,
+        correct_refraction,
+        optical_path_method,
+        dispersion,
+        absorption,
+        threshold_unwrap_refraction,
+        label_options,
+        simu_flag,
+        invert_phase,
+        flip_reconstruction,
+        phase_ramp_removal,
+        threshold_gradient,
+        save_raw,
+        save_support,
+        save,
+        debug,
+        roll_modes,
+        label_data_vis,
+        align_axis,
+        ref_axis,
+        axis_to_align,
+        strain_range,
+        phase_range,
+        grey_background,
+        tick_spacing,
+        tick_direction,
+        tick_length,
+        tick_width,
+        label_average,
+        avg_method,
+        avg_threshold,
+        label_apodize,
+        apodize_flag,
+        apodize_window,
+        hwidth,
+        mu,
+        sigma,
+        alpha,
+        run_strain,
+        ):
+        """Loading argument from strain tab widgets but also values of parameters used in preprocessing that are common"""
+        
+        if run_strain:
+            # Disable all widgets until the end of the program, will update automatticaly after
+            for w in self._list_widgets_strain.children[:-1]:
+                w.disabled = True
+
+            for w in self._list_widgets_preprocessing.children[:-2]:
+                w.disabled = True
+
+            for w in self._list_widgets_correct.children[:-1]:
+                w.disabled = True
+
+            # parameters used when averaging several reconstruction #
+            self.sort_method = sort_method 
+            self.correlation_threshold = correlation_threshold
+            # parameters relative to the FFT window and voxel sizes #
+            self.phasing_binning = phasing_binning 
+            self.original_size = original_size 
+            self.preprocessing_binning = preprocessing_binning 
+            self.output_size = output_size 
+            self.keep_size = keep_size 
+            self.fix_voxel = fix_voxel
+            # parameters related to displacement and strain calculation #
+            self.data_frame = data_frame
+            self.save_frame = save_frame
+            self.ref_axis_q = ref_axis_q
+            self.isosurface_strain = isosurface_strain
+            self.strain_method = strain_method
+            self.phase_offset = phase_offset
+            self.phase_offset_origin = phase_offset_origin
+            self.offset_method = offset_method
+            self.centering_method = centering_method
+            # pixel_size,
+            # parameters related to the refraction correction # 
+            self.correct_refraction = correct_refraction
+            self.optical_path_method = optical_path_method
+            self.dispersion = dispersion
+            self.absorption = absorption
+            self.threshold_unwrap_refraction = threshold_unwrap_refraction
+            # options #
+            self.simu_flag = simu_flag
+            self.invert_phase = invert_phase
+            self.flip_reconstruction = flip_reconstruction
+            self.phase_ramp_removal = phase_ramp_removal
+            self.threshold_gradient = threshold_gradient
+            self.save_raw = save_raw
+            self.save_support = save_support
+            self.save = save
+            self.debug = debug
+            self.roll_modes = roll_modes
+            # parameters related to data visualization #
+            self.align_axis = align_axis
+            self.ref_axis = ref_axis
+            self.axis_to_align = axis_to_align
+            self.strain_range = strain_range
+            self.phase_range = phase_range
+            self.grey_background = grey_background
+            self.tick_spacing = tick_spacing
+            self.tick_direction = tick_direction
+            self.tick_length = tick_length
+            self.tick_width = tick_width
+            # parameters for averaging several reconstructed objects #  
+            self.avg_method = avg_method
+            self.avg_threshold = avg_threshold
+            # setup for phase averaging or apodization
+            self.hwidth = hwidth
+            self.apodize_flag = apodize_flag
+            self.apodize_window = apodize_window
+            self.mu = mu
+            self.sigma = sigma
+            self.alpha = alpha
+
+            # Extract dict, list and tuple from strings
+            list_parameters = ["original_size", "output_size", "axis_to_align", "mu", "sigma", "alpha"]
+
+            tuple_parameters = ["phasing_binning", "preprocessing_binning", "phase_offset_origin", "roll_modes"]
+
+            try:
+                for p in list_parameters:
+                    if getattr(self, p) == "":
+                        setattr(self, p, [])
+                    else:
+                        setattr(self, p, literal_eval(getattr(self, p)))
+                    # print(f"{p}:", getattr(self, p))
+            except ValueError:
+                print(f"Wrong list syntax for {p}")
+
+            try:
+                for p in tuple_parameters:
+                    if getattr(self, p) == "":
+                        setattr(self, p, ())
+                    else:
+                        setattr(self, p, literal_eval(getattr(self, p)))
+                    # print(f"{p}:", getattr(self, p))
+            except ValueError:
+                print(f"Wrong tuple syntax for {p}")
+
+
+            # Empty parameters are set to None (bcdi syntax)
+            if self.output_size == []:
+                self.output_size = None
+
+            if self.fix_voxel == 0:
+                self.fix_voxel = None
+
+
+            if self.phase_offset_origin == ():
+                self.phase_offset_origin = (None)
+
+            self.pixel_size = None
+
+            strain_bcdi(
+                scan = self.scans, 
+                root_folder = self.root_folder,
+                save_dir = self.save_dir,
+                data_dirname = self.data_dirname,
+                sample_name = self.sample_name, 
+                comment = self.user_comment, 
+                sort_method = self.sort_method, 
+                correlation_threshold = self.correlation_threshold,
+                original_size = self.original_size, 
+                phasing_binning = self.phasing_binning, 
+                preprocessing_binning = self.preprocessing_binning, 
+                output_size = self.output_size, 
+                keep_size = self.keep_size, 
+                fix_voxel = self.fix_voxel,
+                data_frame = self.data_frame,
+                ref_axis_q = self.ref_axis_q,
+                save_frame = self.save_frame,
+                isosurface_strain = self.isosurface_strain,
+                strain_method = self.strain_method,
+                phase_offset = self.phase_offset,
+                phase_offset_origin = self.phase_offset_origin,
+                offset_method = self.offset_method,
+                centering_method = self.centering_method,
+                beamline = self.beamline,
+                actuators = self.actuators,
+                rocking_angle = self.rocking_angle,
+                sdd = self.sdd,
+                energy = self.energy,
+                beam_direction = self.beam_direction,
+                outofplane_angle = self.outofplane_angle,
+                inplane_angle = self.inplane_angle,
+                tilt_angle = self.tilt_angle,
+                sample_offsets = self.sample_offsets,
+                specfile_name = self.specfile_name,
+                custom_scan = self.custom_scan,
+                custom_motors = self.custom_motors,
+                detector = self.detector,
+                nb_pixel_x = self.nb_pixel_x,
+                nb_pixel_y = self.nb_pixel_y,
+                pixel_size = self.pixel_size,
+                template_imagefile = self.template_imagefile,
+                correct_refraction = self.correct_refraction,
+                optical_path_method = self.optical_path_method,
+                dispersion = self.dispersion,
+                absorption = self.absorption,
+                threshold_unwrap_refraction = self.threshold_unwrap_refraction,
+                simu_flag = self.simu_flag,
+                invert_phase = self.invert_phase,
+                flip_reconstruction = self.flip_reconstruction,
+                phase_ramp_removal = self.phase_ramp_removal,
+                threshold_gradient = self.threshold_gradient,
+                save_raw = self.save_raw,
+                save_support = self.save_support,
+                save = self.save,
+                debug = self.debug,
+                roll_modes = self.roll_modes,
+                align_axis = self.align_axis,
+                ref_axis = self.ref_axis,
+                axis_to_align = self.axis_to_align,
+                strain_range = self.strain_range,
+                phase_range = self.phase_range,
+                grey_background = self.grey_background,
+                tick_spacing = self.tick_spacing,
+                tick_direction = self.tick_direction,
+                tick_length = self.tick_length,
+                tick_width = self.tick_width,
+                get_temperature = self.temp_bool,
+                reflection = self.reflection,
+                reference_spacing = self.reference_spacing,
+                reference_temperature = self.reference_temperature,
+                avg_method = self.avg_method,
+                avg_threshold = self.avg_threshold,
+                hwidth = self.hwidth,
+                apodize_flag = self.apodize_flag,
+                apodize_window = self.apodize_window,
+                mu = self.mu,
+                sigma = self.sigma,
+                alpha = self.alpha,
+                )
+
+            # At the end of the function 
+            self._list_widgets_strain.children[-2].disabled = False
+
+        if not run_strain:
+            for w in self._list_widgets_strain.children[:-1]:
+                w.disabled = False
+
+            for w in self._list_widgets_preprocessing.children[:-2]:
+                w.disabled = False
+
+            for w in self._list_widgets_correct.children[:-1]:
+                w.disabled = False
+
+            clear_output(True)
 
     def facet_analysis(self,
         label_facet,
