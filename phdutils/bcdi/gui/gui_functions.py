@@ -10,10 +10,6 @@ except ModuleNotFoundError:
     pass
 import numpy as np
 from matplotlib import pyplot as plt
-plt.switch_backend(
-    "Qt5Agg"
-)  # "Qt5Agg" or "Qt4Agg" depending on the version of Qt installer, bug with Tk
-
 import scipy.signal  # for medfilt2d
 from scipy.ndimage.measurements import center_of_mass
 from scipy.io import savemat
@@ -43,7 +39,6 @@ def correct_angles_detector(
     reference_temperature,
     high_threshold,
     save_dir,
-    csv_file,
     scan,
     root_folder,
     sample_name,
@@ -431,6 +426,11 @@ def preprocess_bcdi(
 
     output files saved in:   /rootdir/S1/pynxraw/ or /rootdir/S1/pynx/ depending on the
     'use_rawdata' option"""
+
+    if flag_interact:
+        plt.switch_backend(
+            "Qt5Agg"
+        )
 
     def close_event(event):
         """
@@ -1638,3 +1638,6 @@ def preprocess_bcdi(
     plt.ioff()
     plt.show()
 
+    plt.switch_backend(
+        'module://ipykernel.pylab.backend_inline'
+    )

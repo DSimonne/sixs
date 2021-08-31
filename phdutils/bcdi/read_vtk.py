@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib
-#matplotlib.use('qt5agg')
 import vtk
 import matplotlib.pyplot as plt
 import os
@@ -73,7 +72,7 @@ class Facets(object):
 			pointData = vtkdata.GetPointData()
 			print("Loading data...")
 		except AttributeError:
-			print("This file does not exist or is not right.")
+			raise NameError("This file does not exist or is not right.")
 
 		print("Number of points = %s" % str(vtkdata.GetNumberOfPoints()))
 		print("Number of cells = %s" % str(vtkdata.GetNumberOfCells()))
@@ -163,14 +162,13 @@ class Facets(object):
 
 		self.u = u
 		self.v = v
-		self.w = np.cross(u/np.linalg.norm(u),v/np.linalg.norm(v))
-		print("Cross product of u and v:", np.cross(self.u, self.v))
 
 		self.u1 = self.u/np.linalg.norm(self.u)
 		self.v1 = self.v/np.linalg.norm(self.v)
-		self.w1 = self.w/np.linalg.norm(self.w)
+		self.w1 = np.cross(self.u1, self.v1)
+		print("Normalized cross product of u and v:", self.w1)
 
-		# transformation matrix
+		# Transformation matrix
 		self.tensor0 = np.array([self.u0, self.v0, self.w0])
 		self.tensor1 = np.array([self.u1, self.v1, self.w1])
 		self.inv_tensor1 = np.linalg.inv(self.tensor1)
@@ -298,7 +296,7 @@ class Facets(object):
 			print("You need to define the rotation matrix before")
 
 
-	def extract_facet(self, facet_id, plot = False, view = [0, 90], output = True):
+	def extract_facet(self, facet_id, plot = False, view = [0, 90], output = True, save = True):
 		"""
 		Extract data from one facet, [x, y, z], strain, displacement and their means, also plots it
 		"""
@@ -309,18 +307,6 @@ class Facets(object):
 		        ind_Facet.append(self.vtk_data['x0'][i])
 		        ind_Facet.append(self.vtk_data['y0'][i])
 		        ind_Facet.append(self.vtk_data['z0'][i])
-		
-		if plot:
-			try:
-				mask = self.field_data.loc[self.field_data["facet_id"] == facet_id]
-
-				n0 = mask.n0.values[0]
-				n1 = mask.n1.values[0]
-				n2 = mask.n2.values[0]
-				print(f"Facet normal: [{n0}, {n1}, {n2}].")
-			except Exception as e:
-				raise e
-				# pass
 
 		ind_Facet_new = list(set(ind_Facet))
 		results = {}
@@ -368,8 +354,21 @@ class Facets(object):
 			plt.tick_params(axis='both', which='minor', labelsize = self.ticks_fontsize)
 			plt.title(f"Strain for facet n°{facet_id}", fontsize = self.title_fontsize)
 			plt.tight_layout()
-			plt.savefig(f"{self.pathsave}facet_n°{facet_id}.png", bbox_inches='tight')
+			if save:
+				plt.savefig(f"{self.pathsave}facet_n°{facet_id}.png", bbox_inches='tight')
 			plt.show()
+			plt.close()
+
+			try:
+				mask = self.field_data.loc[self.field_data["facet_id"] == facet_id]
+
+				n0 = mask.n0.values[0]
+				n1 = mask.n1.values[0]
+				n2 = mask.n2.values[0]
+				print(f"Facet normal: [{n0}, {n1}, {n2}].")
+			except Exception as e:
+				raise e
+				# pass
 
 		if output:
 			return results

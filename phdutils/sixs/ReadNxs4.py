@@ -17,6 +17,8 @@ import pickle
 import time
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
+import inspect
+import phdutils
 
 class emptyO(object):
     '''Empty class used as container in the nxs2spec case. '''
@@ -55,13 +57,14 @@ class DataSet(object):
         self. _coefPz = 1 # assigned just in case
         self. _coefPn = 1 # assigned just in case
         self.verbose = verbose
+
         try:
             self._alias_dict = pickle.load(open('/home/andrea/MyPy3/sixs_nxsread/alias_dict.txt','rb'))
-            #
-        except :#FileNotFoundError:
+
+        except FileNotFoundError:
             try:
-                inspect.getfile(phdutils).split("__")[0]
-                self._alias_dict = pickle.load(open(inspect.getfile(phdutils).split("__")[0] + '/sixs/alias_dict_2021.txt','rb'))
+                self._alias_dict_path = inspect.getfile(phdutils).split("__")[0] + 'sixs/alias_dict_2021.txt'
+                self._alias_dict = pickle.load(open(self._alias_dict_path, 'rb'))
             except:
                 print('NO ALIAS FILE')
                 self._alias_dict = None
