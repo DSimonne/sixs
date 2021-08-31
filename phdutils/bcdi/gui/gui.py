@@ -37,7 +37,7 @@ import tables as tb
 
 # Import preprocess_bcdi modified for gui and usable as a function
 from phdutils.bcdi.gui.gui_functions import *
-from phdutils.bcdi import read_vtk
+from phdutils.bcdi import read_vtk, plot
 from phdutils.sixs import ReadNxs4 as rd
 
 
@@ -62,7 +62,6 @@ class Interface(object):
 
         # Widgets for initialization 
         self._list_widgets_init = interactive(self.initialize_directories,
-
             ### Define scan related parameters
             label_scan = widgets.HTML(
                 description="<p style='font-weight: bold;font-size:1.2em'>Define working directory and scan number", # 
@@ -140,7 +139,6 @@ class Interface(object):
 
         # Widgets for preprocessing
         self._list_widgets_preprocessing = interactive(self.initialize_parameters,
-
             ### Define beamline related parameters
             label_beamline = widgets.HTML(
                 description="<p style='font-weight: bold;font-size:1.2em'>Parameters specific to the beamline", # 
@@ -317,9 +315,9 @@ class Interface(object):
 
             ### Parameters for data filtering
             label_filtering = widgets.HTML(
-                description="<p style='font-weight: bold;font-size:1.2em'>Parameters for data filtering</p>", # 
+                description="""<p style='font-weight: bold;font-size:1.2em'>Parameters for data filtering</p>""", 
                 style = {'description_width': 'initial'},
-                layout = Layout(width='90%', height = "35px")),
+                layout = Layout(width='90%', height = "50px")),
 
             mask_zero_event = widgets.ToggleButton(
                 value = False,
@@ -346,12 +344,6 @@ class Interface(object):
                 continuous_update = False,
                 tooltip = "for custom median filter, number of pixels with intensity surrounding the empty pixel",
                 style = {'description_width': 'initial'}),
-
-            ### Parameter for data reduction
-            label_reduction = widgets.HTML(
-                description="<p style='font-weight: bold;font-size:1.2em'>Parameters for data reduction</p>", # 
-                style = {'description_width': 'initial'},
-                layout = Layout(width='90%', height = "35px")),
 
             binning = widgets.Text(
                 value = "(1, 1, 1)",
@@ -908,7 +900,42 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
             )
 
+        # Widgets for plotting
+        self.tab_plot = interactive(self.plot_data,
+            label_plot = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Loads data files (.cxi or npz/npy) and displays it in the gui", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+
+            folder = widgets.Text(
+                value = os.getcwd(),
+                placeholder = os.getcwd(),
+                description = 'Data folder:',
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='90%'),
+                style = {'description_width': 'initial'}),
+
+            file_list = widgets.Dropdown(
+                options = glob.glob(os.getcwd() + "/*.npz") + glob.glob(os.getcwd() + "/*.cxi"),
+                description = 'Compatible file list',
+                disabled = False,
+                layout = Layout(width='90%'),
+                style = {'description_width': 'initial'}),
+
+            load_data = widgets.ToggleButton(
+                value = False,
+                description = 'Load data',
+                disabled = False,
+                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                icon = 'check',
+                layout = Layout(width='40%'),
+                style = {'description_width': 'initial'}),
+            )
+        self.tab_plot.children[1].observe(self.folder_handler, names = "value")
+
         # Widgets for PyNX
+
 
         # Widgets for facet analysis
         self.tab_facet = interactive(self.facet_analysis,
@@ -990,6 +1017,13 @@ class Interface(object):
             widgets.HBox(self._list_widgets_preprocessing.children[30:35]),
             ])
         
+        # Put some tabs together to gain some horizontal space
+        self.tab_parameters = widgets.VBox([
+            self.tab_beamline,
+            self.tab_reduction,
+            self.tab_save_load
+            ])
+
         self.tab_detector = widgets.VBox([
             self._list_widgets_preprocessing.children[35],
             self._list_widgets_preprocessing.children[36],
@@ -1034,21 +1068,29 @@ class Interface(object):
 
         self.window = widgets.Tab(
                         children=[
-                            self.tab_init, self.tab_beamline, self.tab_reduction, self.tab_save_load, self.tab_detector, self.tab_ortho, 
-                            self.tab_run, self.tab_correct,  self.tab_logs, self.tab_facet, self.tab_readme,
+                            self.tab_init,
+                            # self.tab_beamline, self.tab_reduction, self.tab_save_load, self.tab_detector,
+                            self.tab_parameters,
+                            self.tab_detector,
+                            self.tab_ortho, 
+                            self.tab_run,
+                            self.tab_correct, 
+                            self.tab_logs,
+                            self.tab_plot,
+                            self.tab_facet,
+                            self.tab_readme,
                         ])
         self.window.set_title(0, 'Scan detail')
-        self.window.set_title(1, 'Beamline')
-        self.window.set_title(2, "Data reduction")
-        self.window.set_title(3, "Load/Save")
-        self.window.set_title(4, 'Detector')
-        self.window.set_title(5, 'Orthogonalization')
-        self.window.set_title(6, 'Preprocess')
-        self.window.set_title(7, 'Correct')
-        self.window.set_title(8, 'Logs')
+        self.window.set_title(1, "Data reduction")
+        self.window.set_title(2, 'Detector')
+        self.window.set_title(3, 'Orthogonalization')
+        self.window.set_title(4, 'Preprocess')
+        self.window.set_title(5, 'Correct')
+        self.window.set_title(6, 'Logs')
+        self.window.set_title(7, 'Plot data')
         # self.window.set_title(8, 'PyNX')
-        self.window.set_title(9, 'Facets')
-        self.window.set_title(10, 'Readme')
+        self.window.set_title(8, 'Facets')
+        self.window.set_title(9, 'Readme')
 
         display(self.window)
 
@@ -1102,6 +1144,7 @@ class Interface(object):
             self.scan_folder = self.root_folder + f"S{scans}/"
             print("Scan folder:", self.scan_folder)
             self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/{self.scans}_fa.vtk"
+            self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
 
             self.save_dir = None # scan_folder +"pynxraw/"
 
@@ -2071,6 +2114,23 @@ class Interface(object):
             clear_output(True)
 
 
+    def plot_data(self,
+        label_plot,
+        folder,
+        file_list,
+        load_data
+        ):
+        """Loads exterior .csv file and displays it in the gui"""
+
+        if load_data:
+            self.tab_plot.children[1].disabled = True
+            plot.Plotter(file_list)
+
+        else:
+            self.tab_plot.children[1].disabled = False
+            clear_output(True)
+
+
     # Non widgets functions
     def rotate_sixs_data(self):
         """
@@ -2408,3 +2468,8 @@ class Interface(object):
                     w.disabled = False
 
                 self.temp_handler(change = self._list_widgets_correct.children[2].value)
+
+    def folder_handler(self, change):
+        """Handles changes on the widget used to load a data file"""
+
+        self.tab_plot.children[2].options =  glob.glob(self.tab_plot.children[1].value + "/*.npz") + glob.glob(self.tab_plot.children[1].value + "/*.cxi")
