@@ -1,4 +1,0 @@
-include phdutils/bcdi/gui/*
-include phdutils/bcdi/terminal_scripts/*
-
-include licence.txt
