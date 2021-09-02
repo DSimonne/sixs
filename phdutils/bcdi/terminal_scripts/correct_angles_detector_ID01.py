@@ -19,7 +19,9 @@ from tkinter import filedialog
 import sys
 import bcdi.postprocessing.postprocessing_utils as pu
 import bcdi.preprocessing.preprocessing_utils as pru
-import bcdi.experiment.experiment_utils as exp
+from bcdi.experiment.detector import Detector
+from bcdi.experiment.setup import Setup
+import bcdi.utils.utilities as util
 
 helptext = """
 Calculate exact inplane and out-of-plane detector angles from the direct beam and Bragg peak positions,
@@ -113,7 +115,8 @@ sys.stdout = open(README_file, "a")
 # scan = 1353
 # root_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/"  # folder of the experiment, where all scans are stored
 # root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/"  # folder of the experiment, where all scans are stored
-root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/test/BCDI_2021_07_26_165851/"  # folder of the experiment, 
+# root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/test/BCDI_2021_07_26_165851/"  # folder of the experiment, 
+root_folder = "/data/visitor/hc4534/id01/B8_S1_P2/BCDI_2021_09_02_145714/"  # folder of the experiment, up to spec file
 # sample_name = "S"
 filtered_data = False  # set to True if the data is already a 3D array, False otherwise
 # Should be the same shape as in specfile
@@ -141,9 +144,10 @@ custom_motors = None
 # P10: om, phi, chi, mu, gamma, delta
 # SIXS: beta, mu, gamma, delta
 rocking_angle = "outofplane"  # "outofplane" or "inplane"
-# specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
-# specfile_name = "spec/2021_07_24_083204_test" #'analysis/alias_dict_2021.txt'
-specfile_name = "spec/BCDI_2021_07_26_165851" #'analysis/alias_dict_2021.txt'
+# specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'# July 2021
+# specfile_name = "spec/2021_07_24_083204_test" #'analysis/alias_dict_2021.txt'# July 
+# specfile_name = "spec/BCDI_2021_07_26_165851" #'analysis/alias_dict_2021.txt'# July 
+specfile_name = "spec/BCDI_2021_09_02_145714" #'analysis/alias_dict_2021.txt'# september
 # template for SIXS_2018: full path of the alias dictionnary 'alias_dict.txt', typically: root_folder + 'alias_dict.txt'
 # template for all other beamlines: ''
 
@@ -165,7 +169,7 @@ hotpixels_file = None
 flatfield_file = None  # root_folder + "flatfield_maxipix_8kev.npz"  # non empty file path or None
 # template_imagefile = root_folder + 'detector/2021_07_20_085405_ni/data_mpx4_%05d.edf.gz'
 # template_imagefile = root_folder + 'detector/2021_07_24_072032_b8_s1_p2/data_mpx4_%05d.edf.gz'
-template_imagefile = root_folder + 'mpx/data_mpx4_%05d.edf.gz'
+template_imagefile = root_folder + 'mpx/data_mpx4_%05d.edf.gz'# july and september 2021
 # template_imagefile ="Pt_Al2O3_ascan_mu_%05d_R.nxs"
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
 # template for SIXS_2018: 'align.spec_ascan_mu_%05d.nxs'
@@ -179,7 +183,7 @@ template_imagefile = root_folder + 'mpx/data_mpx4_%05d.edf.gz'
 # define setup related parameters #
 ###################################
 beam_direction = (1, 0, 0)  # beam along z
-sample_offsets = (1.1562481, 0, 0) # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
+sample_offsets = (-0.0011553664, 0, 0) # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # convention: the sample offsets will be subtracted to the motor values
 directbeam_x = 159.555  # direct beam vertical position in the full unbinned detector for xrayutilities 2D detector calibration
 directbeam_y = 729.561  # direct beam horizontal position in the full unbinned detector for xrayutilities 2D detector calibration
@@ -206,7 +210,7 @@ plt.ion()
 #######################
 # Initialize detector #
 #######################
-detector = exp.Detector(
+detector = Detector(
     name=detector,
     template_imagefile=template_imagefile,
     roi=roi_detector,
@@ -216,7 +220,7 @@ detector = exp.Detector(
 ####################
 # Initialize setup #
 ####################
-setup = exp.Setup(
+setup = Setup(
     beamline=beamline,
     detector=detector,
     energy=energy,
@@ -253,8 +257,8 @@ logfile = setup.create_logfile(
 #################
 # load the data #
 #################
-flatfield = pru.load_flatfield(flatfield_file)
-hotpix_array = pru.load_hotpixels(hotpixels_file)
+flatfield = util.load_flatfield(flatfield_file)
+hotpix_array = util.load_hotpixels(hotpixels_file)
 
 if not filtered_data:
     data, _, monitor, frames_logical = pru.load_data(

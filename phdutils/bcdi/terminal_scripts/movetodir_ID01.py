@@ -81,10 +81,10 @@ for scan in scans:
         pass
 
     try:
-        shutil.copy("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/pynx_run_ID01.txt", f"{TG_folder}S{scan}/pynxraw")
-        print(f"Copied pynx_run_ID01.txt to {TG_folder}S{scan}/pynxraw")
+        shutil.copy("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/pynx_run.txt", f"{TG_folder}S{scan}/pynxraw")
+        print(f"Copied pynx_run.txt to {TG_folder}S{scan}/pynxraw")
     except FileExistsError:
-        print(f"{TG_folder}S{scan}/pynxraw/pynx_run_ID01.txt exists")
+        print(f"{TG_folder}S{scan}/pynxraw/pynx_run.txt exists")
         pass
 
     try:

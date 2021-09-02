@@ -27,7 +27,8 @@ import tkinter as tk
 from tkinter import filedialog
 import gc
 import bcdi.graph.graph_utils as gu
-import bcdi.experiment.experiment_utils as exp
+from bcdi.experiment.detector import Detector
+from bcdi.experiment.setup import Setup
 import bcdi.postprocessing.postprocessing_utils as pu
 import bcdi.preprocessing.preprocessing_utils as pru
 import bcdi.utils.utilities as util
@@ -141,7 +142,8 @@ sys.stdout = open(README_file, "a")
 
 # root_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/"  # folder of the experiment, where all scans are stored
 # root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/"  # folder of the experiment, where all scans are stored
-root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/test/BCDI_2021_07_26_165851/"  # folder of the experiment, 
+# root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/test/BCDI_2021_07_26_165851/"  # folder of the experiment, 
+root_folder = "/data/visitor/hc4534/id01/B8_S1_P2/BCDI_2021_09_02_145714/"  # folder of the experiment, up to spec file
 # save_dir = None  # images will be saved here, leave it to None otherwise
 # data_dirname = None  # leave None to use the beamline default, '' empty string when there is no subfolder
 # (data directly in the scan folder), or a non-empty string for the subfolder name
@@ -232,8 +234,9 @@ rocking_angle = "outofplane"  # "outofplane" for a sample rotation around x outb
 follow_bragg = False  # only for energy scans, set to True if the detector was also scanned to follow the Bragg peak
 # specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
 # specfile_name = "spec/2021_07_24_083204_test" #'analysis/alias_dict_2021.txt'
-specfile_name = "spec/BCDI_2021_07_26_165851" #'analysis/alias_dict_2021.txt'
-# template for ID01: name of the spec file without '.spec'
+# specfile_name = "spec/BCDI_2021_07_26_165851" #'analysis/alias_dict_2021.txt'# July 
+# specfile_name = "spec/BCDI_2021_07_26_165851" #'analysis/alias_dict_2021.txt'# July 
+specfile_name = "spec/BCDI_2021_09_02_145714" #'analysis/alias_dict_2021.txt'# september
 # template for SIXS: full path of the alias dictionnary, typically root_folder + 'alias_dict_2020.txt'
 # template for all other beamlines: ''
 
@@ -587,7 +590,7 @@ kwargs[
     "nb_pixel_y"
 ] = nb_pixel_y  # fix to declare a known detector but with less pixels (e.g. one tile HS)
 kwargs["linearity_func"] = linearity_func
-detector = exp.Detector(
+detector = Detector(
     name=detector,
     template_imagefile=template_imagefile,
     roi=roi_detector,
@@ -598,7 +601,7 @@ detector = exp.Detector(
 ####################
 # Initialize setup #
 ####################
-setup = exp.Setup(
+setup = Setup(
     beamline=beamline,
     detector=detector,
     energy=energy,
@@ -793,9 +796,9 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
 
     else:  # new masking process
         reload_orthogonal = False  # the data is in the detector plane
-        flatfield = pru.load_flatfield(flatfield_file)
-        hotpix_array = pru.load_hotpixels(hotpixels_file)
-        background = pru.load_background(background_file)
+        flatfield = util.load_flatfield(flatfield_file)
+        hotpix_array = util.load_hotpixels(hotpixels_file)
+        background = util.load_background(background_file)
 
         data, mask, frames_logical, monitor = pru.load_bcdi_data(
             logfile=logfile,
@@ -1418,7 +1421,7 @@ for scan_idx, scan_nb in enumerate(scans, start=1):
     ##################################################################
     # final check of the shape to comply with FFT shape requirements #
     ##################################################################
-    final_shape = pru.smaller_primes(data.shape, maxprime=7, required_dividers=(2,))
+    final_shape = util.smaller_primes(data.shape, maxprime=7, required_dividers=(2,))
     com = tuple(map(lambda x: int(np.rint(x)), center_of_mass(data)))
     crop_center = pu.find_crop_center(
         array_shape=data.shape, crop_shape=final_shape, pivot=com
@@ -1529,13 +1532,13 @@ with open(README_file, 'a') as outfile:
     outfile.write("```")
 
 # Create file for phase retrieval
-with open("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/pynx_run_ID01.txt", "r") as f:
+with open("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/pynx_run.txt", "r") as f:
     text_file = f.readlines()
     
     text_file[1] = f"data = S{scan_nb}_pynx{comment}.npz\"\n"
     text_file[2] = f"mask = S{scan_nb}_maskpynx{comment}.npz\"\n"
 
-    with open(f"{save_dir}pynx_run_ID01.txt", "w") as v:
+    with open(f"{save_dir}pynx_run.txt", "w") as v:
         new_file_contents = "".join(text_file)
         v.write(new_file_contents)
 # End of added script

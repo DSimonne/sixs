@@ -142,8 +142,8 @@ def correct_angles_detector(
     #################
     # load the data #
     #################
-    flatfield = pru.load_flatfield(flatfield_file)
-    hotpix_array = pru.load_hotpixels(hotpixels_file)
+    flatfield = util.load_flatfield(flatfield_file)
+    hotpix_array = util.load_hotpixels(hotpixels_file)
 
     if not filtered_data:
         data, _, monitor, frames_logical = pru.load_data(
