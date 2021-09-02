@@ -1732,7 +1732,7 @@ class Interface(object):
                     self.path_to_data = glob.glob(f"{self.data_directory}*omega*{self.scans}*")[0]
                     print("Omega scan") 
 
-            self.template_imagefile = self.path_to_data.split("/data/")[-1].split("%05d"%self.scans)[0]+"%05d.nxs" #  +"%05d_R.nxs" If rotated before
+            self.template_imagefile = self.path_to_data.split("%05d"%self.scans)[0]+"%05d.nxs" #  +"%05d_R.nxs" If rotated before
             print("File template:", self.template_imagefile, end = "\n\n")
 
 

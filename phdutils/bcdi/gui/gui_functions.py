@@ -4,6 +4,49 @@
 #       authors:
 #         Jerome Carnis, carnis_jerome@yahoo.fr
 
+# Preprocess
+try:
+    import hdf5plugin  # for P10, should be imported before h5py or PyTables
+except ModuleNotFoundError:
+    pass
+import xrayutilities as xu
+import numpy as np
+import matplotlib.pyplot as plt
+
+import os
+import scipy.signal  # for medfilt2d
+from scipy.ndimage.measurements import center_of_mass
+import sys
+from scipy.io import savemat
+import tkinter as tk
+from tkinter import filedialog
+import gc
+import bcdi.graph.graph_utils as gu
+from bcdi.experiment.detector import Detector
+from bcdi.experiment.setup import Setup
+import bcdi.postprocessing.postprocessing_utils as pu
+import bcdi.preprocessing.preprocessing_utils as pru
+import bcdi.utils.utilities as util
+import bcdi.utils.validation as valid
+
+# Correct
+try:
+    import hdf5plugin  # for P10, should be imported before h5py or PyTables
+except ModuleNotFoundError:
+    pass
+import numpy as np
+from matplotlib import pyplot as plt
+from scipy.interpolate import interp1d
+import tkinter as tk
+from tkinter import filedialog
+import sys
+import bcdi.postprocessing.postprocessing_utils as pu
+import bcdi.preprocessing.preprocessing_utils as pru
+from bcdi.experiment.detector import Detector
+from bcdi.experiment.setup import Setup
+import bcdi.utils.utilities as util
+
+# Strain
 from collections.abc import Sequence
 from datetime import datetime
 from functools import reduce
@@ -14,28 +57,21 @@ try:
 except ModuleNotFoundError:
     pass
 import h5py
-from numbers import Real
-import pprint
-
-import numpy as np
 from matplotlib import pyplot as plt
-import scipy.signal  # for medfilt2d
-from scipy.ndimage.measurements import center_of_mass
-from scipy.io import savemat
-from scipy.interpolate import interp1d
+from numbers import Real
+import numpy as np
+import os
+import pprint
 import tkinter as tk
 from tkinter import filedialog
-import sys
-import os
-import gc
-import bcdi.postprocessing.postprocessing_utils as pu
-import bcdi.preprocessing.preprocessing_utils as pru
+import bcdi.graph.graph_utils as gu
 from bcdi.experiment.detector import Detector
 from bcdi.experiment.setup import Setup
-import bcdi.graph.graph_utils as gu
+import bcdi.postprocessing.postprocessing_utils as pu
+import bcdi.preprocessing.preprocessing_utils as pru
+import bcdi.simulation.simulation_utils as simu
 import bcdi.utils.utilities as util
 import bcdi.utils.validation as valid
-import bcdi.simulation.simulation_utils as simu
 
 
 # Functions used in the gui
@@ -965,9 +1001,9 @@ def preprocess_bcdi(
 
         else:  # new masking process
             reload_orthogonal = False  # the data is in the detector plane
-            flatfield = pru.load_flatfield(flatfield_file)
-            hotpix_array = pru.load_hotpixels(hotpixels_file)
-            background = pru.load_background(background_file)
+            flatfield = util.load_flatfield(flatfield_file)
+            hotpix_array = util.load_hotpixels(hotpixels_file)
+            background = util.load_background(background_file)
 
             data, mask, frames_logical, monitor = pru.load_bcdi_data(
                 logfile=logfile,
