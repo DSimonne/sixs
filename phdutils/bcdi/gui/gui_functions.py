@@ -1825,6 +1825,7 @@ def strain_bcdi(
     mu,
     sigma,
     alpha,
+    h5_data
     ):
     """
     Interpolate the output of the phase retrieval into an orthonormal frame,
@@ -1845,9 +1846,14 @@ def strain_bcdi(
     qy] for reciprocal space, or data[z, y, x] for real space
 
 
-    Remember to delete the waitforbuttonpress
+    Remember to delete the waitforbuttonpress, root tk and file path
     """
 
+    # Temporary solution
+
+    file_path = h5_data,
+
+    print(file_path)
     ####################
     # Check parameters #
     ####################
@@ -2045,10 +2051,10 @@ def strain_bcdi(
     ################
     # root = tk.Tk()
     # root.withdraw()
-    file_path = filedialog.askopenfilenames(
-        initialdir=detector.scandir,
-        filetypes=[("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi"), ("HDF5", "*.h5")],
-    )
+    # file_path = filedialog.askopenfilenames(
+    #     initialdir=detector.scandir,
+    #     filetypes=[("HDF5", "*.h5"), ("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi")],
+    # )
     nbfiles = len(file_path)
     plt.ion()
 

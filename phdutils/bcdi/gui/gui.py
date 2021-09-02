@@ -529,7 +529,7 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
 
             hotpixels_file = widgets.Text(
-                value = "/home/david/Documents/PhDScripts/SIXS_June_2021/reconstructions/analysis/mask_merlin_better_flipped.npy",
+                value = f"{self.work_dir}/SIXS_June_2021/reconstructions/analysis/mask_merlin_better_flipped.npy",
                 placeholder = "mask_merlin.npz",
                 description = 'Hotpixels file',
                 disabled = True,
@@ -1408,6 +1408,27 @@ class Interface(object):
                 continuous_update = False,
                 style = {'description_width': 'initial'}),
 
+            label_strain = widgets.HTML(
+                description="<p style='font-weight: bold;font-size:1.2em'>Path to file", # 
+                style = {'description_width': 'initial'},
+                layout = Layout(width='90%', height = "35px")),
+
+            folder_strain = widgets.Text(
+                value = os.getcwd(),
+                placeholder = os.getcwd(),
+                description = 'Data folder:',
+                disabled = False,
+                continuous_update = False,
+                layout = Layout(width='90%'),
+                style = {'description_width': 'initial'}),
+
+            h5_data = widgets.Dropdown(
+                options = glob.glob(os.getcwd() + "/*.h5") + glob.glob(os.getcwd() + "/*.cxi") + glob.glob(os.getcwd() + "/*.npy") + glob.glob(os.getcwd() + "/*.npz"),
+                description = 'Compatible file list',
+                disabled = False,
+                layout = Layout(width='90%'),
+                style = {'description_width': 'initial'}),
+
             run_strain = widgets.ToggleButton(
                 value = False,
                 description = 'Run strain analysis',
@@ -1417,6 +1438,7 @@ class Interface(object):
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'}),
                 )
+        self._list_widgets_strain.children[-4].observe(self.folder_strain_handler, names = "value")
 
         # Widgets for logs
         self.tab_logs = interactive(self.display_logs,
@@ -1476,7 +1498,7 @@ class Interface(object):
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'}),
             )
-        self.tab_plot.children[1].observe(self.folder_handler, names = "value")
+        self.tab_plot.children[1].observe(self.folder_plot_handler, names = "value")
 
         # Widgets for PyNX
 
@@ -1635,6 +1657,8 @@ class Interface(object):
             self._list_widgets_strain.children[51],
             widgets.HBox(self._list_widgets_strain.children[52:55]),
             widgets.HBox(self._list_widgets_strain.children[55:58]),
+            self._list_widgets_strain.children[-4],
+            self._list_widgets_strain.children[-3],
             self._list_widgets_strain.children[-2],
             self._list_widgets_strain.children[-1],
             ])
@@ -1717,6 +1741,7 @@ class Interface(object):
             print("Scan folder:", self.scan_folder)
             self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/{self.scans}_fa.vtk"
             self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
+            self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
 
             self.save_dir = None # scan_folder +"pynxraw/"
 
@@ -2273,6 +2298,9 @@ class Interface(object):
         mu,
         sigma,
         alpha,
+        label_strain,
+        folder_strain,
+        h5_data,
         run_strain,
         ):
         """Loading argument from strain tab widgets but also values of parameters used in preprocessing that are common"""
@@ -2347,6 +2375,7 @@ class Interface(object):
             self.mu = mu
             self.sigma = sigma
             self.alpha = alpha
+            self.h5_data = h5_data
 
             # Extract dict, list and tuple from strings
             list_parameters = ["original_size", "output_size", "axis_to_align", "mu", "sigma", "alpha"]
@@ -2466,6 +2495,7 @@ class Interface(object):
                 mu = self.mu,
                 sigma = self.sigma,
                 alpha = self.alpha,
+                h5_data = self.h5_data,
                 )
 
             # At the end of the function 
@@ -2482,6 +2512,7 @@ class Interface(object):
                 w.disabled = False
 
             clear_output(True)
+
 
     def facet_analysis(self,
         label_facet,
@@ -3376,7 +3407,12 @@ class Interface(object):
 
                 self.temp_handler(change = self._list_widgets_correct.children[2].value)
 
-    def folder_handler(self, change):
+    def folder_plot_handler(self, change):
         """Handles changes on the widget used to load a data file"""
 
-        self.tab_plot.children[2].options =  glob.glob(self.tab_plot.children[1].value + "/*.npz") + glob.glob(self.tab_plot.children[1].value + "/*.cxi")
+        self.tab_plot.children[2].options = glob.glob(change.new + "/*.npz") + glob.glob(change.new + "/*.cxi")
+
+    def folder_strain_handler(self, change):
+        """Handles changes on the widget used to load a data file"""
+
+        self._list_widgets_strain.children[-3].options = glob.glob(change.new + "/*.h5") + glob.glob(change.new + "/*.cxi") + glob.glob(change.new + "/*.npy") + glob.glob(change.new + "/*.npz")
