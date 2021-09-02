@@ -204,8 +204,8 @@ def correct_angles_detector(
                 debugging=debug,
             )
     else:
-        root = tk.Tk()
-        root.withdraw()
+        # root = tk.Tk()
+        # root.withdraw()
         file_path = filedialog.askopenfilename(
             initialdir=detector.scandir + "pynxraw/",
             title="Select 3D data",
@@ -843,8 +843,8 @@ def preprocess_bcdi(
     ############################
     # start looping over scans #
     ############################
-    root = tk.Tk()
-    root.withdraw()
+    # root = tk.Tk()
+    # root.withdraw()
 
     for scan_idx, scan_nb in enumerate(scans, start=1):
         plt.ion()
@@ -2043,8 +2043,8 @@ def strain_bcdi(
     ################
     # preload data #
     ################
-    root = tk.Tk()
-    root.withdraw()
+    # root = tk.Tk()
+    # root.withdraw()
     file_path = filedialog.askopenfilenames(
         initialdir=detector.scandir,
         filetypes=[("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi"), ("HDF5", "*.h5")],
