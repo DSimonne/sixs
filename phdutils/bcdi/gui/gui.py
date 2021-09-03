@@ -136,6 +136,17 @@ class Interface(object):
             )
         self._list_widgets_init.children[7].observe(self.init_handler, names = "value")
 
+        self.tab_init = widgets.VBox([
+            self._list_widgets_init.children[0],
+            widgets.HBox(self._list_widgets_init.children[1:3]),
+            self._list_widgets_init.children[3],
+            self._list_widgets_init.children[4],
+            self._list_widgets_init.children[5],
+            self._list_widgets_init.children[6],
+            self._list_widgets_init.children[7],
+            self._list_widgets_init.children[-1],
+            ])
+
         # Widgets for preprocessing
         self._list_widgets_preprocessing = interactive(self.initialize_parameters,
             ### Define beamline related parameters
@@ -826,6 +837,71 @@ class Interface(object):
         self._list_widgets_preprocessing.children[48].observe(self.interpolation_handler, names = "value")
         self._list_widgets_preprocessing.children[-2].observe(self.preprocess_handler, names = "value")
 
+        self.tab_detector = widgets.VBox([
+            self._list_widgets_preprocessing.children[35],
+            self._list_widgets_preprocessing.children[36],
+            widgets.HBox(self._list_widgets_preprocessing.children[37:39]),
+            widgets.HBox(self._list_widgets_preprocessing.children[39:41]),
+            self._list_widgets_preprocessing.children[41],
+            self._list_widgets_preprocessing.children[42],
+            self._list_widgets_preprocessing.children[43],
+            self._list_widgets_preprocessing.children[44],
+            widgets.HBox(self._list_widgets_preprocessing.children[45:47]),
+            ])
+
+        self.tab_ortho = widgets.VBox([
+            self._list_widgets_preprocessing.children[47],
+            self._list_widgets_preprocessing.children[48],
+            widgets.HBox(self._list_widgets_preprocessing.children[49:51]),
+            self._list_widgets_preprocessing.children[51],
+            self._list_widgets_preprocessing.children[52],
+            self._list_widgets_preprocessing.children[53],
+            widgets.HBox(self._list_widgets_preprocessing.children[54:56]),
+            self._list_widgets_preprocessing.children[56],
+            widgets.HBox(self._list_widgets_preprocessing.children[57:59]),
+            widgets.HBox(self._list_widgets_preprocessing.children[59:62]),
+            widgets.HBox(self._list_widgets_preprocessing.children[62:64]),
+            widgets.HBox(self._list_widgets_preprocessing.children[64:68]),
+            widgets.HBox(self._list_widgets_preprocessing.children[68:71]),
+            ])
+
+        self.tab_beamline = widgets.VBox([
+            self._list_widgets_preprocessing.children[0],
+            self._list_widgets_preprocessing.children[1],
+            widgets.HBox(self._list_widgets_preprocessing.children[2:4]),
+            widgets.HBox(self._list_widgets_preprocessing.children[4:7]),
+            self._list_widgets_preprocessing.children[7],
+            widgets.HBox(self._list_widgets_preprocessing.children[8:10]),
+            self._list_widgets_preprocessing.children[10],
+            widgets.HBox(self._list_widgets_preprocessing.children[11:13]),
+            ])
+
+        self.tab_reduction = widgets.VBox([
+            self._list_widgets_preprocessing.children[13],
+            widgets.HBox(self._list_widgets_preprocessing.children[14:16]), 
+            widgets.HBox(self._list_widgets_preprocessing.children[17:20]),
+            self._list_widgets_preprocessing.children[20],
+            widgets.HBox(self._list_widgets_preprocessing.children[21:24]),
+            self._list_widgets_preprocessing.children[24],
+            ])
+
+        self.tab_save_load = widgets.VBox([
+            self._list_widgets_preprocessing.children[25],
+            widgets.HBox(self._list_widgets_preprocessing.children[26:29]),
+            self._list_widgets_preprocessing.children[29],
+            widgets.HBox(self._list_widgets_preprocessing.children[30:35]),
+            ])
+
+        self.tab_preprocess = widgets.VBox([
+            self.tab_beamline,
+            self.tab_reduction,
+            self.tab_save_load,
+            self._list_widgets_preprocessing.children[-3],
+            self._list_widgets_preprocessing.children[-2],
+            self._list_widgets_preprocessing.children[-1]
+            ])
+
+
         # Widgets for angles correction 
         self._list_widgets_correct = interactive(self.correct_angles,
             label_correct = widgets.HTML(
@@ -896,6 +972,16 @@ class Interface(object):
             )
         self._list_widgets_correct.children[2].observe(self.temp_handler, names = "value")
         self._list_widgets_correct.children[-2].observe(self.correct_angles_handler, names = "value")
+
+        self.tab_correct = widgets.VBox([
+            self._list_widgets_correct.children[0],
+            self._list_widgets_correct.children[1],
+            self._list_widgets_correct.children[2],
+            widgets.HBox(self._list_widgets_correct.children[3:6]),
+            self._list_widgets_correct.children[6],
+            self._list_widgets_correct.children[-1],
+            ])
+
 
         # Widgets for strain
         self._list_widgets_strain = interactive(self.strain_gui,
@@ -1438,6 +1524,42 @@ class Interface(object):
                 )
         self._list_widgets_strain.children[-4].observe(self.folder_strain_handler, names = "value")
 
+        self.tab_strain = widgets.VBox([
+            self._list_widgets_strain.children[0],
+            widgets.HBox(self._list_widgets_strain.children[1:3]),
+            self._list_widgets_strain.children[3],
+            widgets.HBox(self._list_widgets_strain.children[4:6]),
+            widgets.HBox(self._list_widgets_strain.children[6:8]),
+            widgets.HBox(self._list_widgets_strain.children[8:10]),
+            self._list_widgets_strain.children[10],
+            widgets.HBox(self._list_widgets_strain.children[11:13]),
+            widgets.HBox(self._list_widgets_strain.children[13:16]),
+            widgets.HBox(self._list_widgets_strain.children[16:20]),
+            self._list_widgets_strain.children[20],
+            widgets.HBox(self._list_widgets_strain.children[21:23]),
+            widgets.HBox(self._list_widgets_strain.children[23:26]),
+            self._list_widgets_strain.children[26],
+            widgets.HBox(self._list_widgets_strain.children[27:30]),
+            widgets.HBox(self._list_widgets_strain.children[30:32]),
+            widgets.HBox(self._list_widgets_strain.children[32:35]),
+            widgets.HBox(self._list_widgets_strain.children[35:37]),
+            self._list_widgets_strain.children[37],
+            widgets.HBox(self._list_widgets_strain.children[38:41]),
+            widgets.HBox(self._list_widgets_strain.children[41:43]),
+            self._list_widgets_strain.children[43],
+            widgets.HBox(self._list_widgets_strain.children[44:48]),
+            self._list_widgets_strain.children[48],
+            widgets.HBox(self._list_widgets_strain.children[49:51]),
+            self._list_widgets_strain.children[51],
+            widgets.HBox(self._list_widgets_strain.children[52:55]),
+            widgets.HBox(self._list_widgets_strain.children[55:58]),
+            self._list_widgets_strain.children[-4],
+            self._list_widgets_strain.children[-3],
+            self._list_widgets_strain.children[-2],
+            self._list_widgets_strain.children[-1],
+            ])
+
+
         # Widgets for logs
         self.tab_logs = interactive(self.display_logs,
             label_logs = widgets.HTML(
@@ -1499,7 +1621,11 @@ class Interface(object):
         self.tab_plot.children[1].observe(self.folder_plot_handler, names = "value")
 
         # Widgets for PyNX
+        self._list_widgets_pynx = interactive(self.init_pynx,
 
+
+
+            )
 
         # Widgets for facet analysis
         self.tab_facet = interactive(self.facet_analysis,
@@ -1542,126 +1668,8 @@ class Interface(object):
                                             ],
                                     style = {'description_width': 'initial'}))
 
+
         # Create the final window
-        self.tab_init = widgets.VBox([
-            self._list_widgets_init.children[0],
-            widgets.HBox(self._list_widgets_init.children[1:3]),
-            self._list_widgets_init.children[3],
-            self._list_widgets_init.children[4],
-            self._list_widgets_init.children[5],
-            self._list_widgets_init.children[6],
-            self._list_widgets_init.children[7],
-            self._list_widgets_init.children[-1],
-            ])
-
-        self.tab_detector = widgets.VBox([
-            self._list_widgets_preprocessing.children[35],
-            self._list_widgets_preprocessing.children[36],
-            widgets.HBox(self._list_widgets_preprocessing.children[37:39]),
-            widgets.HBox(self._list_widgets_preprocessing.children[39:41]),
-            self._list_widgets_preprocessing.children[41],
-            self._list_widgets_preprocessing.children[42],
-            self._list_widgets_preprocessing.children[43],
-            self._list_widgets_preprocessing.children[44],
-            widgets.HBox(self._list_widgets_preprocessing.children[45:47]),
-            ])
-
-        self.tab_ortho = widgets.VBox([
-            self._list_widgets_preprocessing.children[47],
-            self._list_widgets_preprocessing.children[48],
-            widgets.HBox(self._list_widgets_preprocessing.children[49:51]),
-            self._list_widgets_preprocessing.children[51],
-            self._list_widgets_preprocessing.children[52],
-            self._list_widgets_preprocessing.children[53],
-            widgets.HBox(self._list_widgets_preprocessing.children[54:56]),
-            self._list_widgets_preprocessing.children[56],
-            widgets.HBox(self._list_widgets_preprocessing.children[57:59]),
-            widgets.HBox(self._list_widgets_preprocessing.children[59:62]),
-            widgets.HBox(self._list_widgets_preprocessing.children[62:64]),
-            widgets.HBox(self._list_widgets_preprocessing.children[64:68]),
-            widgets.HBox(self._list_widgets_preprocessing.children[68:71]),
-            ])
-
-        self.tab_beamline = widgets.VBox([
-            self._list_widgets_preprocessing.children[0],
-            self._list_widgets_preprocessing.children[1],
-            widgets.HBox(self._list_widgets_preprocessing.children[2:4]),
-            widgets.HBox(self._list_widgets_preprocessing.children[4:7]),
-            self._list_widgets_preprocessing.children[7],
-            widgets.HBox(self._list_widgets_preprocessing.children[8:10]),
-            self._list_widgets_preprocessing.children[10],
-            widgets.HBox(self._list_widgets_preprocessing.children[11:13]),
-            ])
-
-        self.tab_reduction = widgets.VBox([
-            self._list_widgets_preprocessing.children[13],
-            widgets.HBox(self._list_widgets_preprocessing.children[14:16]), 
-            widgets.HBox(self._list_widgets_preprocessing.children[17:20]),
-            self._list_widgets_preprocessing.children[20],
-            widgets.HBox(self._list_widgets_preprocessing.children[21:24]),
-            self._list_widgets_preprocessing.children[24],
-            ])
-
-        self.tab_save_load = widgets.VBox([
-            self._list_widgets_preprocessing.children[25],
-            widgets.HBox(self._list_widgets_preprocessing.children[26:29]),
-            self._list_widgets_preprocessing.children[29],
-            widgets.HBox(self._list_widgets_preprocessing.children[30:35]),
-            ])
-
-        self.tab_preprocess = widgets.VBox([
-            self.tab_beamline,
-            self.tab_reduction,
-            self.tab_save_load,
-            self._list_widgets_preprocessing.children[-3],
-            self._list_widgets_preprocessing.children[-2],
-            self._list_widgets_preprocessing.children[-1]
-            ])
-
-        self.tab_correct = widgets.VBox([
-            self._list_widgets_correct.children[0],
-            self._list_widgets_correct.children[1],
-            self._list_widgets_correct.children[2],
-            widgets.HBox(self._list_widgets_correct.children[3:6]),
-            self._list_widgets_correct.children[6],
-            self._list_widgets_correct.children[-1],
-            ])
-
-        self.tab_strain = widgets.VBox([
-            self._list_widgets_strain.children[0],
-            widgets.HBox(self._list_widgets_strain.children[1:3]),
-            self._list_widgets_strain.children[3],
-            widgets.HBox(self._list_widgets_strain.children[4:6]),
-            widgets.HBox(self._list_widgets_strain.children[6:8]),
-            widgets.HBox(self._list_widgets_strain.children[8:10]),
-            self._list_widgets_strain.children[10],
-            widgets.HBox(self._list_widgets_strain.children[11:13]),
-            widgets.HBox(self._list_widgets_strain.children[13:16]),
-            widgets.HBox(self._list_widgets_strain.children[16:20]),
-            self._list_widgets_strain.children[20],
-            widgets.HBox(self._list_widgets_strain.children[21:23]),
-            widgets.HBox(self._list_widgets_strain.children[23:26]),
-            self._list_widgets_strain.children[26],
-            widgets.HBox(self._list_widgets_strain.children[27:30]),
-            widgets.HBox(self._list_widgets_strain.children[30:32]),
-            widgets.HBox(self._list_widgets_strain.children[32:35]),
-            widgets.HBox(self._list_widgets_strain.children[35:37]),
-            self._list_widgets_strain.children[37],
-            widgets.HBox(self._list_widgets_strain.children[38:41]),
-            widgets.HBox(self._list_widgets_strain.children[41:43]),
-            self._list_widgets_strain.children[43],
-            widgets.HBox(self._list_widgets_strain.children[44:48]),
-            self._list_widgets_strain.children[48],
-            widgets.HBox(self._list_widgets_strain.children[49:51]),
-            self._list_widgets_strain.children[51],
-            widgets.HBox(self._list_widgets_strain.children[52:55]),
-            widgets.HBox(self._list_widgets_strain.children[55:58]),
-            self._list_widgets_strain.children[-4],
-            self._list_widgets_strain.children[-3],
-            self._list_widgets_strain.children[-2],
-            self._list_widgets_strain.children[-1],
-            ])
-
         self.window = widgets.Tab(
                         children=[
                             self.tab_init,
