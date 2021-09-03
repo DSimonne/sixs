@@ -75,6 +75,7 @@ import bcdi.utils.validation as valid
 
 
 # Functions used in the gui
+
 def correct_angles_detector(
     filename,
     direct_inplane,
@@ -127,7 +128,6 @@ def correct_angles_detector(
     Output: corrected inplane, out-of-plane detector angles for the Bragg peak.
     """
 
-    plt.ion()
     #######################
     # Initialize detector #
     #######################
@@ -284,6 +284,7 @@ def correct_angles_detector(
     )
     print('FWHM by interpolation', str('{:.3f}'.format(interp_fwhm)), 'deg')
 
+    plt.close()
     fig, (ax0, ax1) = plt.subplots(2, 1, sharex='col', figsize=(10, 5))
     ax0.plot(tilt_values, rocking_curve, '.')
     ax0.plot(interp_tilt, interp_curve)
@@ -299,7 +300,7 @@ def correct_angles_detector(
     ax1.set_ylabel('Log(integrated intensity)')
     ax0.legend(('data', 'interpolation'))
     plt.savefig(save_dir + "rocking_curve.png")
-    plt.pause(0.1)
+    plt.show()
 
     ##############################
     # Calculate corrected angles #
@@ -405,18 +406,16 @@ def correct_angles_detector(
     #################################
     # plot image at Bragg condition #
     #################################
-    plt.figure()
+    plt.close()
     plt.imshow(np.log10(abs(data[int(round(z0)), :, :])), vmin=0, vmax=5)
     plt.title(f'Central slice at frame {int(np.rint(z0))}')
     plt.colorbar()
 
     plt.scatter(bragg_x, bragg_y, color='r', alpha = 0.7, linewidth = 1)
     plt.savefig(save_dir + "central_slice.png")
+    plt.show()
 
     print("End of script \n")
-    plt.close()
-    plt.ioff()
-    # plt.show()
     plt.close()
 
     # added script
@@ -847,7 +846,6 @@ def preprocess_bcdi(
     # root.withdraw()
 
     for scan_idx, scan_nb in enumerate(scans, start=1):
-        plt.ion()
 
         comment = user_comment  # re-initialize comment
         tmp_str = f"Scan {scan_idx}/{len(scans)}: S{scan_nb}"
@@ -1071,7 +1069,6 @@ def preprocess_bcdi(
                 )
                 plt.close(fig)
                 del tmp_data
-                gc.collect()
 
                 if interp_method == "xrayutilities":
                     qconv, offsets = pru.init_qconversion(setup)
@@ -1156,7 +1153,6 @@ def preprocess_bcdi(
 
                 # plot normalization by incident monitor for the gridded data
                 if normalize_flux:
-                    plt.ion()
                     tmp_data = np.copy(
                         data
                     )  # do not modify the raw data before the interpolation
@@ -1195,9 +1191,7 @@ def preprocess_bcdi(
                         fig.waitforbuttonpress()
                         plt.disconnect(cid)
                     plt.close(fig)
-                    plt.ioff()
                     del tmp_data
-                    gc.collect()
 
         ########################
         # crop/pad/center data #
@@ -1351,7 +1345,6 @@ def preprocess_bcdi(
                 )
 
         if flag_interact:
-            plt.ioff()
             #############################################
             # remove aliens
             #############################################
@@ -1395,7 +1388,6 @@ def preprocess_bcdi(
             fig_mask.set_facecolor(background_plot)
             plt.show()
             del fig_mask, original_data, original_mask
-            gc.collect()
 
             mask[np.nonzero(mask)] = 1
 
@@ -1498,7 +1490,6 @@ def preprocess_bcdi(
             data = original_data
 
             del fig_mask, flag_pause, flag_mask, original_data, updated_mask
-            gc.collect()
 
         mask[np.nonzero(mask)] = 1
         data[mask == 1] = 0
@@ -1556,7 +1547,6 @@ def preprocess_bcdi(
         ####################
         # debugging plots  #
         ####################
-        plt.ion()
         if debug:
             z0, y0, x0 = center_of_mass(data)
             fig, _, _ = gu.multislices_plot(
@@ -1682,7 +1672,9 @@ def preprocess_bcdi(
             plt.close(fig)
 
         if save_to_npz:
-            np.savez_compressed(detector.savedir + f"S{scan_nb}_pynx" + comment, data=data)
+            np.savez_compressed(
+                detector.savedir + f"S{scan_nb}_pynx" + comment, data=data
+            )
             np.savez_compressed(
                 detector.savedir + f"S{scan_nb}_maskpynx" + comment, mask=mask
             )
@@ -1732,14 +1724,25 @@ def preprocess_bcdi(
             plt.close(fig)
 
         del data, mask
-        gc.collect()
 
         if len(scans) > 1:
             plt.close("all")
 
+
+        # Modify file for phase retrieval
+        print("Saving in pynx run ...")
+
+        with open(f"{detector.savedir}pynx_run.txt", "r") as f:
+            text_file = f.readlines()
+            
+            text_file[1] = f"data = \"{detector.savedir}S{scan_nb}_pynx{comment}.npz\"\n"
+            text_file[2] = f"mask = \"{detector.savedir}S{scan_nb}_maskpynx{comment}.npz\"\n"
+
+            with open(f"{save_dir}pynx_run.txt", "w") as v:
+                new_file_contents = "".join(text_file)
+                v.write(new_file_contents)
+
     print("\nEnd of script")
-    plt.ioff()
-    plt.show()
 
     plt.switch_backend(
         'module://ipykernel.pylab.backend_inline'
@@ -2056,7 +2059,6 @@ def strain_bcdi(
     #     filetypes=[("HDF5", "*.h5"), ("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi")],
     # )
     nbfiles = len(file_path)
-    plt.ion()
 
     obj, extension = util.load_file(file_path[0])
     if extension == ".h5":
@@ -2159,7 +2161,6 @@ def strain_bcdi(
     if avg_counter > 1:
         print("\nAverage performed over ", avg_counter, "reconstructions\n")
     del obj, ref_obj
-    gc.collect()
 
     ################
     # unwrap phase #
@@ -2202,7 +2203,6 @@ def strain_bcdi(
         gradient_threshold=threshold_gradient,
     )
     del avg_obj
-    gc.collect()
 
     if debug:
         gu.multislices_plot(
@@ -2231,7 +2231,6 @@ def strain_bcdi(
         debugging=debug,
     )
     del support
-    gc.collect()
 
     phase = pru.wrap(obj=phase, start_angle=-extent_phase / 2, range_angle=extent_phase)
 
@@ -2245,7 +2244,6 @@ def strain_bcdi(
         # the phase should be averaged only in the support defined by the isosurface
         phase = pu.mean_filter(array=phase, support=bulk, half_width=hwidth)
         del bulk
-        gc.collect()
 
     if hwidth != 0:
         comment = comment + "_avg" + str(2 * hwidth + 1)
@@ -2290,7 +2288,6 @@ def strain_bcdi(
     avg_obj = amp * np.exp(1j * phase)  # here the phase is again wrapped in [-pi pi[
 
     del amp, phase, gridz, gridy, gridx, rampz, rampy, rampx
-    gc.collect()
 
     ######################
     # centering of array #
@@ -2318,7 +2315,6 @@ def strain_bcdi(
             detector.savedir + "S" + str(scan) + "_support" + comment, obj=support
         )
         del support
-        gc.collect()
 
     if save_raw:
         np.savez_compressed(
@@ -2407,7 +2403,6 @@ def strain_bcdi(
                 title="unwrapped phase before orthogonalization",
             )
             del phase
-            gc.collect()
 
         obj_ortho, voxel_size = setup.ortho_directspace(
             arrays=avg_obj,
@@ -2485,7 +2480,6 @@ def strain_bcdi(
             del amp, phase
 
     del avg_obj
-    gc.collect()
 
     ######################################################
     # center the object (centering based on the modulus) #
@@ -2506,7 +2500,6 @@ def strain_bcdi(
     )
     amp = abs(obj_ortho)
     del obj_ortho
-    gc.collect()
 
     #############################################
     # invert phase: -1*phase = displacement * q #
@@ -2555,7 +2548,6 @@ def strain_bcdi(
 
         optical_path = path_in + path_out
         del path_in, path_out
-        gc.collect()
 
         if correct_refraction:
             phase_correction = (
@@ -2600,7 +2592,6 @@ def strain_bcdi(
             )
 
         del bulk, optical_path
-        gc.collect()
 
     ##############################################
     # phase ramp and offset removal (mean value) #
@@ -2634,7 +2625,7 @@ def strain_bcdi(
         is_orthogonal=True,
     )
     del support
-    gc.collect()
+
     # Wrap the phase around 0 (no more offset)
     phase = pru.wrap(obj=phase, start_angle=-extent_phase / 2, range_angle=extent_phase)
 
@@ -2798,7 +2789,6 @@ def strain_bcdi(
     temp_amp[np.nonzero(temp_amp)] = 1
     volume = temp_amp.sum() * reduce(lambda x, y: x * y, voxel_size)  # in nm3
     del temp_amp
-    gc.collect()
 
     ##############################
     # plot slices of the results #
@@ -2973,7 +2963,5 @@ def strain_bcdi(
     if save:
         plt.savefig(detector.savedir + f"S{scan}_strain" + comment + ".png")
 
-
     print("\nEnd of script")
-    plt.ioff()
     plt.show()

@@ -131,8 +131,6 @@ class Interface(object):
                 value = False,
                 description = 'Debug',
                 disabled = False,
-                # button_style = '', # 'success', 'info', 'warning', 'danger' or ''
-                # icon = 'check',
                 tooltip = 'True to interact with plots, False to close it automatically',
                 indent = False,
                 continuous_update = False,
@@ -315,7 +313,7 @@ class Interface(object):
 
             center_fft = widgets.Dropdown(
                 options = ['crop_sym_ZYX','crop_asym_ZYX','pad_asym_Z_crop_sym_YX', 'pad_sym_Z_crop_asym_YX','pad_sym_Z', 'pad_asym_Z', 'pad_sym_ZYX','pad_asym_ZYX', 'skip'],
-                value = "crop_asym_ZYX",
+                value = "crop_sym_ZYX",
                 description = 'Center FFT',
                 continuous_update = False,
                 layout = Layout(height = "50px"),
@@ -1616,7 +1614,7 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
 
             file_list = widgets.Dropdown(
-                options = glob.glob(os.getcwd() + "/*.npz") + glob.glob(os.getcwd() + "/*.cxi"),
+                options = glob.glob(os.getcwd() + "/*.npz") + glob.glob(os.getcwd() + "/*.cxi") + [""],
                 description = 'Compatible file list',
                 disabled = False,
                 layout = Layout(width='90%'),
@@ -1634,32 +1632,40 @@ class Interface(object):
         self.tab_plot.children[1].observe(self.folder_plot_handler, names = "value")
 
         # Widgets for PyNX
-        self._list_pynx = interactive(init_pynx,
+        self._list_widgets_pynx = interactive(self.init_pynx,
                     label_data = widgets.HTML(
                         description="<p style='font-weight: bold;font-size:1.2em'>Data files",
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
+                    folder = widgets.Text(
+                        value = os.getcwd(),
+                        placeholder = os.getcwd(),
+                        description = 'Data folder:',
+                        disabled = False,
+                        continuous_update = False,
+                        layout = Layout(width='90%'),
+                        style = {'description_width': 'initial'}),
                     iobs = widgets.Dropdown(
-                        options = glob.glob(root_folder + f"{sample_name}{scan}/pynxraw/*_pynx_align*.npz") + [""],
+                        options = glob.glob(os.getcwd() + "*_pynx_align*.npz") + [""],
                         description = 'Dataset',
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
                     mask = widgets.Dropdown(
-                        options = glob.glob(root_folder + f"{sample_name}{scan}/pynxraw/*maskpynx*.npz") + [""],
+                        options = glob.glob(os.getcwd() + "*maskpynx*.npz") + [""],
                         description = 'Mask',
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
                     support  = widgets.Dropdown(
-                        options = glob.glob(root_folder + f"{sample_name}{scan}/pynxraw/*.npz") + [""],
+                        options = glob.glob(os.getcwd() + "*.npz") + [""],
                         value = "",
                         description = 'Support',
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
                     obj  = widgets.Dropdown(
-                        options = glob.glob(root_folder + f"{sample_name}{scan}/pynxraw/*.npz") + [""],
+                        options = glob.glob(os.getcwd() + "*.npz") + [""],
                         value = "",
                         description = 'Object',
                         disabled = False,
@@ -1683,7 +1689,7 @@ class Interface(object):
                         placeholder = "(0.23, 0.30)",
                         description = 'Support threshold',
                         disabled = False,
-                        layout = Layout(height = "50px", width = "20%"),
+                        layout = Layout(height = "50px", width = "40%"),
                         continuous_update = False,
                         style = {'description_width': 'initial'}),
                     support_only_shrink = widgets.Checkbox(
@@ -1696,7 +1702,7 @@ class Interface(object):
                         icon = 'check'),
                     support_update_period  = widgets.BoundedIntText(
                         value = 20,
-                        layout = Layout(height = "50px", width = "15%"),
+                        layout = Layout(height = "50px", width = "25%"),
                         continuous_update = False,
                         description = 'Support update period:',
                         readout = True,
@@ -1707,7 +1713,7 @@ class Interface(object):
                         placeholder = "(2, 1, 600)",
                         description = 'Support smooth width',
                         disabled = False,
-                        layout = Layout(height = "50px", width = "20%"),
+                        layout = Layout(height = "50px", width = "35%"),
                         continuous_update = False,
                         style = {'description_width': 'initial'}),
                     support_post_expand = widgets.Text(
@@ -1715,7 +1721,7 @@ class Interface(object):
                         placeholder = "(1, -2, 1)",
                         description = 'Support post expand',
                         disabled = False,
-                        layout = Layout(height = "50px", width = "20%"),
+                        layout = Layout(height = "50px", width = "35%"),
                         continuous_update = False,
                         style = {'description_width': 'initial'}),
                                 
@@ -1725,7 +1731,7 @@ class Interface(object):
                         layout = Layout(width='90%', height = "35px")),
                     psf = widgets.Checkbox(
                         value = False,
-                        description = 'Point spread function:',
+                        description = 'Use point spread function:',
                         continuous_update = False,
                         disabled = False,
                         indent = False,
@@ -1773,11 +1779,11 @@ class Interface(object):
                         layout = Layout(width='90%', height = "35px")),
                     use_operators = widgets.Checkbox(
                         value = False,
-                        description = 'Use operators to define the algorithm chain:',
+                        description = 'Use operators:',
                         continuous_update = False,
                         disabled = False,
                         indent = False,
-                        layout = Layout(height = "35px", width = "20%"),
+                        layout = Layout(height = "35px", width = "15%"),
                         icon = 'check'),
                     operator_chain = widgets.Text(
                         value = "",
@@ -1855,6 +1861,7 @@ class Interface(object):
                         continuous_update = False,
                         description = 'Plot every:',
                         readout = True,
+                        layout = Layout(height = "50px", width = "20%"),
                         style = {'description_width': 'initial'},
                         disabled = False),
                     positivity = widgets.Checkbox(
@@ -1863,7 +1870,8 @@ class Interface(object):
                         continuous_update = False,
                         disabled = False,
                         indent = False,
-                        layout = Layout(height = "50px"),
+                        style = {'description_width': 'initial'},
+                        layout = Layout(height = "50px", width = "20%"),
                         icon = 'check'),
                     beta = widgets.FloatText(
                         value = 0.9,
@@ -1872,7 +1880,7 @@ class Interface(object):
                         min = 0,
                         continuous_update = False,
                         description = 'Beta parameter for RAAR and HIO:',
-                        layout = Layout(width='20%', height = "50px"),
+                        layout = Layout(width='35%', height = "50px"),
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
@@ -1882,7 +1890,8 @@ class Interface(object):
                         continuous_update = False,
                         disabled = False,
                         indent = False,
-                        layout = Layout(height = "50px"),
+                        style = {'description_width': 'initial'},
+                        layout = Layout(height = "50px", width = "15%"),
                         icon = 'check'),
                     rebin = widgets.Text(
                         value = "(1, 1, 1)",
@@ -1924,23 +1933,27 @@ class Interface(object):
                         style = {'description_width': 'initial'},
                         icon = 'fast-forward')
                    )
+        self._list_widgets_pynx.children[1].observe(self.folder_pynx_handler, names = "value")
+        self._list_widgets_pynx.children[14].observe(self.pynx_psf_handler, names = "value")
+        self._list_widgets_pynx.children[15].observe(self.pynx_peak_shape_handler, names = "value")
 
         self.tab_pynx = widgets.VBox([
-            widgets.VBox(self._list_pynx.children[:7]),
-            widgets.HBox(self._list_pynx.children[7:12]),
-            self._list_pynx.children[12],
-            widgets.HBox(self._list_pynx.children[13:18]),
-            self._list_pynx.children[18],
-            widgets.HBox(self._list_pynx.children[19:21]),
-
-            widgets.HBox(self._list_pynx.children[21:25]),
-            widgets.HBox(self._list_pynx.children[25:27]),
-            self._list_pynx.children[27],
-            widgets.HBox(self._list_pynx.children[28:32]),
-            widgets.HBox(self._list_pynx.children[32:35]),
-            self._list_pynx.children[-3],
-            self._list_pynx.children[-2],
-            self._list_pynx.children[-1],
+            widgets.VBox(self._list_widgets_pynx.children[:8]),
+            widgets.HBox(self._list_widgets_pynx.children[8:10]),
+            widgets.HBox(self._list_widgets_pynx.children[10:13]),
+            self._list_widgets_pynx.children[13],
+            widgets.HBox(self._list_widgets_pynx.children[14:17]),
+            widgets.HBox(self._list_widgets_pynx.children[17:19]),
+            self._list_widgets_pynx.children[19],
+            widgets.HBox(self._list_widgets_pynx.children[20:22]),
+            widgets.HBox(self._list_widgets_pynx.children[22:26]),
+            widgets.HBox(self._list_widgets_pynx.children[26:28]),
+            self._list_widgets_pynx.children[28],
+            widgets.HBox(self._list_widgets_pynx.children[29:33]),
+            widgets.HBox(self._list_widgets_pynx.children[33:36]),
+            self._list_widgets_pynx.children[-3],
+            self._list_widgets_pynx.children[-2],
+            self._list_widgets_pynx.children[-1],
             ])
 
         # Widgets for facet analysis
@@ -2054,16 +2067,13 @@ class Interface(object):
             self.user_comment = user_comment
             self.debug = debug
 
-            # Change values of widgets that use root_folder
-            self.tab_correct.children[1].value = self.root_folder + "metadata.csv"
-            self.tab_logs.children[1].value = self.root_folder + "metadata.csv"
-
             # Scan folder
             self.scan_folder = self.root_folder + f"S{scans}/"
             print("Scan folder:", self.scan_folder)
             self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/{self.scans}_fa.vtk"
             self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
             self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
+            self._list_widgets_pynx.children[1].value = self.scan_folder + f"pynxraw/"
 
             # Filename for SIXS, should be temporary
             try:
@@ -2385,8 +2395,8 @@ class Interface(object):
                 self.nb_pixel_y = None
 
 
-            self.roi_detector = [self.y_bragg - 160, self.y_bragg + 160, self.x_bragg - 160, self.x_bragg + 160]
-            self.roi_detector = []
+            # self.roi_detector = [self.y_bragg - 160, self.y_bragg + 160, self.x_bragg - 160, self.x_bragg + 160]
+            self.roi_detector = None
             # [Vstart, Vstop, Hstart, Hstop]
             # leave it as [] to use the full detector. Use with center_fft='skip' if you want this exact size.
 
@@ -2591,7 +2601,8 @@ class Interface(object):
 
 
     def init_pynx(self,
-        label_data, 
+        label_data,
+        folder,
         iobs,
         mask,
         support,
@@ -2662,18 +2673,20 @@ class Interface(object):
                     
         if run_phase_retrieval:
             # Extract data
-            nrj = energy * 1e-3
-            wavelength = 12.384 / nrj * 1e-10
-            print("  CXI input: Energy = %8.2fkeV" % nrj)
+
+
+            self.energy = self._list_widgets_preprocessing.children[54].value * 1e-3
+            wavelength = 12.384 / self.energy * 1e-10
+            print("  CXI input: Energy = %8.2fkeV" % self.energy)
             print(f"  CXI input: Wavelength = {wavelength*1e10} A")
 
-            detector_distance = sdd
-            print("  CXI input: detector distance = %8.2fm" % detector_distance)
+            self.sdd = self._list_widgets_preprocessing.children[53].value
+            print("  CXI input: detector distance = %8.2fm" % self.sdd)
 
             pixel_size_detector = 55e-6
             print("  CXI input: detector pixel size = %8.2fum" % (pixel_size_detector * 1e6))
 
-            scan = 13
+            scan = self.scans
             print("  Scan n°", scan)
 
             if iobs:
@@ -2791,7 +2804,7 @@ class Interface(object):
                           mask = fftshift(mask),
                           wavelength = wavelength,
                           pixel_size_detector = pixel_size_detector,
-                          detector_distance = detector_distance,
+                          detector_distance = self.sdd,
                          )
 
                 if i==0:
@@ -2800,7 +2813,7 @@ class Interface(object):
                         sample_name = "",
                         experiment_id = "",
                         instrument = ""
-                    )
+                        )
 
                 # Change support threshold for supports update
                 threshold_relative = np.random.uniform(support_threshold[0], support_threshold[1])
@@ -2812,10 +2825,10 @@ class Interface(object):
                     force_shrink = support_only_shrink,
                     method='rms', 
                     post_expand = support_post_expand,
-                )
+                    )
 
                 # Initialize the free pixels for LLK
-                cdi = InitFreePixels() * cdi
+                # cdi = InitFreePixels() * cdi
 
                 # Initialize the support with autocorrelation
                 cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
@@ -2832,14 +2845,14 @@ class Interface(object):
                         cdi = InitPSF(
                             model = model,
                             fwhm = fwhm,
-                        ) * cdi
+                            ) * cdi
                         
                     elif model == "pseudo-voigt":
                         cdi = InitPSF(
                             model = model,
                             fwhm = fwhm,
                             eta = eta,
-                        ) * cdi
+                            ) * cdi
                         
                     cdi = (sup * RAAR(beta=beta, calc_llk=calc_llk, show_cdi=live_plot, update_psf=update_psf)**50)**10 * cdi
                     cdi = (sup * ER(calc_llk=calc_llk, show_cdi=live_plot, update_psf=update_psf)**50)**6 * cdi
@@ -4061,3 +4074,47 @@ class Interface(object):
         """Handles changes on the widget used to load a data file"""
 
         self._list_widgets_strain.children[-3].options = glob.glob(change.new + "/*.h5") + glob.glob(change.new + "/*.cxi") + glob.glob(change.new + "/*.npy") + glob.glob(change.new + "/*.npz")
+
+    def folder_pynx_handler(self, change):
+        """Handles changes on the widget used to load a data file"""
+
+        self._list_widgets_pynx.children[2].options = glob.glob(change.new + "/*_pynx_align*.npz") + [""]
+        self._list_widgets_pynx.children[3].options = glob.glob(change.new + "/*maskpynx*.npz") + [""]
+        self._list_widgets_pynx.children[4].options = [""] + glob.glob(change.new + "/*.npz")
+        self._list_widgets_pynx.children[5].options = [""] + glob.glob(change.new + "/*.npz")
+
+    def pynx_psf_handler(self, change):
+        "Handles changes related to the psf"
+        try:
+            if change.new:
+                self._list_widgets_pynx.children[15].disabled = False
+
+            if not change.new:
+                self._list_widgets_pynx.children[15].disabled = True
+        except:
+            if change:
+                self._list_widgets_pynx.children[15].disabled = False
+
+            if not change:
+                self._list_widgets_pynx.children[15].disabled = True
+
+    def pynx_peak_shape_handler(self, change):
+        "Handles changes related to the peak shape"
+        try:
+            if change.new != "pseudo-voigt":
+                for w in self._list_widgets_pynx.children[16:18]:
+                    w.disabled = False
+                self._list_widgets_pynx.children[19].disabled = True
+
+            if change.new == "pseudo-voigt":
+                for w in self._list_widgets_pynx.children[16:19]:
+                    w.disabled = False
+        except:
+            if change != "pseudo-voigt":
+                for w in self._list_widgets_pynx.children[16:18]:
+                    w.disabled = False
+                self._list_widgets_pynx.children[19].disabled = True
+
+            if change == "pseudo-voigt":
+                for w in self._list_widgets_pynx.children[16:19]:
+                    w.disabled = False

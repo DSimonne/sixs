@@ -13,7 +13,6 @@ support_update_period = 20
 support_smooth_width_begin = 2
 support_smooth_width_end = 0.5
 support_post_expand = 1,-2,1
-psf="gaussian,0.5,20"
 
 #mask_interp=8,2
 #confidence_interval_factor_mask=0.5,1.2

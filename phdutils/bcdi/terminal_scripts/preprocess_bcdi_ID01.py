@@ -1524,8 +1524,8 @@ with open(README_file, 'a') as outfile:
 with open("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/pynx_run.txt", "r") as f:
     text_file = f.readlines()
     
-    text_file[1] = f"data = S{scan_nb}_pynx{comment}.npz\"\n"
-    text_file[2] = f"mask = S{scan_nb}_maskpynx{comment}.npz\"\n"
+    text_file[1] = f"data = \"S{scan_nb}_pynx{comment}.npz\"\n"
+    text_file[2] = f"mask = \"S{scan_nb}_maskpynx{comment}.npz\"\n"
 
     with open(f"{save_dir}pynx_run.txt", "w") as v:
         new_file_contents = "".join(text_file)
