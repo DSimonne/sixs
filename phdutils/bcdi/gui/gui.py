@@ -40,6 +40,19 @@ from phdutils.bcdi.gui.gui_functions import *
 from phdutils.bcdi import read_vtk, plot
 from phdutils.sixs import ReadNxs4 as rd
 
+# For PyNX
+import h5py
+from numpy.fft import fftshift
+from scipy.ndimage.measurements import center_of_mass
+from scipy.ndimage import gaussian_filter
+
+try:
+    # This imports all necessary operators. GPU will be auto-selected
+    from pynx.cdi import *
+    from pynx.utils.math import smaller_primes
+except:
+    print("Could not load PyNX")
+
 
 class Interface(object):
     """This  class is a Graphical User Interface (gui) that is meant to be used to process important amount of XAS datasets that focus on the same energy range and absoption edge.
@@ -1621,11 +1634,314 @@ class Interface(object):
         self.tab_plot.children[1].observe(self.folder_plot_handler, names = "value")
 
         # Widgets for PyNX
-        self._list_widgets_pynx = interactive(self.init_pynx,
+        self._list_pynx = interactive(init_pynx,
+                    label_data = widgets.HTML(
+                        description="<p style='font-weight: bold;font-size:1.2em'>Data files",
+                        style = {'description_width': 'initial'},
+                        layout = Layout(width='90%', height = "35px")),
+                    iobs = widgets.Dropdown(
+                        options = glob.glob(root_folder + f"{sample_name}{scan}/pynxraw/*_pynx_align*.npz") + [""],
+                        description = 'Dataset',
+                        disabled = False,
+                        layout = Layout(width='90%'),
+                        style = {'description_width': 'initial'}),
+                    mask = widgets.Dropdown(
+                        options = glob.glob(root_folder + f"{sample_name}{scan}/pynxraw/*maskpynx*.npz") + [""],
+                        description = 'Mask',
+                        disabled = False,
+                        layout = Layout(width='90%'),
+                        style = {'description_width': 'initial'}),
+                    support  = widgets.Dropdown(
+                        options = glob.glob(root_folder + f"{sample_name}{scan}/pynxraw/*.npz") + [""],
+                        value = "",
+                        description = 'Support',
+                        disabled = False,
+                        layout = Layout(width='90%'),
+                        style = {'description_width': 'initial'}),
+                    obj  = widgets.Dropdown(
+                        options = glob.glob(root_folder + f"{sample_name}{scan}/pynxraw/*.npz") + [""],
+                        value = "",
+                        description = 'Object',
+                        disabled = False,
+                        layout = Layout(width='90%'),
+                        style = {'description_width': 'initial'}),
+                    auto_center_resize = widgets.Checkbox(
+                        value = False,
+                        description = 'Auto center and resize',
+                        continuous_update = False,
+                        disabled = False,
+                        indent = False,
+                        layout = Layout(height = "50px"),
+                        icon = 'check'),
+                                
+                    label_support = widgets.HTML(
+                        description="<p style='font-weight: bold;font-size:1.2em'>Support parameters",
+                        style = {'description_width': 'initial'},
+                        layout = Layout(width='90%', height = "35px")),
+                    support_threshold = widgets.Text(
+                        value = "(0.23, 0.30)",
+                        placeholder = "(0.23, 0.30)",
+                        description = 'Support threshold',
+                        disabled = False,
+                        layout = Layout(height = "50px", width = "20%"),
+                        continuous_update = False,
+                        style = {'description_width': 'initial'}),
+                    support_only_shrink = widgets.Checkbox(
+                        value = False,
+                        description = 'Support only shrink',
+                        continuous_update = False,
+                        disabled = False,
+                        indent = False,
+                        layout = Layout(height = "50px", width = "15%"),
+                        icon = 'check'),
+                    support_update_period  = widgets.BoundedIntText(
+                        value = 20,
+                        layout = Layout(height = "50px", width = "15%"),
+                        continuous_update = False,
+                        description = 'Support update period:',
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    support_smooth_width =  widgets.Text(
+                        value = "(2, 1, 600)",
+                        placeholder = "(2, 1, 600)",
+                        description = 'Support smooth width',
+                        disabled = False,
+                        layout = Layout(height = "50px", width = "20%"),
+                        continuous_update = False,
+                        style = {'description_width': 'initial'}),
+                    support_post_expand = widgets.Text(
+                        value = "(1, -2, 1)",
+                        placeholder = "(1, -2, 1)",
+                        description = 'Support post expand',
+                        disabled = False,
+                        layout = Layout(height = "50px", width = "20%"),
+                        continuous_update = False,
+                        style = {'description_width': 'initial'}),
+                                
+                    label_psf = widgets.HTML(
+                        description="<p style='font-weight: bold;font-size:1.2em'>Point spread function parameters",
+                        style = {'description_width': 'initial'},
+                        layout = Layout(width='90%', height = "35px")),
+                    psf = widgets.Checkbox(
+                        value = False,
+                        description = 'Point spread function:',
+                        continuous_update = False,
+                        disabled = False,
+                        indent = False,
+                        layout = Layout(height = "50px"),
+                        icon = 'check'),
+                    model = widgets.Dropdown(
+                        options = ["gaussian", "lorentzian", "pseudo-voigt"],
+                        value = "gaussian",
+                        description = 'PSF peak shape',
+                        continuous_update = False,
+                        disabled = False,
+                        style = {'description_width': 'initial'}),
+                    fwhm = widgets.FloatText(
+                        value = 0.3,
+                        step = 0.01,
+                        min = 0,
+                        continuous_update = False,
+                        description = "FWHM:",
+                        layout = Layout(width='15%', height = "50px"),
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    eta = widgets.FloatText(
+                        value = 0.1,
+                        step = 0.01,
+                        max = 1,
+                        min = 0,
+                        continuous_update = False,
+                        description = 'Eta:',
+                        layout = Layout(width='15%', height = "50px"),
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    update_psf = widgets.BoundedIntText(
+                        value = 20,
+                        continuous_update = False,
+                        description = 'Update PSF every:',
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                                
+                    label_algo = widgets.HTML(
+                        description="<p style='font-weight: bold;font-size:1.2em'>Iterative algorithms parameters",
+                        style = {'description_width': 'initial'},
+                        layout = Layout(width='90%', height = "35px")),
+                    use_operators = widgets.Checkbox(
+                        value = False,
+                        description = 'Use operators to define the algorithm chain:',
+                        continuous_update = False,
+                        disabled = False,
+                        indent = False,
+                        layout = Layout(height = "35px", width = "20%"),
+                        icon = 'check'),
+                    operator_chain = widgets.Text(
+                        value = "",
+                        placeholder = "",
+                        description = 'Operator chain',
+                        layout = Layout(height = "35px", width = "70%"),
+                        disabled = False,
+                        continuous_update = False,
+                        style = {'description_width': 'initial'}),
+                    nb_raar = widgets.BoundedIntText(
+                        value = 1000,
+                        min = 0,
+                        max = 9999,
+                        step = 10,
+                        continuous_update = False,
+                        description = 'Nb of RAAR:',
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    nb_hio = widgets.BoundedIntText(
+                        value = 400,
+                        min = 0,
+                        max = 9999,
+                        step = 10,
+                        continuous_update = False,
+                        description = 'Nb of HIO:',
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    nb_er = widgets.BoundedIntText(
+                        value = 300,
+                        min = 0,
+                        max = 9999,
+                        step = 10,
+                        continuous_update = False,
+                        description = 'Nb of ER:',
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    nb_ml = widgets.BoundedIntText(
+                        value = 0,
+                        min = 0,
+                        max = 9999,
+                        step = 10,
+                        continuous_update = False,
+                        description = 'Nb of ML:',
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    nb_run = widgets.BoundedIntText(
+                        value = 50,
+                        continuous_update = False,
+                        description = 'Number of run:',
+                        layout = Layout(height = "50px"),
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    nb_run_keep = widgets.BoundedIntText(
+                        value = 20,
+                        continuous_update = False,
+                        description = 'Number of run to keep:',
+                        layout = Layout(height = "50px"),
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                                
+                    label_options = widgets.HTML(
+                        description="<p style='font-weight: bold;font-size:1.2em'>Options",
+                        style = {'description_width': 'initial'},
+                        layout = Layout(width='90%', height = "35px")),
+                    live_plot = widgets.BoundedIntText(
+                        value = 100,
+                        step = 10,
+                        min = 0,
+                        continuous_update = False,
+                        description = 'Plot every:',
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    positivity = widgets.Checkbox(
+                        value = False,
+                        description = 'Force positivity',
+                        continuous_update = False,
+                        disabled = False,
+                        indent = False,
+                        layout = Layout(height = "50px"),
+                        icon = 'check'),
+                    beta = widgets.FloatText(
+                        value = 0.9,
+                        step = 0.01,
+                        max = 1,
+                        min = 0,
+                        continuous_update = False,
+                        description = 'Beta parameter for RAAR and HIO:',
+                        layout = Layout(width='20%', height = "50px"),
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    detwin = widgets.Checkbox(
+                        value = False,
+                        description = 'Detwinning',
+                        continuous_update = False,
+                        disabled = False,
+                        indent = False,
+                        layout = Layout(height = "50px"),
+                        icon = 'check'),
+                    rebin = widgets.Text(
+                        value = "(1, 1, 1)",
+                        placeholder = "(1, 1, 1)",
+                        description = 'Rebin',
+                        layout = Layout(height = "50px"),
+                        disabled = False,
+                        continuous_update = False,
+                        style = {'description_width': 'initial'}),
+                    verbose = widgets.BoundedIntText(
+                        value = 100,
+                        continuous_update = False,
+                        description = 'Verbose:',
+                        layout = Layout(height = "50px"),
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+                    pixel_size_detector = widgets.BoundedIntText(
+                        value = 55,
+                        continuous_update = False,
+                        description = 'Pixel size of detector (1e-6):',
+                        layout = Layout(height = "50px"),
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
 
+                    label_phase_retrieval = widgets.HTML(
+                        description="<p style='font-weight: bold;font-size:1.2em'>Click below to run the phase retrieval</p>", # 
+                        style = {'description_width': 'initial'},
+                        layout = Layout(width='90%', height = "35px")),
 
+                    run_phase_retrieval = widgets.ToggleButton(
+                        value = False,
+                        description = 'Run phase retrieval ...',
+                        disabled = False,
+                        continuous_update = False,
+                        button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                        layout = Layout(width='30%', height = "50px"),
+                        style = {'description_width': 'initial'},
+                        icon = 'fast-forward')
+                   )
 
-            )
+        self.tab_pynx = widgets.VBox([
+            widgets.VBox(self._list_pynx.children[:7]),
+            widgets.HBox(self._list_pynx.children[7:12]),
+            self._list_pynx.children[12],
+            widgets.HBox(self._list_pynx.children[13:18]),
+            self._list_pynx.children[18],
+            widgets.HBox(self._list_pynx.children[19:21]),
+
+            widgets.HBox(self._list_pynx.children[21:25]),
+            widgets.HBox(self._list_pynx.children[25:27]),
+            self._list_pynx.children[27],
+            widgets.HBox(self._list_pynx.children[28:32]),
+            widgets.HBox(self._list_pynx.children[32:35]),
+            self._list_pynx.children[-3],
+            self._list_pynx.children[-2],
+            self._list_pynx.children[-1],
+            ])
 
         # Widgets for facet analysis
         self.tab_facet = interactive(self.facet_analysis,
@@ -1678,6 +1994,7 @@ class Interface(object):
                             self.tab_preprocess,
                             self.tab_correct, 
                             self.tab_logs,
+                            self.tab_pynx,
                             self.tab_strain,
                             self.tab_plot,
                             self.tab_facet,
@@ -1689,11 +2006,11 @@ class Interface(object):
         self.window.set_title(3, "Preprocess")
         self.window.set_title(4, 'Correct')
         self.window.set_title(5, 'Logs')
-        # self.window.set_title(6, 'PyNX')
-        self.window.set_title(6, 'Strain')
-        self.window.set_title(7, 'Plot data')
-        self.window.set_title(8, 'Facets')
-        self.window.set_title(9, 'Readme')
+        self.window.set_title(6, 'PyNX')
+        self.window.set_title(7, 'Strain')
+        self.window.set_title(8, 'Plot data')
+        self.window.set_title(9, 'Facets')
+        self.window.set_title(10, 'Readme')
 
         display(self.window)
 
@@ -2270,6 +2587,277 @@ class Interface(object):
             self.tilt_angle = np.round(np.mean(self.metadata["tilt_values"][1:] - self.metadata["tilt_values"][:-1]), 4)
 
         if not angles_bool:
+            clear_output(True)
+
+
+    def init_pynx(self,
+        label_data, 
+        iobs,
+        mask,
+        support,
+        obj,
+        auto_center_resize,
+        label_support,
+        support_threshold,
+        support_only_shrink,
+        support_update_period,
+        support_smooth_width,
+        support_post_expand,
+        label_psf,
+        psf,
+        model,
+        fwhm,
+        eta,
+        update_psf,
+        label_algo,
+        use_operators,
+        operator_chain,
+        nb_raar,
+        nb_hio,
+        nb_er,
+        nb_ml,
+        nb_run,
+        nb_run_keep,
+        label_options,
+        live_plot,
+        # zero_mask,
+        # crop_output,
+        positivity,
+        beta,
+        detwin,
+        rebin,
+        verbose,
+        pixel_size_detector,
+        label_phase_retrieval,
+        run_phase_retrieval,
+        ):
+        """Get parameters from widgets and run phase retrieval"""
+
+        # Extract dict, list and tuple from strings
+        tuple_parameters = ["support_threshold", "support_post_expand", "support_smooth_width", "rebin"]
+        support_threshold = literal_eval(support_threshold)
+        support_smooth_width = literal_eval(support_smooth_width)
+        support_post_expand = literal_eval(support_post_expand)
+        rebin = literal_eval(rebin)
+        
+        calc_llk = 50 # for now
+        
+        # "" strings should be None
+        if iobs == "":
+            iobs = None
+            
+        if mask == "":
+            mask = None
+            
+        if support == "":
+            support = None
+            
+        if obj == "":
+            obj = None
+            
+        if live_plot == 0:
+            liveplot = False
+        
+        pixel_size_detector = pixel_size_detector*1e-6
+                    
+        if run_phase_retrieval:
+            # Extract data
+            nrj = energy * 1e-3
+            wavelength = 12.384 / nrj * 1e-10
+            print("  CXI input: Energy = %8.2fkeV" % nrj)
+            print(f"  CXI input: Wavelength = {wavelength*1e10} A")
+
+            detector_distance = sdd
+            print("  CXI input: detector distance = %8.2fm" % detector_distance)
+
+            pixel_size_detector = 55e-6
+            print("  CXI input: detector pixel size = %8.2fum" % (pixel_size_detector * 1e6))
+
+            scan = 13
+            print("  Scan n°", scan)
+
+            if iobs:
+                if iobs.endswith(".npy"):
+                    iobs = np.load(iobs)
+                    print("  CXI input: loading data")
+                elif iobs.endswith(".npz"):
+                    try:
+                        iobs = np.load(iobs)["data"]
+                        print("  CXI input: loading data")
+                    except:
+                        print("Could not load 'data' array from npz file")
+            
+            if mask:
+                if mask.endswith(".npy"):
+                    mask = np.load(mask).astype(np.int8)
+                    nb = mask.sum()
+                    print("  CXI input: loading mask, with %d pixels masked (%6.3f%%)" % (nb, nb * 100 / mask.size))
+                elif mask.endswith(".npz"):
+                    try:
+                        mask = np.load(mask)["mask"].astype(np.int8)
+                        nb = mask.sum()
+                        print("  CXI input: loading mask, with %d pixels masked (%6.3f%%)" % (nb, nb * 100 / mask.size))
+                    except:
+                        print("Could not load 'mask' array from npz file")            
+
+            if support:
+                if support.endswith(".npy"):
+                    support = np.load(support)
+                    print("  CXI input: loading support")
+                elif support.endswith(".npz"):
+                    try:
+                        support = np.load(support)["data"]
+                        print("  CXI input: loading support")
+                    except:
+                        print("Could not load 'data' array from npz file")
+
+            if obj:
+                if obj.endswith(".npy"):
+                    obj = np.load(obj)
+                    print("  CXI input: loading object")
+                elif obj.endswith(".npz"):
+                    try:
+                        obj = np.load(obj)["data"]
+                        print("  CXI input: loading object")
+                    except:
+                        print("Could not load 'data' array from npz file")
+
+
+            # Center and crop data
+            if auto_center_resize:
+                max_size = 256
+                if iobs.ndim == 3:
+                    nz0, ny0, nx0 = iobs.shape
+
+                    # Find center of mass
+                    z0, y0, x0 = center_of_mass(iobs)
+                    print("Center of mass at:", z0, y0, x0)
+                    iz0, iy0, ix0 = int(round(z0)), int(round(y0)), int(round(x0))
+
+                    # Max symmetrical box around center of mass
+                    nx = 2 * min(ix0, nx0 - ix0)
+                    ny = 2 * min(iy0, ny0 - iy0)
+                    nz = 2 * min(iz0, nz0 - iz0)
+
+                    if max_size is not None:
+                        nx = min(nx, max_size)
+                        ny = min(ny, max_size)
+                        nz = min(nz, max_size)
+
+                    # Crop data to fulfill FFT size requirements
+                    nz1, ny1, nx1 = smaller_primes((nz, ny, nx), maxprime=7, required_dividers=(2,))
+
+                    print("Centering & reshaping data: (%d, %d, %d) -> (%d, %d, %d)" % (nz0, ny0, nx0, nz1, ny1, nx1))
+                    iobs = iobs[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
+                                ix0 - nx1 // 2:ix0 + nx1 // 2]
+                    if mask is not None:
+                        mask = mask[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
+                                    ix0 - nx1 // 2:ix0 + nx1 // 2]
+                        print("Centering & reshaping mask: (%d, %d, %d) -> (%d, %d, %d)" % (nz0, ny0, nx0, nz1, ny1, nx1))
+
+                else:
+                    ny0, nx0 = iobs.shape
+
+                    # Find center of mass
+                    y0, x0 = center_of_mass(iobs)
+                    print("Center of mass at:", y0, x0)
+                    iy0, ix0 = int(round(y0)), int(round(x0))
+
+                    # Max symmetrical box around center of mass
+                    nx = 2 * min(ix0, nx0 - ix0)
+                    ny = 2 * min(iy0, ny0 - iy0)
+                    if max_size is not None:
+                        nx = min(nx, max_size)
+                        ny = min(ny, max_size)
+                        nz = min(nz, max_size)
+
+                    # Crop data to fulfill FFT size requirements
+                    ny1, nx1 = smaller_primes((ny, nx), maxprime=7, required_dividers=(2,))
+
+                    print("Centering & reshaping data: (%d, %d) -> (%d, %d)" % (ny0, nx0, ny1, nx1))
+                    iobs = iobs[iy0 - ny1 // 2:iy0 + ny1 // 2, ix0 - nx1 // 2:ix0 + nx1 // 2]
+
+                    if mask is not None:
+                        mask = mask[iy0 - ny1 // 2:iy0 + ny1 // 2, ix0 - nx1 // 2:ix0 + nx1 // 2]
+        
+
+            for i in range(nb_run):
+                print(f"Run {i}")
+
+                # Create cdi object with data and mask, laod the main parameters
+                cdi = CDI(fftshift(iobs),
+                          support = support,
+                          obj = obj,
+                          mask = fftshift(mask),
+                          wavelength = wavelength,
+                          pixel_size_detector = pixel_size_detector,
+                          detector_distance = detector_distance,
+                         )
+
+                if i==0:
+                    cdi.save_data_cxi(
+                        filename = "DiffractionData.cxi",
+                        sample_name = "",
+                        experiment_id = "",
+                        instrument = ""
+                    )
+
+                # Change support threshold for supports update
+                threshold_relative = np.random.uniform(support_threshold[0], support_threshold[1])
+                print(f"Threshold: {threshold_relative}")
+
+                sup = SupportUpdate(
+                    threshold_relative = threshold_relative,
+                    smooth_width = support_smooth_width, 
+                    force_shrink = support_only_shrink,
+                    method='rms', 
+                    post_expand = support_post_expand,
+                )
+
+                # Initialize the free pixels for LLK
+                cdi = InitFreePixels() * cdi
+
+                # Initialize the support with autocorrelation
+                cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
+                    threshold = 0.1, # extra argument
+                    verbose = True) * cdi
+
+                # Begin with HIO cycles without PSF and with support updates
+                try:
+                    cdi = (sup * HIO(beta=beta, calc_llk=calc_llk, show_cdi=live_plot)**50)**8 * cdi
+                    cdi = (sup * RAAR(beta=beta, calc_llk=calc_llk, show_cdi=live_plot)**50)**10 * cdi
+
+                    # PSF is introduced at 66% of HIO and RAAR so from cycle n°924
+                    if model != "pseudo-voigt":
+                        cdi = InitPSF(
+                            model = model,
+                            fwhm = fwhm,
+                        ) * cdi
+                        
+                    elif model == "pseudo-voigt":
+                        cdi = InitPSF(
+                            model = model,
+                            fwhm = fwhm,
+                            eta = eta,
+                        ) * cdi
+                        
+                    cdi = (sup * RAAR(beta=beta, calc_llk=calc_llk, show_cdi=live_plot, update_psf=update_psf)**50)**10 * cdi
+                    cdi = (sup * ER(calc_llk=calc_llk, show_cdi=live_plot, update_psf=update_psf)**50)**6 * cdi
+
+                    cdi.save_obj_cxi("reconstructions/result_scan_{}_run_{}_LLK_{:.4}_support_{:.4}_autocorrelation.cxi".format(scan,
+                                                                                                     i,
+                                                                                                     cdi.get_llk()[0],
+                                                                                                     threshold_relative)
+                                    )
+
+                except SupportTooLarge:
+                    print("Threshold value probably too low, support too large too continue")
+                    pass
+
+
+                print("\n##########################################################################################################\n")    
+
+        else:
             clear_output(True)
 
 
