@@ -202,8 +202,7 @@ class Interface(object):
                 description = 'Specfile name',
                 disabled = True,
                 continuous_update = False,
-                tooltip = """For ID01: name of the spec file without, for SIXS_2018: full path of the alias dictionnary, typically root_folder + 'alias_dict_2019.txt',
-                .fio for P10, not used for CRISTAL and SIXS_2019""",
+                layout = Layout(width='90%'),
                 style = {'description_width': 'initial'}),
 
             rocking_angle = widgets.Dropdown(
@@ -530,25 +529,25 @@ class Interface(object):
 
             hotpixels_file = widgets.Text(
                 value = f"{self.work_dir}/SIXS_June_2021/reconstructions/analysis/mask_merlin_better_flipped.npy",
-                placeholder = "mask_merlin.npz",
+                placeholder = f"{self.work_dir}/mask_merlin.npz",
                 description = 'Hotpixels file',
                 disabled = True,
                 continuous_update = False,
                 layout = Layout(width='90%'),
                 style = {'description_width': 'initial'}),
 
-            # template_imagefile = widgets.Text(
-            #     value = 'Pt_ascan_mu_%05d.nxs',
-            #     description = 'Template imagefile',
-            #     disabled = True,
-            #     tooltip = """Template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'; Template for SIXS_2018: 'align.spec_ascan_mu_%05d.nxs';
-            #                 Template for SIXS_2019: 'spare_ascan_mu_%05d.nxs';
-            #                 Template for Cristal: 'S%d.nxs';
-            #                 Template for P10: '_master.h5'; 
-            #                 Template for NANOMAX: '%06d.h5'; 
-            #                 Template for 34ID: 'Sample%dC_ES_data_51_256_256.npz'""",
-            #     layout = Layout(width='90%'),
-            #     style = {'description_width': 'initial'}),
+            template_imagefile = widgets.Text(
+                value = 'Pt_ascan_mu_%05d.nxs',
+                description = 'Template imagefile',
+                disabled = True,
+                tooltip = """Template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'; Template for SIXS_2018: 'align.spec_ascan_mu_%05d.nxs';
+                            Template for SIXS_2019: 'spare_ascan_mu_%05d.nxs';
+                            Template for Cristal: 'S%d.nxs';
+                            Template for P10: '_master.h5'; 
+                            Template for NANOMAX: '%06d.h5'; 
+                            Template for 34ID: 'Sample%dC_ES_data_51_256_256.npz'""",
+                layout = Layout(width='90%'),
+                style = {'description_width': 'initial'}),
 
             nb_pixel_x = widgets.IntText(
                 description = 'Nb pixel x',
@@ -563,7 +562,6 @@ class Interface(object):
                 continuous_update = False,
                 tooltip = "fix to declare a known detector but with less pixels",
                 style = {'description_width': 'initial'}),
-
 
             ### Define parameters below if you want to orthogonalize the data before phasing
             label_ortho = widgets.HTML(
@@ -825,7 +823,7 @@ class Interface(object):
         self._list_widgets_preprocessing.children[8].observe(self.energy_scan_handler, names = "value")
         self._list_widgets_preprocessing.children[14].observe(self.bragg_peak_centering_handler, names = "value")
         self._list_widgets_preprocessing.children[26].observe(self.reload_data_handler, names = "value")
-        self._list_widgets_preprocessing.children[47].observe(self.interpolation_handler, names = "value")
+        self._list_widgets_preprocessing.children[48].observe(self.interpolation_handler, names = "value")
         self._list_widgets_preprocessing.children[-2].observe(self.preprocess_handler, names = "value")
 
         # Widgets for angles correction 
@@ -1564,23 +1562,24 @@ class Interface(object):
             self._list_widgets_preprocessing.children[41],
             self._list_widgets_preprocessing.children[42],
             self._list_widgets_preprocessing.children[43],
-            widgets.HBox(self._list_widgets_preprocessing.children[44:46]),
+            self._list_widgets_preprocessing.children[44],
+            widgets.HBox(self._list_widgets_preprocessing.children[45:47]),
             ])
 
         self.tab_ortho = widgets.VBox([
-            self._list_widgets_preprocessing.children[46],
             self._list_widgets_preprocessing.children[47],
-            widgets.HBox(self._list_widgets_preprocessing.children[48:50]),
-            self._list_widgets_preprocessing.children[50],
+            self._list_widgets_preprocessing.children[48],
+            widgets.HBox(self._list_widgets_preprocessing.children[49:51]),
             self._list_widgets_preprocessing.children[51],
             self._list_widgets_preprocessing.children[52],
-            widgets.HBox(self._list_widgets_preprocessing.children[53:55]),
-            self._list_widgets_preprocessing.children[55],
-            widgets.HBox(self._list_widgets_preprocessing.children[56:58]),
-            widgets.HBox(self._list_widgets_preprocessing.children[58:61]),
-            widgets.HBox(self._list_widgets_preprocessing.children[61:63]),
-            widgets.HBox(self._list_widgets_preprocessing.children[63:67]),
-            widgets.HBox(self._list_widgets_preprocessing.children[67:70]),
+            self._list_widgets_preprocessing.children[53],
+            widgets.HBox(self._list_widgets_preprocessing.children[54:56]),
+            self._list_widgets_preprocessing.children[56],
+            widgets.HBox(self._list_widgets_preprocessing.children[57:59]),
+            widgets.HBox(self._list_widgets_preprocessing.children[59:62]),
+            widgets.HBox(self._list_widgets_preprocessing.children[62:64]),
+            widgets.HBox(self._list_widgets_preprocessing.children[64:68]),
+            widgets.HBox(self._list_widgets_preprocessing.children[68:71]),
             ])
 
         self.tab_beamline = widgets.VBox([
@@ -1723,14 +1722,12 @@ class Interface(object):
                 
             # else:
             #     self.scans = [scans]
-            self.scans = scans
             self.sample_name = sample_name
+            self.scans = scans
             self.data_directory = data_directory
+            self.root_folder = final_directory
             self.user_comment = user_comment
             self.debug = debug
-            self.data_dirname = None
-
-            self.root_folder = final_directory
 
             # Change values of widgets that use root_folder
             self.tab_correct.children[1].value = self.root_folder + "metadata.csv"
@@ -1743,23 +1740,26 @@ class Interface(object):
             self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
             self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
 
-            self.save_dir = None # scan_folder +"pynxraw/"
+            # Filename for SIXS, should be temporary
+            try:
+                try:
+                    self.path_to_data = glob.glob(f"{self.data_directory}*mu*{self.scans}*")[0]
+                    print("File path:", self.path_to_data)
+                except IndexError:
+                        self.path_to_data = glob.glob(f"{self.data_directory}*omega*{self.scans}*")[0]
+                        print("Omega scan") 
+
+                self.template_imagefile = self.path_to_data.split("%05d"%self.scans)[0]+"%05d.nxs" #  +"%05d_R.nxs" If rotated before
+                self._list_widgets_preprocessing[46].value = self.template_imagefile
+                print("File template:", self.template_imagefile, end = "\n\n")
+
+            except IndexError:
+                self.template_imagefile = ""
+                self.path_to_data = ""
 
             # Data folder
             self.data_folder = self.scan_folder + "data/" # folder of the experiment, where all scans are stored
             print("Data folder:", self.data_folder)
-
-            # Filename
-            try:
-                self.path_to_data = glob.glob(f"{self.data_directory}*mu*{self.scans}*")[0]
-                print("File path:", self.path_to_data)
-            except IndexError:
-                    self.path_to_data = glob.glob(f"{self.data_directory}*omega*{self.scans}*")[0]
-                    print("Omega scan") 
-
-            self.template_imagefile = self.path_to_data.split("%05d"%self.scans)[0]+"%05d.nxs" #  +"%05d_R.nxs" If rotated before
-            print("File template:", self.template_imagefile, end = "\n\n")
-
 
             # Create final directory is not yet existing
             if not os.path.isdir(self.root_folder):
@@ -1814,6 +1814,7 @@ class Interface(object):
                 print(f"Copied {self.path_to_data} to {self.root_folder}S{self.scans}/data")
             except FileExistsError:
                 print(f"{self.root_folder}S{self.scans}/data/{self.path_to_data} exists")
+            except (AttributeError, FileNotFoundError):
                 pass
 
             # move pynx_run.txt file
@@ -1846,7 +1847,7 @@ class Interface(object):
 
     def initialize_parameters(self,
         label_beamline,
-        beamline, 
+        beamline,
         actuators, 
         is_series, 
         custom_scan, 
@@ -1889,7 +1890,7 @@ class Interface(object):
         background_file, 
         hotpixels_file, 
         flatfield_file,
-        #  template_imagefile,
+        template_imagefile,
         nb_pixel_x, 
         nb_pixel_y,
         label_ortho, 
@@ -1969,7 +1970,7 @@ class Interface(object):
             self.background_file = background_file
             self.hotpixels_file = hotpixels_file
             self.flatfield_file = flatfield_file
-            # self.template_imagefile = template_imagefile
+            self.template_imagefile = template_imagefile
             self.nb_pixel_x = nb_pixel_x
             self.nb_pixel_y = nb_pixel_y
             self.use_rawdata = not use_rawdata
@@ -1994,6 +1995,8 @@ class Interface(object):
             self.detrot = detrot
             self.tiltazimuth = tiltazimuth
             self.tilt = tilt
+            self.data_dirname = None
+            self.save_dir = None # scan_folder +"pynxraw/"
 
             # Extract dict, list and tuple from strings
             list_parameters = ["fix_bragg", "fix_size", "pad_size"]
@@ -2065,16 +2068,19 @@ class Interface(object):
 
             self.linearity_func = None
 
-
             # Check is SIXS data, in that case rotate
             if self.beamline == "SIXS_2019":
                 self.rotate_sixs_data()
+                root_folder = self.root_folder
+                
+            if self.beamline == "ID01":
+                root_folder = self.data_directory
 
             # On lance BCDI
             preprocess_bcdi(
                 scans = self.scans,
                 sample_name = self.sample_name,
-                root_folder = self.root_folder,
+                root_folder = root_folder,
                 save_dir = self.save_dir,
                 data_dirname = self.data_dirname,
                 user_comment = self.user_comment,
@@ -2181,6 +2187,13 @@ class Interface(object):
             except ValueError:
                 print(f"Wrong list syntax for refelction")
 
+            # Check is SIXS data, in that case rotate
+            if self.beamline == "SIXS_2019":
+                root_folder = self.root_folder
+                
+            if self.beamline == "ID01":
+                root_folder = self.data_directory
+                
             # On lance la correction
             self.metadata = correct_angles_detector(
                 filename = self.path_to_data,
@@ -2193,7 +2206,7 @@ class Interface(object):
                 high_threshold = 1000000,  
                 save_dir = f"{self.root_folder}S{self.scans}/postprocessing/",
                 scan = self.scans,
-                root_folder = self.root_folder,
+                root_folder = root_folder,
                 sample_name = self.sample_name,
                 filtered_data = False,
                 peak_method = self.centering,
@@ -2231,8 +2244,8 @@ class Interface(object):
 
             # Save corrected angles in the widgets
             print("Saving corrected angles values")
-            self._list_widgets_preprocessing.children[58].value = self.metadata["bragg_outofplane"]
-            self._list_widgets_preprocessing.children[59].value = self.metadata["bragg_inplane"]
+            self._list_widgets_preprocessing.children[59].value = self.metadata["bragg_outofplane"]
+            self._list_widgets_preprocessing.children[60].value = self.metadata["bragg_inplane"]
             self.tilt_angle = np.round(np.mean(self.metadata["tilt_values"][1:] - self.metadata["tilt_values"][:-1]), 4)
 
         if not angles_bool:
@@ -2410,15 +2423,21 @@ class Interface(object):
             if self.fix_voxel == 0:
                 self.fix_voxel = None
 
-
             if self.phase_offset_origin == ():
                 self.phase_offset_origin = (None)
 
             self.pixel_size = None
 
+            # Check is SIXS data, in that case rotate
+            if self.beamline == "SIXS_2019":
+                root_folder = self.root_folder
+                
+            if self.beamline == "ID01":
+                root_folder = self.data_directory
+                
             strain_bcdi(
                 scan = self.scans, 
-                root_folder = self.root_folder,
+                root_folder = root_folder,
                 save_dir = self.save_dir,
                 data_dirname = self.data_dirname,
                 sample_name = self.sample_name, 
@@ -3145,34 +3164,51 @@ class Interface(object):
 
         # Save in a csv file
         try:
-            # Load dataset, quite slow 
-            data = rd.DataSet(self.path_to_data)
+            if self.beamline == "SIXS_2019":
+                # Load dataset, quite slow 
+                data = rd.DataSet(self.path_to_data)
 
-            ## Add new data
-            temp_df = pd.DataFrame([[
-                self.scans,
-                self.metadata["q"][0], self.metadata["q"][1], self.metadata["q"][2], self.metadata["qnorm"], self.metadata["dist_plane"],
-                self.metadata["bragg_inplane"], self.metadata["bragg_outofplane"],
-                self.metadata["bragg_x"], self.metadata["bragg_y"],
-                data.x[0], data.y[0], data.z[0], data.mu[0], data.delta[0], data.omega[0],
-                data.gamma[0], data.gamma[0] - data.mu[0], 
-                (data.mu[-1] - data.mu[-0]) / len(data.mu), data.integration_time[0], len(data.integration_time), 
-                self.metadata["interp_fwhm"], self.metadata["COM_rocking_curve"],
-                data.ssl3hg[0], data.ssl3vg[0], 
-                data.ssl1hg[0], data.ssl1vg[0]
-                ]],
-                columns = [
-                    "scan",
-                    "qx", "qy", "qz", "q_norm", "d_hkl", 
-                    "inplane_angle", "out_of_plane_angle",
-                    "bragg_x", "bragg_y",
-                    "x", "y", "z", "mu", "delta", "omega",
-                    "gamma", 'gamma-mu',
-                    "step size", "integration time", "steps", 
-                    "FWHM", "COM_rocking_curve",
-                    "ssl3hg", "ssl3vg", 
-                    "ssl1hg", "ssl1vg", 
-                ])
+                ## Add new data
+                temp_df = pd.DataFrame([[
+                    self.scans,
+                    self.metadata["q"][0], self.metadata["q"][1], self.metadata["q"][2], self.metadata["qnorm"], self.metadata["dist_plane"],
+                    self.metadata["bragg_inplane"], self.metadata["bragg_outofplane"],
+                    self.metadata["bragg_x"], self.metadata["bragg_y"],
+                    data.x[0], data.y[0], data.z[0], data.mu[0], data.delta[0], data.omega[0],
+                    data.gamma[0], data.gamma[0] - data.mu[0], 
+                    (data.mu[-1] - data.mu[-0]) / len(data.mu), data.integration_time[0], len(data.integration_time), 
+                    self.metadata["interp_fwhm"], self.metadata["COM_rocking_curve"],
+                    data.ssl3hg[0], data.ssl3vg[0], 
+                    data.ssl1hg[0], data.ssl1vg[0]
+                    ]],
+                    columns = [
+                        "scan",
+                        "qx", "qy", "qz", "q_norm", "d_hkl", 
+                        "inplane_angle", "out_of_plane_angle",
+                        "bragg_x", "bragg_y",
+                        "x", "y", "z", "mu", "delta", "omega",
+                        "gamma", 'gamma-mu',
+                        "step size", "integration time", "steps", 
+                        "FWHM", "COM_rocking_curve",
+                        "ssl3hg", "ssl3vg", 
+                        "ssl1hg", "ssl1vg", 
+                    ])
+            else:
+                ## Add new data
+                temp_df = pd.DataFrame([[
+                    self.scans,
+                    self.metadata["q"][0], self.metadata["q"][1], self.metadata["q"][2], self.metadata["qnorm"], self.metadata["dist_plane"],
+                    self.metadata["bragg_inplane"], self.metadata["bragg_outofplane"],
+                    self.metadata["bragg_x"], self.metadata["bragg_y"],
+                    self.metadata["interp_fwhm"], self.metadata["COM_rocking_curve"],
+                    ]],
+                    columns = [
+                        "scan",
+                        "qx", "qy", "qz", "q_norm", "d_hkl", 
+                        "inplane_angle", "out_of_plane_angle",
+                        "bragg_x", "bragg_y",
+                        "FWHM", "COM_rocking_curve",
+                    ])
 
             # Load all the logs
             try:
@@ -3217,7 +3253,7 @@ class Interface(object):
             self.energy_scan_handler(change = self._list_widgets_preprocessing.children[8].value)
             self.bragg_peak_centering_handler(change = self._list_widgets_preprocessing.children[14].value)
             self.reload_data_handler(change = self._list_widgets_preprocessing.children[26].value)
-            self.interpolation_handler(change = self._list_widgets_preprocessing.children[47].value)
+            self.interpolation_handler(change = self._list_widgets_preprocessing.children[48].value)
 
     def beamline_handler(self, change):
         "Handles changes on the widget used for the initialization"
@@ -3293,19 +3329,19 @@ class Interface(object):
         "Handles changes related to data interpolation"
         try:
             if change.new:
-                for w in self._list_widgets_preprocessing.children[48:70]:
+                for w in self._list_widgets_preprocessing.children[49:71]:
                     w.disabled = False
 
             if not change.new:
-                for w in self._list_widgets_preprocessing.children[48:70]:
+                for w in self._list_widgets_preprocessing.children[49:71]:
                     w.disabled = True
         except AttributeError:
             if change:
-                for w in self._list_widgets_preprocessing.children[48:70]:
+                for w in self._list_widgets_preprocessing.children[49:71]:
                     w.disabled = False
 
             if not change:
-                for w in self._list_widgets_preprocessing.children[48:70]:
+                for w in self._list_widgets_preprocessing.children[49:71]:
                     w.disabled = True
 
     def preprocess_handler(self, change):
@@ -3324,7 +3360,7 @@ class Interface(object):
                 self.energy_scan_handler(change = self._list_widgets_preprocessing.children[8].value)
                 self.bragg_peak_centering_handler(change = self._list_widgets_preprocessing.children[14].value)
                 self.reload_data_handler(change = self._list_widgets_preprocessing.children[26].value)
-                self.interpolation_handler(change = self._list_widgets_preprocessing.children[47].value)
+                self.interpolation_handler(change = self._list_widgets_preprocessing.children[48].value)
 
             if change.new:
                 self._list_widgets_init.children[-2].disabled = True
@@ -3351,7 +3387,7 @@ class Interface(object):
                 self.energy_scan_handler(change = self._list_widgets_preprocessing.children[8].value)
                 self.bragg_peak_centering_handler(change = self._list_widgets_preprocessing.children[14].value)
                 self.reload_data_handler(change = self._list_widgets_preprocessing.children[26].value)
-                self.interpolation_handler(change = self._list_widgets_preprocessing.children[47].value)
+                self.interpolation_handler(change = self._list_widgets_preprocessing.children[48].value)
 
             if change:
                 self._list_widgets_init.children[-2].disabled = True
@@ -3387,22 +3423,22 @@ class Interface(object):
         "Handles changes related to data interpolation"
         try:
             if change.new:
-                for w in self._list_widgets_correct.children[:-2]:
+                for w in self._list_widgets_correct.children[:-1]:
                     w.disabled = True
 
             if not change.new:
-                for w in self._list_widgets_correct.children[:-2]:
+                for w in self._list_widgets_correct.children[:-1]:
                     w.disabled = False
 
                 self.temp_handler(change = self._list_widgets_correct.children[2].value)
 
         except AttributeError:
             if change:
-                for w in self._list_widgets_correct.children[:-2]:
+                for w in self._list_widgets_correct.children[:-1]:
                     w.disabled = True
 
             if not change:
-                for w in self._list_widgets_correct.children[:-2]:
+                for w in self._list_widgets_correct.children[:-1]:
                     w.disabled = False
 
                 self.temp_handler(change = self._list_widgets_correct.children[2].value)

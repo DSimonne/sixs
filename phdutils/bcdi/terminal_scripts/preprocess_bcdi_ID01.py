@@ -73,7 +73,7 @@ except IndexError:
         """)
     exit()
 
-# reolad mask
+# reload mask
 for i, element in enumerate(sys.argv):
     if "reload" in element:
         if "true" in element.lower():
@@ -104,25 +104,13 @@ else:
         print("Wrong scan input")
         raise e
 
-# Scan folder
-scan_folder = root_folder + f"S{scan}/"
-print("Scan folder:", scan_folder)
-
-# Data folder
-data_folder = scan_folder # folder of the experiment, where all scans are stored
-print("Data folder:", data_folder)
-
-# save_dir = scan_folder + "pynxraw_test/"  # images will be saved here, leave it to None otherwise (default to data directory's parent)
-save_dir = None # defaults to scan_folder/pynx/ or scan_folder/pynxraw/
-data_dirname = None # defaults to /data
-
 # Save all the prints from the script
 stdoutOrigin=sys.stdout
 
-if not isinstance(save_dir, str):
-    save_dir = scan_folder +"pynxraw/"
+save_dir = root_folder + f"S{scan}/pynxraw/"
 README_file = f"{save_dir}README_preprocess.md"
 print("Save folder:", save_dir)
+
 try:
     os.mkdir(save_dir)
 except:
@@ -144,8 +132,8 @@ sys.stdout = open(README_file, "a")
 # root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/"  # folder of the experiment, where all scans are stored
 # root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/test/BCDI_2021_07_26_165851/"  # folder of the experiment, 
 root_folder = "/data/visitor/hc4534/id01/B8_S1_P2/BCDI_2021_09_02_145714/"  # folder of the experiment, up to spec file
-# save_dir = None  # images will be saved here, leave it to None otherwise
-# data_dirname = None  # leave None to use the beamline default, '' empty string when there is no subfolder
+save_dir = None  # images will be saved here, leave it to None otherwise
+data_dirname = None  # leave None to use the beamline default, '' empty string when there is no subfolder
 # (data directly in the scan folder), or a non-empty string for the subfolder name
 # (default to scan_folder/pynx/ or scan_folder/pynxraw/ depending on the setting of use_rawdata)
 sample_name = "S"  # str or list of str of sample names (string in front of the scan number in the folder name).
@@ -285,7 +273,7 @@ fill_value_mask = 0  # 0 (not masked) or 1 (masked). It will define how the pixe
 # processed during the interpolation. Because of the large number of masked pixels, phase retrieval converges better if
 # the pixels are not masked (0 intensity imposed). The data is by default set to 0 outside of the defined range.
 beam_direction = (1, 0, 0)  # beam direction in the laboratory frame (downstream, vertical up, outboard)
-sample_offsets = (1.1562481, 0, 0)   # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
+sample_offsets = (-0.0011553664, 0, 0) # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # convention: the sample offsets will be subtracted to the motor values
 sdd = 0.83 # in m, sample to detector distance in m
 energy = 12994  # np.linspace(11100, 10900, num=51)  # x-ray energy in eV
