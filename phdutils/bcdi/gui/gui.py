@@ -1996,7 +1996,6 @@ class Interface(object):
             self.tiltazimuth = tiltazimuth
             self.tilt = tilt
             self.data_dirname = None
-            self.save_dir = None # scan_folder +"pynxraw/"
 
             # Extract dict, list and tuple from strings
             list_parameters = ["fix_bragg", "fix_size", "pad_size"]
@@ -2072,16 +2071,18 @@ class Interface(object):
             if self.beamline == "SIXS_2019":
                 self.rotate_sixs_data()
                 root_folder = self.root_folder
+                save_dir = None
                 
             if self.beamline == "ID01":
                 root_folder = self.data_directory
+                save_dir = self.root_folder + f"S{self.scans}/pynxraw/"
 
             # On lance BCDI
             preprocess_bcdi(
                 scans = self.scans,
                 sample_name = self.sample_name,
                 root_folder = root_folder,
-                save_dir = self.save_dir,
+                save_dir = save_dir,
                 data_dirname = self.data_dirname,
                 user_comment = self.user_comment,
                 debug = self.debug,
@@ -2190,9 +2191,21 @@ class Interface(object):
             # Check is SIXS data, in that case rotate
             if self.beamline == "SIXS_2019":
                 root_folder = self.root_folder
+                save_dir = f"{self.root_folder}S{self.scans}/postprocessing/corrections/"
                 
             if self.beamline == "ID01":
                 root_folder = self.data_directory
+                save_dir = f"{self.root_folder}S{self.scans}/postprocessing/corrections/"
+                
+                # Create final directory is not yet existing
+                if not os.path.isdir(save_dir):
+                    full_path = ""
+                    for d in save_dir.split("/"):
+                        full_path += d + "/"
+                        try:
+                            os.mkdir(full_path)
+                        except FileExistsError:
+                            pass
                 
             # On lance la correction
             self.metadata = correct_angles_detector(
@@ -2204,7 +2217,7 @@ class Interface(object):
                 reference_spacing = self.reference_spacing, 
                 reference_temperature = self.reference_temperature,
                 high_threshold = 1000000,  
-                save_dir = f"{self.root_folder}S{self.scans}/postprocessing/",
+                save_dir = save_dir,
                 scan = self.scans,
                 root_folder = root_folder,
                 sample_name = self.sample_name,
@@ -2243,7 +2256,7 @@ class Interface(object):
             self.extract_metadata()
 
             # Save corrected angles in the widgets
-            print("Saving corrected angles values")
+            print("Saving corrected angles values...")
             self._list_widgets_preprocessing.children[59].value = self.metadata["bragg_outofplane"]
             self._list_widgets_preprocessing.children[60].value = self.metadata["bragg_inplane"]
             self.tilt_angle = np.round(np.mean(self.metadata["tilt_values"][1:] - self.metadata["tilt_values"][:-1]), 4)
