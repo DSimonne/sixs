@@ -17,8 +17,8 @@ cd $1/$2S$3/pynxraw
 
 # Running phase retrieval
 echo "Running phase retrieval with pynx ..."
-echo "/sware/exp/pynx/devel.p9/bin/pynx-id01cdi.py pynx_run_ID01.txt > README_pynx.md"
-mpiexec -n $SLURM_NTASKS /sware/exp/pynx/devel.p9/bin/pynx-id01cdi.py pynx_run_ID01.txt > README_pynx.md
+echo "/sware/exp/pynx/devel.p9/bin/pynx-id01cdi.py pynx_run.txt > README_pynx.md"
+mpiexec -n $SLURM_NTASKS /sware/exp/pynx/devel.p9/bin/pynx-id01cdi.py pynx_run.txt > README_pynx.md
 
 # Moving the results in all/ sub-directory
 mkdir all

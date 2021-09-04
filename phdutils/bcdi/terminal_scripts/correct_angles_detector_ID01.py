@@ -144,7 +144,7 @@ custom_motors = None
 # CRISTAL: mgomega, gamma, delta
 # P10: om, phi, chi, mu, gamma, delta
 # SIXS: beta, mu, gamma, delta
-rocking_angle = "outofplane"  # "outofplane" or "inplane"
+rocking_angle = "inplane"  # "outofplane" or "inplane"
 # specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'# July 2021
 # specfile_name = "spec/2021_07_24_083204_test" #'analysis/alias_dict_2021.txt'# July 
 # specfile_name = "spec/BCDI_2021_07_26_165851" #'analysis/alias_dict_2021.txt'# July 
