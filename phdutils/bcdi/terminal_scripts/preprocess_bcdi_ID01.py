@@ -1530,6 +1530,7 @@ with open("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/pynx_run.txt", "r"
     with open(f"{save_dir}pynx_run.txt", "w") as v:
         new_file_contents = "".join(text_file)
         v.write(new_file_contents)
+        
 # End of added script
 
 print('\nEnd of script')

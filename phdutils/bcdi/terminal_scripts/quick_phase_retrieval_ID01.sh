@@ -1,6 +1,6 @@
 #usr/bin/bash
 cwd=$(pwd)
-ssh simonne@slurm-access << EOF
+ssh simonne@slurm-nice-devel << EOF
 
 	sbatch pynx_ID01.slurm $cwd $1 $2
     

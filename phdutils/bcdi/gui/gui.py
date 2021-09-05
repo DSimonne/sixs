@@ -48,6 +48,7 @@ from scipy.ndimage import gaussian_filter
 
 try:
     # This imports all necessary operators. GPU will be auto-selected
+    print("Importing pynx ...")
     from pynx.cdi import *
     from pynx.utils.math import smaller_primes
 except:
@@ -1672,7 +1673,7 @@ class Interface(object):
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
                     auto_center_resize = widgets.Checkbox(
-                        value = False,
+                        value = True,
                         description = 'Auto center and resize',
                         continuous_update = False,
                         disabled = False,
@@ -1702,6 +1703,7 @@ class Interface(object):
                         icon = 'check'),
                     support_update_period  = widgets.BoundedIntText(
                         value = 20,
+                        step = 5,
                         layout = Layout(height = "50px", width = "25%"),
                         continuous_update = False,
                         description = 'Support update period:',
@@ -1737,15 +1739,15 @@ class Interface(object):
                         indent = False,
                         layout = Layout(height = "50px"),
                         icon = 'check'),
-                    model = widgets.Dropdown(
+                    psf_model = widgets.Dropdown(
                         options = ["gaussian", "lorentzian", "pseudo-voigt"],
-                        value = "gaussian",
+                        value = "pseudo-voigt",
                         description = 'PSF peak shape',
                         continuous_update = False,
-                        disabled = False,
+                        disabled = True,
                         style = {'description_width': 'initial'}),
                     fwhm = widgets.FloatText(
-                        value = 0.3,
+                        value = 1,
                         step = 0.01,
                         min = 0,
                         continuous_update = False,
@@ -1753,9 +1755,9 @@ class Interface(object):
                         layout = Layout(width='15%', height = "50px"),
                         readout = True,
                         style = {'description_width': 'initial'},
-                        disabled = False),
+                        disabled = True),
                     eta = widgets.FloatText(
-                        value = 0.1,
+                        value = 0.05,
                         step = 0.01,
                         max = 1,
                         min = 0,
@@ -1764,14 +1766,15 @@ class Interface(object):
                         layout = Layout(width='15%', height = "50px"),
                         readout = True,
                         style = {'description_width': 'initial'},
-                        disabled = False),
+                        disabled = True),
                     update_psf = widgets.BoundedIntText(
                         value = 20,
+                        step = 5,
                         continuous_update = False,
                         description = 'Update PSF every:',
                         readout = True,
                         style = {'description_width': 'initial'},
-                        disabled = False),
+                        disabled = True),
                                 
                     label_algo = widgets.HTML(
                         description="<p style='font-weight: bold;font-size:1.2em'>Iterative algorithms parameters",
@@ -1834,7 +1837,7 @@ class Interface(object):
                         style = {'description_width': 'initial'},
                         disabled = False),
                     nb_run = widgets.BoundedIntText(
-                        value = 50,
+                        value = 30,
                         continuous_update = False,
                         description = 'Number of run:',
                         layout = Layout(height = "50px"),
@@ -1855,8 +1858,9 @@ class Interface(object):
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
                     live_plot = widgets.BoundedIntText(
-                        value = 100,
+                        value = 0,
                         step = 10,
+                        max = 500,
                         min = 0,
                         continuous_update = False,
                         description = 'Plot every:',
@@ -1923,27 +1927,35 @@ class Interface(object):
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
 
-                    run_phase_retrieval = widgets.ToggleButton(
-                        value = False,
+                    run_phase_retrieval = widgets.ToggleButtons(
+                        options = ['No phase retrieval', 'Run batch job', "Run script in local environment", "Use operators"],
+                        value = "No phase retrieval",
+                        tooltips = [
+                            "Click to be able to change parameters",
+                            "Collect parameters to run a job on slurm",
+                            "Run script on jupyter notebook environment",
+                            "Use operators on local environment"
+                            ],
                         description = 'Run phase retrieval ...',
                         disabled = False,
                         continuous_update = False,
                         button_style = '', # 'success', 'info', 'warning', 'danger' or ''
-                        layout = Layout(width='30%', height = "50px"),
+                        layout = Layout(width='100%', height = "50px"),
                         style = {'description_width': 'initial'},
                         icon = 'fast-forward')
                    )
         self._list_widgets_pynx.children[1].observe(self.folder_pynx_handler, names = "value")
         self._list_widgets_pynx.children[14].observe(self.pynx_psf_handler, names = "value")
         self._list_widgets_pynx.children[15].observe(self.pynx_peak_shape_handler, names = "value")
+        self._list_widgets_pynx.children[-2].observe(self.run_pynx_handler, names = "value")
 
         self.tab_pynx = widgets.VBox([
             widgets.VBox(self._list_widgets_pynx.children[:8]),
             widgets.HBox(self._list_widgets_pynx.children[8:10]),
             widgets.HBox(self._list_widgets_pynx.children[10:13]),
             self._list_widgets_pynx.children[13],
-            widgets.HBox(self._list_widgets_pynx.children[14:17]),
-            widgets.HBox(self._list_widgets_pynx.children[17:19]),
+            widgets.HBox(self._list_widgets_pynx.children[14:18]),
+            self._list_widgets_pynx.children[18],
             self._list_widgets_pynx.children[19],
             widgets.HBox(self._list_widgets_pynx.children[20:22]),
             widgets.HBox(self._list_widgets_pynx.children[22:26]),
@@ -2264,7 +2276,7 @@ class Interface(object):
             for w in self._list_widgets_preprocessing.children[:-2]:
                 w.disabled = True
 
-            for w in self._list_widgets_correct.children[:-1]:
+            for w in self._list_widgets_correct.children[:-2]:
                 w.disabled = True
 
             # Save parameter values as attributes
@@ -2485,6 +2497,12 @@ class Interface(object):
                 tilt = self.tilt,
             )
 
+            # Scan folder, refresh
+            self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/{self.scans}_fa.vtk"
+            self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
+            self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
+            self._list_widgets_pynx.children[1].value = self.scan_folder + f"pynxraw/"
+
         if not run_preprocess:
             clear_output(True)
 
@@ -2541,48 +2559,50 @@ class Interface(object):
                             os.mkdir(full_path)
                         except FileExistsError:
                             pass
-                
-            # On lance la correction
-            self.metadata = correct_angles_detector(
-                filename = self.path_to_data,
-                direct_inplane = self.direct_inplane,
-                direct_outofplane = self.direct_outofplane,
-                get_temperature = self.temp_bool,
-                reflection = self.reflection,
-                reference_spacing = self.reference_spacing, 
-                reference_temperature = self.reference_temperature,
-                high_threshold = 1000000,  
-                save_dir = save_dir,
-                scan = self.scans,
-                root_folder = root_folder,
-                sample_name = self.sample_name,
-                filtered_data = False,
-                peak_method = self.centering,
-                normalize_flux = self.normalize_flux,
-                debug = self.debug,
-                beamline = self.beamline,
-                actuators = self.actuators,
-                is_series = self.is_series,
-                custom_scan = self.custom_scan,
-                custom_images = self.custom_images,
-                custom_monitor = self.custom_monitor,
-                custom_motors = self.custom_motors,
-                rocking_angle = self.rocking_angle,
-                specfile_name = self.specfile_name,
-                detector = self.detector,
-                x_bragg = self.x_bragg,
-                y_bragg = self.y_bragg,
-                roi_detector = None,
-                hotpixels_file = self.hotpixels_file, 
-                flatfield_file = self.flatfield_file,
-                template_imagefile = self.template_imagefile,
-                beam_direction = self.beam_direction,
-                sample_offsets = self.sample_offsets,
-                directbeam_x = self.cch1,
-                directbeam_y = self.cch2,
-                sdd = self.sdd,
-                energy = self.energy,
-            )
+            try:
+                # On lance la correction
+                self.metadata = correct_angles_detector(
+                    filename = self.path_to_data,
+                    direct_inplane = self.direct_inplane,
+                    direct_outofplane = self.direct_outofplane,
+                    get_temperature = self.temp_bool,
+                    reflection = self.reflection,
+                    reference_spacing = self.reference_spacing, 
+                    reference_temperature = self.reference_temperature,
+                    high_threshold = 1000000,  
+                    save_dir = save_dir,
+                    scan = self.scans,
+                    root_folder = root_folder,
+                    sample_name = self.sample_name,
+                    filtered_data = False,
+                    peak_method = self.centering,
+                    normalize_flux = self.normalize_flux,
+                    debug = self.debug,
+                    beamline = self.beamline,
+                    actuators = self.actuators,
+                    is_series = self.is_series,
+                    custom_scan = self.custom_scan,
+                    custom_images = self.custom_images,
+                    custom_monitor = self.custom_monitor,
+                    custom_motors = self.custom_motors,
+                    rocking_angle = self.rocking_angle,
+                    specfile_name = self.specfile_name,
+                    detector = self.detector,
+                    x_bragg = self.x_bragg,
+                    y_bragg = self.y_bragg,
+                    roi_detector = None,
+                    hotpixels_file = self.hotpixels_file, 
+                    flatfield_file = self.flatfield_file,
+                    template_imagefile = self.template_imagefile,
+                    beam_direction = self.beam_direction,
+                    sample_offsets = self.sample_offsets,
+                    directbeam_x = self.cch1,
+                    directbeam_y = self.cch2,
+                    sdd = self.sdd,
+                    energy = self.energy,
+                )
+            except ValueError:
+                print("Inplane or outofplane ?")
 
             # Save metadata
             for keys, values in self.metadata.items():
@@ -2616,15 +2636,15 @@ class Interface(object):
         support_post_expand,
         label_psf,
         psf,
-        model,
+        psf_model,
         fwhm,
         eta,
         update_psf,
         label_algo,
         use_operators,
         operator_chain,
-        nb_raar,
         nb_hio,
+        nb_raar,
         nb_er,
         nb_ml,
         nb_run,
@@ -2644,106 +2664,224 @@ class Interface(object):
         ):
         """Get parameters from widgets and run phase retrieval"""
 
+        self.label_data = label_data
+        self.folder = folder
+        self.iobs = iobs
+        self.mask = mask
+        self.support = support
+        self.obj = obj
+        self.auto_center_resize = auto_center_resize
+        self.label_support = label_support
+        self.support_threshold = support_threshold
+        self.support_only_shrink = support_only_shrink
+        self.support_update_period = support_update_period
+        self.support_smooth_width = support_smooth_width
+        self.support_post_expand = support_post_expand
+        self.label_psf = label_psf
+        self.psf = psf
+        self.psf_model = psf_model
+        self.fwhm = fwhm
+        self.eta = eta
+        self.update_psf = update_psf
+        self.label_algo = label_algo
+        self.use_operators = use_operators
+        self.operator_chain = operator_chain
+        self.nb_raar = nb_raar
+        self.nb_hio = nb_hio
+        self.nb_er = nb_er
+        self.nb_ml = nb_ml
+        self.nb_run = nb_run
+        self.nb_run_keep = nb_run_keep
+        self.label_options = label_options
+        self.live_plot = live_plot
+        # self.zero_mask = zero_mask
+        # self.crop_output = crop_output
+        self.positivity = positivity
+        self.beta = beta
+        self.detwin = detwin
+        self.rebin = rebin
+        self.verbose = verbose
+        self.pixel_size_detector = pixel_size_detector*1e-6
+        self.label_phase_retrieval = label_phase_retrieval
+        self.run_phase_retrieval = run_phase_retrieval
+
         # Extract dict, list and tuple from strings
-        tuple_parameters = ["support_threshold", "support_post_expand", "support_smooth_width", "rebin"]
-        support_threshold = literal_eval(support_threshold)
-        support_smooth_width = literal_eval(support_smooth_width)
-        support_post_expand = literal_eval(support_post_expand)
-        rebin = literal_eval(rebin)
-        
-        calc_llk = 50 # for now
-        
+        self.support_threshold = literal_eval(self.support_threshold)
+        self.support_smooth_width = literal_eval(self.support_smooth_width)
+        self.support_post_expand = literal_eval(self.support_post_expand)
+        self.rebin = literal_eval(self.rebin)
+                
         # "" strings should be None
-        if iobs == "":
-            iobs = None
+        if self.iobs == "":
+            self.iobs = None
             
-        if mask == "":
-            mask = None
+        if self.mask == "":
+            self.mask = None
             
-        if support == "":
-            support = None
+        if self.support == "":
+            self.support = None
             
-        if obj == "":
-            obj = None
+        if self.obj == "":
+            self.obj = None
             
-        if live_plot == 0:
-            liveplot = False
+        if self.live_plot == 0:
+            self.live_plot = False
         
-        pixel_size_detector = pixel_size_detector*1e-6
+        print("Scan n°", self.scans)
+
+        self.energy = self._list_widgets_preprocessing.children[54].value * 1e-3
+        self.wavelength = 12.384 / self.energy * 1e-10
+        self.sdd = self._list_widgets_preprocessing.children[53].value
+
+        print("CXI input: Energy = %8.2fkeV" % self.energy)
+        print(f"CXI input: Wavelength = {self.wavelength*1e10} A")
+        print("CXI input: detector distance = %8.2fm" % self.sdd)
+        print("CXI input: detector pixel size = %8.2fum" % (self.pixel_size_detector * 1e6))
+
+        # pynx arguments text files
+        self.pynx_parameter_gui_file = self.scan_folder + '/pynxraw/pynx_run_gui.txt'
+        self.pynx_parameter_cli_file = self.scan_folder + '/pynxraw/pynx_run.txt'
                     
-        if run_phase_retrieval:
+
+        if self.run_phase_retrieval == "Run batch job" or self.run_phase_retrieval == "Run script in local environment":
+            self.text_file = []
+            self.live_plot = False
+            
+            if isinstance(self.live_plot, int):
+                self.live_plot = True
+            
+            # Load files
+            for file, parameter in [(self.iobs, "data"), (self.mask, "mask"), (self.obj, "object")]:
+                if file:
+                    self.text_file.append(f"{parameter} = \"{file}\"\n")
+                    
+            if not support:
+                self.text_file += [
+                    f'support_threshold = {str(self.support_threshold).replace("(", "").replace(")", "").replace(" ", "")}\n',
+                    f'support_only_shrink = {self.support_only_shrink}\n',
+                    f'support_update_period = {self.support_update_period}\n',
+                    f'support_smooth_width_begin = {self.support_smooth_width[0]}\n',
+                    f'support_smooth_width_end = {self.support_smooth_width[1]}\n',
+                    f'support_post_expand = {self.support_post_expand}\n'
+                    '\n',
+                ]
+            else:
+                self.text_file += [f"support = \"{self.support}\"\n"]
+                
+            # PSF
+            if self.psf_model != "pseudo-voigt":
+                self.text_file.append(f"psf = \"{self.psf_model},{self.fwhm}\"\n")
+                
+            if self.psf_model == "pseudo-voigt":
+                self.text_file.append(f"psf = \"{self.psf_model},{self.fwhm},{self.eta}\"\n")
+            
+            # Other parameters
+            self.text_file += [
+                'data2cxi = True\n',
+                f'auto_center_resize = {self.auto_center_resize}\n',
+                '\n',
+                f'nb_raar = {self.nb_raar}\n',
+                f'nb_hio = {self.nb_hio}\n',
+                f'nb_er = {self.nb_er}\n',
+                f'nb_ml = {self.nb_ml}\n',
+                '\n',
+                f'nb_run = {self.nb_run}\n',
+                f'nb_run_keep = {self.nb_run_keep}\n',
+                '\n',
+                'zero_mask = auto # masked pixels will start from imposed 0 and then let free\n',
+                '# max_size = 256 \n',
+                'crop_output= 0 # set to 0 to avoid cropping the output in the .cxi\n',
+                '\n',
+                f'positivity = {self.positivity}\n',
+                f'beta = {self.beta}\n',
+                f'detwin = {self.detwin}\n',
+                f'rebin = {str(self.rebin).replace("(", "").replace(")", "").replace(" ", "")}\n',
+                '\n',
+                '# Generic parameters\n',
+                f'detector_distance = {self.sdd}\n',
+                f'pixel_size_detector = {self.pixel_size_detector}\n',
+                f'wavelength = {self.wavelength}\n',
+                f'verbose = {self.verbose}\n',
+                "output_format= 'cxi'\n",
+                f'live_plot = {self.live_plot}\n',
+            ]
+            
+            with open(self.pynx_parameter_gui_file, "w") as v:
+                for line in self.text_file:
+                    v.write(line)
+                    
+            print(f"Saved parameters in {self.scan_folder}pynxraw/pynx_run_gui.tx")
+            
+            if self.run_phase_retrieval == "Run batch job":
+                # Full path for now, this can be corrected later hehehe
+                os.system(f"/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.scan_folder}pynxraw")
+                print(f"Running /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
+
+            elif self.run_phase_retrieval == "Run script in local environment":
+                os.system(f"cd {self.scan_folder}pynxraw; /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
+                print(f"Running /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
+
+        
+        elif self.run_phase_retrieval == "Use operators":
             # Extract data
 
+            self.calc_llk = 50 # for now
 
-            self.energy = self._list_widgets_preprocessing.children[54].value * 1e-3
-            wavelength = 12.384 / self.energy * 1e-10
-            print("  CXI input: Energy = %8.2fkeV" % self.energy)
-            print(f"  CXI input: Wavelength = {wavelength*1e10} A")
-
-            self.sdd = self._list_widgets_preprocessing.children[53].value
-            print("  CXI input: detector distance = %8.2fm" % self.sdd)
-
-            pixel_size_detector = 55e-6
-            print("  CXI input: detector pixel size = %8.2fum" % (pixel_size_detector * 1e6))
-
-            scan = self.scans
-            print("  Scan n°", scan)
-
-            if iobs:
-                if iobs.endswith(".npy"):
-                    iobs = np.load(iobs)
-                    print("  CXI input: loading data")
-                elif iobs.endswith(".npz"):
+            if self.iobs:
+                if self.iobs.endswith(".npy"):
+                    self.iobs = np.load(self.iobs)
+                    print("CXI input: loading data")
+                elif self.iobs.endswith(".npz"):
                     try:
-                        iobs = np.load(iobs)["data"]
-                        print("  CXI input: loading data")
+                        self.iobs = np.load(self.iobs)["data"]
+                        print("CXI input: loading data")
                     except:
                         print("Could not load 'data' array from npz file")
             
-            if mask:
-                if mask.endswith(".npy"):
-                    mask = np.load(mask).astype(np.int8)
-                    nb = mask.sum()
-                    print("  CXI input: loading mask, with %d pixels masked (%6.3f%%)" % (nb, nb * 100 / mask.size))
-                elif mask.endswith(".npz"):
+            if self.mask:
+                if self.mask.endswith(".npy"):
+                    self.mask = np.load(self.mask).astype(np.int8)
+                    nb = self.mask.sum()
+                    print("CXI input: loading mask, with %d pixels masked (%6.3f%%)" % (nb, nb * 100 / self.mask.size))
+                elif self.mask.endswith(".npz"):
                     try:
-                        mask = np.load(mask)["mask"].astype(np.int8)
-                        nb = mask.sum()
-                        print("  CXI input: loading mask, with %d pixels masked (%6.3f%%)" % (nb, nb * 100 / mask.size))
+                        self.mask = np.load(self.mask)["mask"].astype(np.int8)
+                        nb = self.mask.sum()
+                        print("CXI input: loading mask, with %d pixels masked (%6.3f%%)" % (nb, nb * 100 / self.mask.size))
                     except:
                         print("Could not load 'mask' array from npz file")            
 
-            if support:
-                if support.endswith(".npy"):
-                    support = np.load(support)
-                    print("  CXI input: loading support")
-                elif support.endswith(".npz"):
+            if self.support:
+                if self.support.endswith(".npy"):
+                    self.support = np.load(self.support)
+                    print("CXI input: loading support")
+                elif self.support.endswith(".npz"):
                     try:
-                        support = np.load(support)["data"]
-                        print("  CXI input: loading support")
+                        self.support = np.load(self.support)["data"]
+                        print("CXI input: loading support")
                     except:
                         print("Could not load 'data' array from npz file")
 
-            if obj:
-                if obj.endswith(".npy"):
-                    obj = np.load(obj)
-                    print("  CXI input: loading object")
-                elif obj.endswith(".npz"):
+            if self.obj:
+                if self.obj.endswith(".npy"):
+                    self.obj = np.load(self.obj)
+                    print("CXI input: loading object")
+                elif self.obj.endswith(".npz"):
                     try:
-                        obj = np.load(obj)["data"]
-                        print("  CXI input: loading object")
+                        self.obj = np.load(self.obj)["data"]
+                        print("CXI input: loading object")
                     except:
                         print("Could not load 'data' array from npz file")
 
 
             # Center and crop data
-            if auto_center_resize:
+            if self.auto_center_resize:
                 max_size = 256
-                if iobs.ndim == 3:
-                    nz0, ny0, nx0 = iobs.shape
+                if self.iobs.ndim == 3:
+                    nz0, ny0, nx0 = self.iobs.shape
 
                     # Find center of mass
-                    z0, y0, x0 = center_of_mass(iobs)
+                    z0, y0, x0 = center_of_mass(self.iobs)
                     print("Center of mass at:", z0, y0, x0)
                     iz0, iy0, ix0 = int(round(z0)), int(round(y0)), int(round(x0))
 
@@ -2761,18 +2899,18 @@ class Interface(object):
                     nz1, ny1, nx1 = smaller_primes((nz, ny, nx), maxprime=7, required_dividers=(2,))
 
                     print("Centering & reshaping data: (%d, %d, %d) -> (%d, %d, %d)" % (nz0, ny0, nx0, nz1, ny1, nx1))
-                    iobs = iobs[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
+                    self.iobs = self.iobs[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
                                 ix0 - nx1 // 2:ix0 + nx1 // 2]
                     if mask is not None:
-                        mask = mask[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
+                        self.mask = self.mask[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
                                     ix0 - nx1 // 2:ix0 + nx1 // 2]
                         print("Centering & reshaping mask: (%d, %d, %d) -> (%d, %d, %d)" % (nz0, ny0, nx0, nz1, ny1, nx1))
 
                 else:
-                    ny0, nx0 = iobs.shape
+                    ny0, nx0 = self.iobs.shape
 
                     # Find center of mass
-                    y0, x0 = center_of_mass(iobs)
+                    y0, x0 = center_of_mass(self.iobs)
                     print("Center of mass at:", y0, x0)
                     iy0, ix0 = int(round(y0)), int(round(x0))
 
@@ -2794,37 +2932,37 @@ class Interface(object):
                         mask = mask[iy0 - ny1 // 2:iy0 + ny1 // 2, ix0 - nx1 // 2:ix0 + nx1 // 2]
         
 
-            for i in range(nb_run):
+            for i in range(self.nb_run):
                 print(f"Run {i}")
 
                 # Create cdi object with data and mask, laod the main parameters
-                cdi = CDI(fftshift(iobs),
-                          support = support,
-                          obj = obj,
-                          mask = fftshift(mask),
-                          wavelength = wavelength,
-                          pixel_size_detector = pixel_size_detector,
+                cdi = CDI(fftshift(self.iobs),
+                          support = self.support,
+                          obj = self.obj,
+                          mask = fftshift(self.mask),
+                          wavelength = self.wavelength,
+                          pixel_size_detector = self.pixel_size_detector,
                           detector_distance = self.sdd,
                          )
 
                 if i==0:
                     cdi.save_data_cxi(
-                        filename = "DiffractionData.cxi",
+                        filename = f"{self.root_folder}{self.sample_name}{self.scans}/pynxraw/DiffractionData.cxi",
                         sample_name = "",
                         experiment_id = "",
                         instrument = ""
                         )
 
                 # Change support threshold for supports update
-                threshold_relative = np.random.uniform(support_threshold[0], support_threshold[1])
-                print(f"Threshold: {threshold_relative}")
+                self.threshold_relative = np.random.uniform(self.support_threshold[0], self.support_threshold[1])
+                print(f"Threshold: {self.threshold_relative}")
 
                 sup = SupportUpdate(
-                    threshold_relative = threshold_relative,
-                    smooth_width = support_smooth_width, 
-                    force_shrink = support_only_shrink,
+                    threshold_relative = self.threshold_relative,
+                    smooth_width = self.support_smooth_width, 
+                    force_shrink = self.support_only_shrink,
                     method='rms', 
-                    post_expand = support_post_expand,
+                    post_expand = self.support_post_expand,
                     )
 
                 # Initialize the free pixels for LLK
@@ -2837,40 +2975,92 @@ class Interface(object):
 
                 # Begin with HIO cycles without PSF and with support updates
                 try:
-                    cdi = (sup * HIO(beta=beta, calc_llk=calc_llk, show_cdi=live_plot)**50)**8 * cdi
-                    cdi = (sup * RAAR(beta=beta, calc_llk=calc_llk, show_cdi=live_plot)**50)**10 * cdi
+                    # update_psf = 0 probably enough but not sure
+                    if self.psf:
+                        hio_power = self.nb_hio//self.support_update_period
+                        raar_power = (self.nb_raar//2)//self.support_update_period
+                        er_power = self.nb_er//self.support_update_period
 
-                    # PSF is introduced at 66% of HIO and RAAR so from cycle n°924
-                    if model != "pseudo-voigt":
-                        cdi = InitPSF(
-                            model = model,
-                            fwhm = fwhm,
-                            ) * cdi
-                        
-                    elif model == "pseudo-voigt":
-                        cdi = InitPSF(
-                            model = model,
-                            fwhm = fwhm,
-                            eta = eta,
-                            ) * cdi
-                        
-                    cdi = (sup * RAAR(beta=beta, calc_llk=calc_llk, show_cdi=live_plot, update_psf=update_psf)**50)**10 * cdi
-                    cdi = (sup * ER(calc_llk=calc_llk, show_cdi=live_plot, update_psf=update_psf)**50)**6 * cdi
+                        cdi = (sup * HIO(
+                                        beta = self.beta, 
+                                        calc_llk = self.calc_llk, 
+                                        show_cdi = self.live_plot
+                                        )**self.support_update_period
+                                )** hio_power * cdi
+                        cdi = (sup * RAAR(
+                                        beta = self.beta, 
+                                        calc_llk = self.calc_llk, 
+                                        show_cdi = self.live_plot
+                                        )**self.support_update_period
+                                )** raar_power * cdi
 
-                    cdi.save_obj_cxi("reconstructions/result_scan_{}_run_{}_LLK_{:.4}_support_{:.4}_autocorrelation.cxi".format(scan,
-                                                                                                     i,
-                                                                                                     cdi.get_llk()[0],
-                                                                                                     threshold_relative)
+                        # PSF is introduced at 66% of HIO and RAAR so from cycle n°924
+                        if psf_model != "pseudo-voigt":
+                            cdi = InitPSF(
+                                    model = self.psf_model,
+                                    fwhm = self.fwhm,
+                                    ) * cdi
+                            
+                        elif psf_model == "pseudo-voigt":
+                            cdi = InitPSF(
+                                    model = self.psf_model,
+                                    fwhm = self.fwhm,
+                                    eta = self.eta,
+                                    ) * cdi
+                            
+                        cdi = (sup * RAAR(
+                                        beta = self.beta, 
+                                        calc_llk = self.calc_llk, 
+                                        show_cdi = self.live_plot, 
+                                        update_psf = self.update_psf
+                                        )**self.support_update_period
+                                )** raar_power * cdi
+                        cdi = (sup * ER(
+                                        calc_llk = self.calc_llk, 
+                                        show_cdi = self.live_plot,
+                                        update_psf = self.update_psf
+                                        )**self.support_update_period
+                                )** er_power * cdi
+
+                    if not self.psf:
+                        hio_power = self.nb_hio//self.support_update_period
+                        raar_power = self.nb_raar//self.support_update_period
+                        er_power = self.nb_er//self.support_update_period
+
+                        cdi = (sup * HIO(
+                                        beta = self.beta, 
+                                        calc_llk = self.calc_llk, 
+                                        show_cdi = self.live_plot
+                                        )**self.support_update_period
+                                )** hio_power * cdi
+                        cdi = (sup * RAAR(
+                                        beta = self.beta, 
+                                        calc_llk = self.calc_llk, 
+                                        show_cdi = self.live_plot
+                                        )**self.support_update_period
+                                )** raar_power * cdi
+                        cdi = (sup * ER(
+                                        calc_llk = self.calc_llk, 
+                                        show_cdi = self.live_plot
+                                        )**self.support_update_period
+                                )** er_power * cdi
+
+                    cdi.save_obj_cxi("{}/pynxraw/result_scan_{}_run_{}_LLK_{:.4}_support_{:.4}_autocorrelation.cxi".format(
+                                                                                                    self.scan_folder,
+                                                                                                    self.scans,
+                                                                                                    i,
+                                                                                                    cdi.get_llk()[0],
+                                                                                                    self.threshold_relative)
                                     )
 
                 except SupportTooLarge:
                     print("Threshold value probably too low, support too large too continue")
                     pass
 
-
                 print("\n##########################################################################################################\n")    
 
-        else:
+
+        elif self.run_phase_retrieval == "No phase retrieval":
             clear_output(True)
 
 
@@ -4045,22 +4235,22 @@ class Interface(object):
         "Handles changes related to data interpolation"
         try:
             if change.new:
-                for w in self._list_widgets_correct.children[:-1]:
+                for w in self._list_widgets_correct.children[:-2]:
                     w.disabled = True
 
             if not change.new:
-                for w in self._list_widgets_correct.children[:-1]:
+                for w in self._list_widgets_correct.children[:-2]:
                     w.disabled = False
 
                 self.temp_handler(change = self._list_widgets_correct.children[2].value)
 
         except AttributeError:
             if change:
-                for w in self._list_widgets_correct.children[:-1]:
+                for w in self._list_widgets_correct.children[:-2]:
                     w.disabled = True
 
             if not change:
-                for w in self._list_widgets_correct.children[:-1]:
+                for w in self._list_widgets_correct.children[:-2]:
                     w.disabled = False
 
                 self.temp_handler(change = self._list_widgets_correct.children[2].value)
@@ -4087,34 +4277,43 @@ class Interface(object):
         "Handles changes related to the psf"
         try:
             if change.new:
-                self._list_widgets_pynx.children[15].disabled = False
+                for w in self._list_widgets_pynx.children[15:19]:
+                    w.disabled = False
 
             if not change.new:
-                self._list_widgets_pynx.children[15].disabled = True
+                for w in self._list_widgets_pynx.children[15:19]:
+                    w.disabled = True
+
         except:
             if change:
-                self._list_widgets_pynx.children[15].disabled = False
+                for w in self._list_widgets_pynx.children[15:19]:
+                    w.disabled = False
 
             if not change:
-                self._list_widgets_pynx.children[15].disabled = True
+                for w in self._list_widgets_pynx.children[15:19]:
+                    w.disabled = True
 
     def pynx_peak_shape_handler(self, change):
         "Handles changes related to the peak shape"
         try:
             if change.new != "pseudo-voigt":
-                for w in self._list_widgets_pynx.children[16:18]:
-                    w.disabled = False
-                self._list_widgets_pynx.children[19].disabled = True
+                self._list_widgets_pynx.children[17].disabled = True
 
             if change.new == "pseudo-voigt":
-                for w in self._list_widgets_pynx.children[16:19]:
-                    w.disabled = False
+                self._list_widgets_pynx.children[17].disabled = False
+
         except:
             if change != "pseudo-voigt":
-                for w in self._list_widgets_pynx.children[16:18]:
-                    w.disabled = False
-                self._list_widgets_pynx.children[19].disabled = True
+                self._list_widgets_pynx.children[17].disabled = True
 
             if change == "pseudo-voigt":
-                for w in self._list_widgets_pynx.children[16:19]:
-                    w.disabled = False
+                self._list_widgets_pynx.children[17].disabled = False
+
+    def run_pynx_handler(self, change):
+        if change.new != "No phase retrieval":
+            for w in self._list_widgets_pynx.children[:-2]:
+                w.disabled = True
+
+        elif change.new == "No phase retrieval":
+            for w in self._list_widgets_pynx.children[:-2]:
+                w.disabled = False

@@ -27,12 +27,12 @@ echo "/sware/exp/pynx/devel.debian9/bin/pynx-cdi-analysis.py *LLK* modes=1 modes
 /sware/exp/pynx/devel.debian9/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes_job.h5 > README_modes.md
 
 # Running strain analysis
-ssh simonne@rnice9 << EOF
-	cd $1
-	strain_ID01.py $2 $3
-    
-    echo "Strain.py is running ..."
-    
-	exit
-
-EOF
+# ssh simonne@rnice9 << EOF
+# 	cd $1
+# 	strain_ID01.py $2 $3
+#     
+#     echo "Strain.py is running ..."
+#     
+# 	exit
+# 
+# EOF

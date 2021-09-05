@@ -2,7 +2,7 @@
 cwd=$(pwd)
 ssh simonne@lid01gpu1 << EOF
 
-	bash pynx_LID01.sh
+	/users/simonne/phdutils/phdutils/bcdi/terminal_scripts/pynx_LID01.sh $cwd $1 $2
 
     echo "Phase retrieval is running ..."
     
