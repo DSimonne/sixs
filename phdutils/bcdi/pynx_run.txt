@@ -35,3 +35,4 @@ wavelength = 9.5373e-11
 verbose = 100
 output_format= 'cxi'  # 'npz' # 'cxi' #
 live_plot = False
+mpi=run

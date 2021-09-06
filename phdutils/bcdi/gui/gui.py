@@ -10,6 +10,7 @@ import os
 import shutil
 import math
 from ast import literal_eval
+import operator as operator_lib
 
 # import lmfit
 # from lmfit import minimize, Parameters, Parameter
@@ -1519,7 +1520,7 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
 
             h5_data = widgets.Dropdown(
-                options = glob.glob(os.getcwd() + "/*.h5") + glob.glob(os.getcwd() + "/*.cxi") + glob.glob(os.getcwd() + "/*.npy") + glob.glob(os.getcwd() + "/*.npz"),
+                options = sorted(glob.glob(os.getcwd() + "/*.h5") + glob.glob(os.getcwd() + "/*.cxi") + glob.glob(os.getcwd() + "/*.npy") + glob.glob(os.getcwd() + "/*.npz")),
                 description = 'Compatible file list',
                 disabled = False,
                 layout = Layout(width='90%'),
@@ -1571,7 +1572,6 @@ class Interface(object):
             self._list_widgets_strain.children[-1],
             ])
 
-
         # Widgets for logs
         self.tab_logs = interactive(self.display_logs,
             label_logs = widgets.HTML(
@@ -1615,7 +1615,7 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
 
             file_list = widgets.Dropdown(
-                options = glob.glob(os.getcwd() + "/*.npz") + glob.glob(os.getcwd() + "/*.cxi") + [""],
+                options = sorted(glob.glob(os.getcwd() + "/*.npz") + glob.glob(os.getcwd() + "/*.cxi")) + [""],
                 description = 'Compatible file list',
                 disabled = False,
                 layout = Layout(width='90%'),
@@ -1647,26 +1647,26 @@ class Interface(object):
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
                     iobs = widgets.Dropdown(
-                        options = glob.glob(os.getcwd() + "*_pynx_align*.npz") + [""],
+                        options = sorted(glob.glob(os.getcwd() + "*_pynx_align*.npz")) + [""],
                         description = 'Dataset',
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
                     mask = widgets.Dropdown(
-                        options = glob.glob(os.getcwd() + "*maskpynx*.npz") + [""],
+                        options = sorted(glob.glob(os.getcwd() + "*maskpynx*.npz")) + [""],
                         description = 'Mask',
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
                     support  = widgets.Dropdown(
-                        options = glob.glob(os.getcwd() + "*.npz") + [""],
+                        options = sorted(glob.glob(os.getcwd() + "*.npz")) + [""],
                         value = "",
                         description = 'Support',
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
-                    obj  = widgets.Dropdown(
-                        options = glob.glob(os.getcwd() + "*.npz") + [""],
+                    obj = widgets.Dropdown(
+                        options = sorted(glob.glob(os.getcwd() + "*.npz")) + [""],
                         value = "",
                         description = 'Object',
                         disabled = False,
@@ -1680,7 +1680,18 @@ class Interface(object):
                         indent = False,
                         layout = Layout(height = "50px"),
                         icon = 'check'),
-                                
+                    max_size  = widgets.BoundedIntText(
+                        value = 256,
+                        step = 1,
+                        min = 0,
+                        max = 1000,
+                        layout = Layout(height = "50px", width = "40%"),
+                        continuous_update = False,
+                        description = 'Maximum array size for cropping:',
+                        readout = True,
+                        style = {'description_width': 'initial'},
+                        disabled = False),
+
                     label_support = widgets.HTML(
                         description="<p style='font-weight: bold;font-size:1.2em'>Support parameters",
                         style = {'description_width': 'initial'},
@@ -1793,7 +1804,7 @@ class Interface(object):
                         placeholder = "",
                         description = 'Operator chain',
                         layout = Layout(height = "35px", width = "70%"),
-                        disabled = False,
+                        disabled = True,
                         continuous_update = False,
                         style = {'description_width': 'initial'}),
                     nb_raar = widgets.BoundedIntText(
@@ -1844,6 +1855,17 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
+
+                    label_filtering = widgets.HTML(
+                        description="<p style='font-weight: bold;font-size:1.2em'>Filtering criteria for reconstructions",
+                        style = {'description_width': 'initial'},
+                        layout = Layout(width='90%', height = "35px")),
+                    filter_criteria = widgets.Dropdown(
+                        options = [("No filtering", False), ("Standard deviation", "standard_deviation"), ("Log-likelihood", "LLK")],
+                        description = 'Filtering criteria',
+                        disabled = False,
+                        layout = Layout(width='90%'),
+                        style = {'description_width': 'initial'}),
                     nb_run_keep = widgets.BoundedIntText(
                         value = 20,
                         continuous_update = False,
@@ -1858,7 +1880,7 @@ class Interface(object):
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
                     live_plot = widgets.BoundedIntText(
-                        value = 0,
+                        value = 200,
                         step = 10,
                         max = 500,
                         min = 0,
@@ -1928,13 +1950,13 @@ class Interface(object):
                         layout = Layout(width='90%', height = "35px")),
 
                     run_phase_retrieval = widgets.ToggleButtons(
-                        options = ['No phase retrieval', 'Run batch job', "Run script in local environment", "Use operators"],
-                        value = "No phase retrieval",
+                        options = [('No phase retrieval', False), ('Run batch job', "batch"), ("Run script locally", "local_script"), ("Use operators", "operators")],
+                        value = False,
                         tooltips = [
                             "Click to be able to change parameters",
-                            "Collect parameters to run a job on slurm",
-                            "Run script on jupyter notebook environment",
-                            "Use operators on local environment"
+                            "Collect parameters to run a job on slurm, will automatically apply a std deviation filter and run modes decomposition, freed the kernel",
+                            "Run script on jupyter notebook environment, uses notebook kernel",
+                            "Use operators on local environment, if using PSF, it is activated after 50\% of RAAR cycles"
                             ],
                         description = 'Run phase retrieval ...',
                         disabled = False,
@@ -1945,24 +1967,28 @@ class Interface(object):
                         icon = 'fast-forward')
                    )
         self._list_widgets_pynx.children[1].observe(self.folder_pynx_handler, names = "value")
-        self._list_widgets_pynx.children[14].observe(self.pynx_psf_handler, names = "value")
-        self._list_widgets_pynx.children[15].observe(self.pynx_peak_shape_handler, names = "value")
+        self._list_widgets_pynx.children[15].observe(self.pynx_psf_handler, names = "value")
+        self._list_widgets_pynx.children[16].observe(self.pynx_peak_shape_handler, names = "value")
+        self._list_widgets_pynx.children[21].observe(self.pynx_operator_handler, names = "value")
         self._list_widgets_pynx.children[-2].observe(self.run_pynx_handler, names = "value")
 
         self.tab_pynx = widgets.VBox([
-            widgets.VBox(self._list_widgets_pynx.children[:8]),
-            widgets.HBox(self._list_widgets_pynx.children[8:10]),
-            widgets.HBox(self._list_widgets_pynx.children[10:13]),
-            self._list_widgets_pynx.children[13],
-            widgets.HBox(self._list_widgets_pynx.children[14:18]),
-            self._list_widgets_pynx.children[18],
+            widgets.VBox(self._list_widgets_pynx.children[:6]),
+            widgets.HBox(self._list_widgets_pynx.children[6:8]),
+            self._list_widgets_pynx.children[8],
+            widgets.HBox(self._list_widgets_pynx.children[9:11]),
+            widgets.HBox(self._list_widgets_pynx.children[11:14]),
+            self._list_widgets_pynx.children[14],
+            widgets.HBox(self._list_widgets_pynx.children[15:19]),
             self._list_widgets_pynx.children[19],
-            widgets.HBox(self._list_widgets_pynx.children[20:22]),
-            widgets.HBox(self._list_widgets_pynx.children[22:26]),
-            widgets.HBox(self._list_widgets_pynx.children[26:28]),
+            self._list_widgets_pynx.children[20],
+            widgets.HBox(self._list_widgets_pynx.children[21:23]),
+            widgets.HBox(self._list_widgets_pynx.children[23:27]),
+            self._list_widgets_pynx.children[27],
             self._list_widgets_pynx.children[28],
-            widgets.HBox(self._list_widgets_pynx.children[29:33]),
-            widgets.HBox(self._list_widgets_pynx.children[33:36]),
+            widgets.HBox(self._list_widgets_pynx.children[29:31]),
+            self._list_widgets_pynx.children[31],
+            widgets.HBox(self._list_widgets_pynx.children[32:36]),
             self._list_widgets_pynx.children[-3],
             self._list_widgets_pynx.children[-2],
             self._list_widgets_pynx.children[-1],
@@ -1975,12 +2001,19 @@ class Interface(object):
                 style = {'description_width': 'initial'},
                 layout = Layout(width='90%', height = "35px")),
 
-            facet_filename = widgets.Text(
-                value = os.getcwd() + f"/postprocessing/scan_number_fa.vtk",
-                placeholder = os.getcwd() + f"/postprocessing/scan_number_fa.vtk",
-                description = 'Path to vtk data:',
+            facet_folder = widgets.Text(
+                value = os.getcwd() + f"/postprocessing/",
+                placeholder = os.getcwd() + f"/postprocessing/",
+                description = 'Facet data (.vtk) folder:',
                 disabled = False,
                 continuous_update = False,
+                layout = Layout(width='90%'),
+                style = {'description_width': 'initial'}),
+
+            facet_filename = widgets.Dropdown(
+                options = sorted(glob.glob(os.getcwd() + f"/postprocessing/*.vtk")) + [""],
+                description = 'Vtk data',
+                disabled = False,
                 layout = Layout(width='90%'),
                 style = {'description_width': 'initial'}),
 
@@ -1993,6 +2026,7 @@ class Interface(object):
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'}),
             )
+        self.tab_plot.children[1].observe(self.folder_facet_handler, names = "value")
 
         # Widgets for readme tab
         self.tab_readme = interactive(self.display_readme, 
@@ -2008,7 +2042,6 @@ class Interface(object):
                                             'Insight in the functions used for facet analysis'
                                             ],
                                     style = {'description_width': 'initial'}))
-
 
         # Create the final window
         self.window = widgets.Tab(
@@ -2187,6 +2220,17 @@ class Interface(object):
                 print(f"{self.root_folder}S{self.scans}/postprocessing/CompareFacetsEvolution.ipynb exists")
                 pass
 
+            self._list_widgets_pynx.children[1].value = self.scan_folder + f"pynxraw/"
+            self.folder_pynx_handler(change = self._list_widgets_pynx.children[1].value)
+
+            self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
+            self.folder_plot_handler(change = self.tab_plot.children[1].value)
+
+            self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
+            self.folder_strain_handler(change = self._list_widgets_strain.children[-4].value)
+ 
+            self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/*.vtk"
+            self.folder_facet_handler(change = self.tab_facet.children[1].value)
 
         if not run_dir_init:
             clear_output(True)
@@ -2498,10 +2542,18 @@ class Interface(object):
             )
 
             # Scan folder, refresh
-            self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/{self.scans}_fa.vtk"
-            self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
-            self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
             self._list_widgets_pynx.children[1].value = self.scan_folder + f"pynxraw/"
+            self.folder_pynx_handler(change = self._list_widgets_pynx.children[1].value)
+
+            self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
+            self.folder_plot_handler(change = self.tab_plot.children[1].value)
+
+            self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
+            self.folder_strain_handler(change = self._list_widgets_strain.children[-4].value)
+ 
+            self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/*.vtk"
+            self.folder_facet_handler(change = self.tab_facet.children[1].value)
+
 
         if not run_preprocess:
             clear_output(True)
@@ -2541,24 +2593,25 @@ class Interface(object):
             except ValueError:
                 print(f"Wrong list syntax for refelction")
 
-            # Check is SIXS data, in that case rotate
+            # Check beamline for save folder
             if self.beamline == "SIXS_2019":
                 root_folder = self.root_folder
-                save_dir = f"{self.root_folder}S{self.scans}/postprocessing/corrections/"
                 
             if self.beamline == "ID01":
                 root_folder = self.data_directory
-                save_dir = f"{self.root_folder}S{self.scans}/postprocessing/corrections/"
+            
+            save_dir = f"{self.root_folder}S{self.scans}/postprocessing/corrections/"
                 
-                # Create final directory is not yet existing
-                if not os.path.isdir(save_dir):
-                    full_path = ""
-                    for d in save_dir.split("/"):
-                        full_path += d + "/"
-                        try:
-                            os.mkdir(full_path)
-                        except FileExistsError:
-                            pass
+            # Create final directory is not yet existing
+            if not os.path.isdir(save_dir):
+                full_path = ""
+                for d in save_dir.split("/"):
+                    full_path += d + "/"
+                    try:
+                        os.mkdir(full_path)
+                    except FileExistsError:
+                        pass
+
             try:
                 # On lance la correction
                 self.metadata = correct_angles_detector(
@@ -2601,8 +2654,12 @@ class Interface(object):
                     sdd = self.sdd,
                     energy = self.energy,
                 )
+            
             except ValueError:
                 print("Inplane or outofplane ?")
+
+            except Exception as e:
+                raise e
 
             # Save metadata
             for keys, values in self.metadata.items():
@@ -2628,6 +2685,7 @@ class Interface(object):
         support,
         obj,
         auto_center_resize,
+        max_size,
         label_support,
         support_threshold,
         support_only_shrink,
@@ -2648,6 +2706,8 @@ class Interface(object):
         nb_er,
         nb_ml,
         nb_run,
+        label_filtering,
+        filter_criteria,
         nb_run_keep,
         label_options,
         live_plot,
@@ -2671,6 +2731,7 @@ class Interface(object):
         self.support = support
         self.obj = obj
         self.auto_center_resize = auto_center_resize
+        self.max_size = max_size
         self.label_support = label_support
         self.support_threshold = support_threshold
         self.support_only_shrink = support_only_shrink
@@ -2691,6 +2752,7 @@ class Interface(object):
         self.nb_er = nb_er
         self.nb_ml = nb_ml
         self.nb_run = nb_run
+        self.filter_criteria = filter_criteria,
         self.nb_run_keep = nb_run_keep
         self.label_options = label_options
         self.live_plot = live_plot
@@ -2729,8 +2791,8 @@ class Interface(object):
         
         print("Scan n°", self.scans)
 
-        self.energy = self._list_widgets_preprocessing.children[54].value * 1e-3
-        self.wavelength = 12.384 / self.energy * 1e-10
+        self.energy = self._list_widgets_preprocessing.children[54].value
+        self.wavelength = 1.2399*1e-6 / self.energy
         self.sdd = self._list_widgets_preprocessing.children[53].value
 
         print("CXI input: Energy = %8.2fkeV" % self.energy)
@@ -2738,17 +2800,13 @@ class Interface(object):
         print("CXI input: detector distance = %8.2fm" % self.sdd)
         print("CXI input: detector pixel size = %8.2fum" % (self.pixel_size_detector * 1e6))
 
-        # pynx arguments text files
+        # PyNX arguments text files
         self.pynx_parameter_gui_file = self.scan_folder + '/pynxraw/pynx_run_gui.txt'
         self.pynx_parameter_cli_file = self.scan_folder + '/pynxraw/pynx_run.txt'
-                    
 
-        if self.run_phase_retrieval == "Run batch job" or self.run_phase_retrieval == "Run script in local environment":
+        if self.run_phase_retrieval == "batch" or self.run_phase_retrieval == "local_script":
             self.text_file = []
             self.live_plot = False
-            
-            if isinstance(self.live_plot, int):
-                self.live_plot = True
             
             # Load files
             for file, parameter in [(self.iobs, "data"), (self.mask, "mask"), (self.obj, "object")]:
@@ -2788,8 +2846,8 @@ class Interface(object):
                 f'nb_run = {self.nb_run}\n',
                 f'nb_run_keep = {self.nb_run_keep}\n',
                 '\n',
+                f'# max_size = {self.max_size}\n',
                 'zero_mask = auto # masked pixels will start from imposed 0 and then let free\n',
-                '# max_size = 256 \n',
                 'crop_output= 0 # set to 0 to avoid cropping the output in the .cxi\n',
                 '\n',
                 f'positivity = {self.positivity}\n',
@@ -2804,6 +2862,7 @@ class Interface(object):
                 f'verbose = {self.verbose}\n',
                 "output_format= 'cxi'\n",
                 f'live_plot = {self.live_plot}\n',
+                "mpi=run\n",
             ]
             
             with open(self.pynx_parameter_gui_file, "w") as v:
@@ -2812,18 +2871,19 @@ class Interface(object):
                     
             print(f"Saved parameters in {self.scan_folder}pynxraw/pynx_run_gui.tx")
             
-            if self.run_phase_retrieval == "Run batch job":
+            if self.run_phase_retrieval == "batch":
                 # Full path for now, this can be corrected later hehehe
+                # runs modes directly and saves all data in an "all" subdir, filter based on LLK
                 os.system(f"/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.scan_folder}pynxraw")
-                print(f"Running /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
+                print(f"/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.scan_folder}pynxraw")
 
-            elif self.run_phase_retrieval == "Run script in local environment":
+            elif self.run_phase_retrieval == "local_script":
                 os.system(f"cd {self.scan_folder}pynxraw; /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
                 print(f"Running /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
 
-        
-        elif self.run_phase_retrieval == "Use operators":
+        elif self.run_phase_retrieval == "operators":
             # Extract data
+            print("Log likelihood is updated every 50 iterations.")
 
             self.calc_llk = 50 # for now
 
@@ -2873,10 +2933,8 @@ class Interface(object):
                     except:
                         print("Could not load 'data' array from npz file")
 
-
             # Center and crop data
             if self.auto_center_resize:
-                max_size = 256
                 if self.iobs.ndim == 3:
                     nz0, ny0, nx0 = self.iobs.shape
 
@@ -2890,10 +2948,10 @@ class Interface(object):
                     ny = 2 * min(iy0, ny0 - iy0)
                     nz = 2 * min(iz0, nz0 - iz0)
 
-                    if max_size is not None:
-                        nx = min(nx, max_size)
-                        ny = min(ny, max_size)
-                        nz = min(nz, max_size)
+                    if self.max_size is not None:
+                        nx = min(nx, self.max_size)
+                        ny = min(ny, self.max_size)
+                        nz = min(nz, self.max_size)
 
                     # Crop data to fulfill FFT size requirements
                     nz1, ny1, nx1 = smaller_primes((nz, ny, nx), maxprime=7, required_dividers=(2,))
@@ -2917,10 +2975,10 @@ class Interface(object):
                     # Max symmetrical box around center of mass
                     nx = 2 * min(ix0, nx0 - ix0)
                     ny = 2 * min(iy0, ny0 - iy0)
-                    if max_size is not None:
-                        nx = min(nx, max_size)
-                        ny = min(ny, max_size)
-                        nz = min(nz, max_size)
+                    if self.max_size is not None:
+                        nx = min(nx, self.max_size)
+                        ny = min(ny, self.max_size)
+                        nz = min(nz, self.max_size)
 
                     # Crop data to fulfill FFT size requirements
                     ny1, nx1 = smaller_primes((ny, nx), maxprime=7, required_dividers=(2,))
@@ -2930,138 +2988,206 @@ class Interface(object):
 
                     if mask is not None:
                         mask = mask[iy0 - ny1 // 2:iy0 + ny1 // 2, ix0 - nx1 // 2:ix0 + nx1 // 2]
-        
+            
+            print("\n#################################################################################################################\n")    
+            
+            try:
+                # Run phase retrieval for nb_run
+                for i in range(self.nb_run):
+                    print(f"Run {i}")
+                    if i>10:
+                        self.live_plot = False
 
-            for i in range(self.nb_run):
-                print(f"Run {i}")
 
-                # Create cdi object with data and mask, laod the main parameters
-                cdi = CDI(fftshift(self.iobs),
-                          support = self.support,
-                          obj = self.obj,
-                          mask = fftshift(self.mask),
-                          wavelength = self.wavelength,
-                          pixel_size_detector = self.pixel_size_detector,
-                          detector_distance = self.sdd,
-                         )
+                    # Create cdi object with data and mask, laod the main parameters
+                    cdi = CDI(fftshift(self.iobs),
+                              support = self.support,
+                              obj = self.obj,
+                              mask = fftshift(self.mask),
+                              wavelength = self.wavelength,
+                              pixel_size_detector = self.pixel_size_detector,
+                              detector_distance = self.sdd,
+                             )
 
-                if i==0:
-                    cdi.save_data_cxi(
-                        filename = f"{self.root_folder}{self.sample_name}{self.scans}/pynxraw/DiffractionData.cxi",
-                        sample_name = "",
-                        experiment_id = "",
-                        instrument = ""
+                    if i==0:
+                        cdi.save_data_cxi(
+                            filename = f"{self.root_folder}{self.sample_name}{self.scans}/pynxraw/DiffractionData.cxi",
+                            sample_name = "",
+                            experiment_id = "",
+                            instrument = ""
+                            )
+
+                    # Change support threshold for supports update
+                    if isinstance(self.support_threshold, float):
+                        self.threshold_relative = self.support_threshold
+                    elif isinstance(self.support_threshold, tuple):
+                        self.threshold_relative = np.random.uniform(self.support_threshold[0], self.support_threshold[1])
+                    print(f"Threshold: {self.threshold_relative}")
+
+                    sup = SupportUpdate(
+                        threshold_relative = self.threshold_relative,
+                        smooth_width = self.support_smooth_width, 
+                        force_shrink = self.support_only_shrink,
+                        method='rms', 
+                        post_expand = self.support_post_expand,
                         )
 
-                # Change support threshold for supports update
-                self.threshold_relative = np.random.uniform(self.support_threshold[0], self.support_threshold[1])
-                print(f"Threshold: {self.threshold_relative}")
+                    # Initialize the free pixels for LLK
+                    # cdi = InitFreePixels() * cdi
 
-                sup = SupportUpdate(
-                    threshold_relative = self.threshold_relative,
-                    smooth_width = self.support_smooth_width, 
-                    force_shrink = self.support_only_shrink,
-                    method='rms', 
-                    post_expand = self.support_post_expand,
-                    )
+                    # Initialize the support with autocorrelation
+                    cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
+                        threshold = 0.1, # extra argument
+                        verbose = True) * cdi
 
-                # Initialize the free pixels for LLK
-                # cdi = InitFreePixels() * cdi
+                    # Begin with HIO cycles without PSF and with support updates
+                    try:
+                        # update_psf = 0 probably enough but not sure
+                        if self.psf:
+                            hio_power = self.nb_hio//self.support_update_period
+                            raar_power = (self.nb_raar//2)//self.support_update_period
+                            er_power = self.nb_er//self.support_update_period
 
-                # Initialize the support with autocorrelation
-                cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
-                    threshold = 0.1, # extra argument
-                    verbose = True) * cdi
+                            cdi = (sup * HIO(
+                                            beta = self.beta, 
+                                            calc_llk = self.calc_llk, 
+                                            show_cdi = self.live_plot
+                                            )**self.support_update_period
+                                    )** hio_power * cdi
+                            cdi = (sup * RAAR(
+                                            beta = self.beta, 
+                                            calc_llk = self.calc_llk, 
+                                            show_cdi = self.live_plot
+                                            )**self.support_update_period
+                                    )** raar_power * cdi
 
-                # Begin with HIO cycles without PSF and with support updates
-                try:
-                    # update_psf = 0 probably enough but not sure
-                    if self.psf:
-                        hio_power = self.nb_hio//self.support_update_period
-                        raar_power = (self.nb_raar//2)//self.support_update_period
-                        er_power = self.nb_er//self.support_update_period
+                            # PSF is introduced at 66% of HIO and RAAR so from cycle n°924
+                            if psf_model != "pseudo-voigt":
+                                cdi = InitPSF(
+                                        model = self.psf_model,
+                                        fwhm = self.fwhm,
+                                        ) * cdi
+                                
+                            elif psf_model == "pseudo-voigt":
+                                cdi = InitPSF(
+                                        model = self.psf_model,
+                                        fwhm = self.fwhm,
+                                        eta = self.eta,
+                                        ) * cdi
+                                
+                            cdi = (sup * RAAR(
+                                            beta = self.beta, 
+                                            calc_llk = self.calc_llk, 
+                                            show_cdi = self.live_plot, 
+                                            update_psf = self.update_psf
+                                            )**self.support_update_period
+                                    )** raar_power * cdi
+                            cdi = (sup * ER(
+                                            calc_llk = self.calc_llk, 
+                                            show_cdi = self.live_plot,
+                                            update_psf = self.update_psf
+                                            )**self.support_update_period
+                                    )** er_power * cdi
 
-                        cdi = (sup * HIO(
-                                        beta = self.beta, 
-                                        calc_llk = self.calc_llk, 
-                                        show_cdi = self.live_plot
-                                        )**self.support_update_period
-                                )** hio_power * cdi
-                        cdi = (sup * RAAR(
-                                        beta = self.beta, 
-                                        calc_llk = self.calc_llk, 
-                                        show_cdi = self.live_plot
-                                        )**self.support_update_period
-                                )** raar_power * cdi
+                        if not self.psf:
+                            hio_power = self.nb_hio//self.support_update_period
+                            raar_power = self.nb_raar//self.support_update_period
+                            er_power = self.nb_er//self.support_update_period
 
-                        # PSF is introduced at 66% of HIO and RAAR so from cycle n°924
-                        if psf_model != "pseudo-voigt":
-                            cdi = InitPSF(
-                                    model = self.psf_model,
-                                    fwhm = self.fwhm,
-                                    ) * cdi
-                            
-                        elif psf_model == "pseudo-voigt":
-                            cdi = InitPSF(
-                                    model = self.psf_model,
-                                    fwhm = self.fwhm,
-                                    eta = self.eta,
-                                    ) * cdi
-                            
-                        cdi = (sup * RAAR(
-                                        beta = self.beta, 
-                                        calc_llk = self.calc_llk, 
-                                        show_cdi = self.live_plot, 
-                                        update_psf = self.update_psf
-                                        )**self.support_update_period
-                                )** raar_power * cdi
-                        cdi = (sup * ER(
-                                        calc_llk = self.calc_llk, 
-                                        show_cdi = self.live_plot,
-                                        update_psf = self.update_psf
-                                        )**self.support_update_period
-                                )** er_power * cdi
-
-                    if not self.psf:
-                        hio_power = self.nb_hio//self.support_update_period
-                        raar_power = self.nb_raar//self.support_update_period
-                        er_power = self.nb_er//self.support_update_period
-
-                        cdi = (sup * HIO(
-                                        beta = self.beta, 
-                                        calc_llk = self.calc_llk, 
-                                        show_cdi = self.live_plot
-                                        )**self.support_update_period
-                                )** hio_power * cdi
-                        cdi = (sup * RAAR(
-                                        beta = self.beta, 
-                                        calc_llk = self.calc_llk, 
-                                        show_cdi = self.live_plot
-                                        )**self.support_update_period
-                                )** raar_power * cdi
-                        cdi = (sup * ER(
-                                        calc_llk = self.calc_llk, 
-                                        show_cdi = self.live_plot
-                                        )**self.support_update_period
-                                )** er_power * cdi
-
-                    cdi.save_obj_cxi("{}/pynxraw/result_scan_{}_run_{}_LLK_{:.4}_support_{:.4}_autocorrelation.cxi".format(
-                                                                                                    self.scan_folder,
-                                                                                                    self.scans,
-                                                                                                    i,
-                                                                                                    cdi.get_llk()[0],
-                                                                                                    self.threshold_relative)
-                                    )
-
-                except SupportTooLarge:
-                    print("Threshold value probably too low, support too large too continue")
-                    pass
-
-                print("\n##########################################################################################################\n")    
+                            cdi = (sup * HIO(
+                                            beta = self.beta, 
+                                            calc_llk = self.calc_llk, 
+                                            show_cdi = self.live_plot
+                                            )**self.support_update_period
+                                    )** hio_power * cdi
+                            cdi = (sup * RAAR(
+                                            beta = self.beta, 
+                                            calc_llk = self.calc_llk, 
+                                            show_cdi = self.live_plot
+                                            )**self.support_update_period
+                                    )** raar_power * cdi
+                            cdi = (sup * ER(
+                                            calc_llk = self.calc_llk, 
+                                            show_cdi = self.live_plot
+                                            )**self.support_update_period
+                                    )** er_power * cdi
 
 
-        elif self.run_phase_retrieval == "No phase retrieval":
+                        cdi.save_obj_cxi("{}/pynxraw/result_scan_{}_run_{}_LLK_{:.4}_support_{:.4}_autocorrelation.cxi".format(
+                                                                                                        self.scan_folder,
+                                                                                                        self.scans,
+                                                                                                        i,
+                                                                                                        cdi.get_llk()[0],
+                                                                                                        self.threshold_relative
+                                                                                                        )
+                                        )
+
+                        print("Saved as result_scan_{}_run_{}_LLK_{:.4}_support_{:.4}_autocorrelation.cxi".format(
+                                                                                                        self.scans,
+                                                                                                        i,
+                                                                                                        cdi.get_llk()[0],
+                                                                                                        self.threshold_relative
+                                                                                                        )
+                                        )
+                    except SupportTooLarge:
+                        print("Threshold value probably too low, support too large too continue")
+                        pass
+
+                    print("\n##########################################################################################################\n")    
+            except KeyboardInterrupt:
+                clear_output(True)
+                print("Phase retrieval stopped by you fool ... :'(")
+
+            # if filter, filter data
+            if self.filter_criteria:
+                self.filter_reconstructions(self.scan_folder)
+
+            # run modes decomposition, no widget yet
+            self.run_modes_decomposition(self.scan_folder)
+
+        elif not self.run_phase_retrieval:
             clear_output(True)
+
+
+    def filter_reconstructions(self, folder):
+        cxi_files = sorted(glob.glob(f"{folder}pynxraw/*LLK*.cxi"))
+
+        if cxi_files == []:
+            print(f"No *LLK*.cxi files in {folder}pynxraw/*LLK*.cxi")
+
+        else:
+            # Keep filtering criteria of reconstruction modules in dictionnary
+            filtering_criteria = {}
+
+            if self.filter_criteria[0] == "standard_deviation":
+                for filename in cxi_files:
+                    print("Computing standard deviation of object modulus for ", filename)
+                    with tb.open_file(filename, "r") as f:
+                        data = f.root.entry_1.image_1.data[:]
+                        filtering_criteria[filename] = np.std(np.abs(data))
+
+            elif self.filter_criteria[0] == "LLK":
+                for filename in cxi_files:
+                    print("Extracting llk value for poisson statistics for ", filename)
+                    with tb.open_file(filename, "r") as f:
+                        llk = f.root.entry_1.image_1.process_1.results.llk_poisson[...]
+                        filtering_criteria[filename] = llk
+
+            sorted_dict = sorted(filtering_criteria.items(), key=operator_lib.itemgetter(1))
+
+            for f, filtering_criteria in sorted_dict[self.nb_run_keep:]:
+                print(f"Removed scan {f}")
+                os.remove(f)
+            
+            print("Filtered the reconstructions ")
+
+
+    def run_modes_decomposition(self, folder):
+        print("Using /data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py (py38-env environment)")
+        print(f"Using {folder}pynxraw/*LLK* files.")
+        print("Running pynx-cdi-analysis.py *LLK* modes=1")
+        print(f"Output in {folder}pynxraw/modes_gui.h5")
+        os.system(f"/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py {folder}pynxraw/*LLK* modes=1 modes_output={folder}pynxraw/modes_gui.h5")
 
 
     def strain_gui(self,
@@ -3240,97 +3366,117 @@ class Interface(object):
 
             self.pixel_size = None
 
-            # Check is SIXS data, in that case rotate
+            # Check beamline for save folder
             if self.beamline == "SIXS_2019":
                 root_folder = self.root_folder
                 
             if self.beamline == "ID01":
                 root_folder = self.data_directory
+            
+            save_dir = f"{self.root_folder}S{self.scans}/result_{self.data_frame}/"
                 
-            strain_bcdi(
-                scan = self.scans, 
-                root_folder = root_folder,
-                save_dir = self.save_dir,
-                data_dirname = self.data_dirname,
-                sample_name = self.sample_name, 
-                comment = self.user_comment, 
-                sort_method = self.sort_method, 
-                correlation_threshold = self.correlation_threshold,
-                original_size = self.original_size, 
-                phasing_binning = self.phasing_binning, 
-                preprocessing_binning = self.preprocessing_binning, 
-                output_size = self.output_size, 
-                keep_size = self.keep_size, 
-                fix_voxel = self.fix_voxel,
-                data_frame = self.data_frame,
-                ref_axis_q = self.ref_axis_q,
-                save_frame = self.save_frame,
-                isosurface_strain = self.isosurface_strain,
-                strain_method = self.strain_method,
-                phase_offset = self.phase_offset,
-                phase_offset_origin = self.phase_offset_origin,
-                offset_method = self.offset_method,
-                centering_method = self.centering_method,
-                beamline = self.beamline,
-                actuators = self.actuators,
-                rocking_angle = self.rocking_angle,
-                sdd = self.sdd,
-                energy = self.energy,
-                beam_direction = self.beam_direction,
-                outofplane_angle = self.outofplane_angle,
-                inplane_angle = self.inplane_angle,
-                tilt_angle = self.tilt_angle,
-                sample_offsets = self.sample_offsets,
-                specfile_name = self.specfile_name,
-                custom_scan = self.custom_scan,
-                custom_motors = self.custom_motors,
-                detector = self.detector,
-                nb_pixel_x = self.nb_pixel_x,
-                nb_pixel_y = self.nb_pixel_y,
-                pixel_size = self.pixel_size,
-                template_imagefile = self.template_imagefile,
-                correct_refraction = self.correct_refraction,
-                optical_path_method = self.optical_path_method,
-                dispersion = self.dispersion,
-                absorption = self.absorption,
-                threshold_unwrap_refraction = self.threshold_unwrap_refraction,
-                simu_flag = self.simu_flag,
-                invert_phase = self.invert_phase,
-                flip_reconstruction = self.flip_reconstruction,
-                phase_ramp_removal = self.phase_ramp_removal,
-                threshold_gradient = self.threshold_gradient,
-                save_raw = self.save_raw,
-                save_support = self.save_support,
-                save = self.save,
-                debug = self.debug,
-                roll_modes = self.roll_modes,
-                align_axis = self.align_axis,
-                ref_axis = self.ref_axis,
-                axis_to_align = self.axis_to_align,
-                strain_range = self.strain_range,
-                phase_range = self.phase_range,
-                grey_background = self.grey_background,
-                tick_spacing = self.tick_spacing,
-                tick_direction = self.tick_direction,
-                tick_length = self.tick_length,
-                tick_width = self.tick_width,
-                get_temperature = self.temp_bool,
-                reflection = self.reflection,
-                reference_spacing = self.reference_spacing,
-                reference_temperature = self.reference_temperature,
-                avg_method = self.avg_method,
-                avg_threshold = self.avg_threshold,
-                hwidth = self.hwidth,
-                apodize_flag = self.apodize_flag,
-                apodize_window = self.apodize_window,
-                mu = self.mu,
-                sigma = self.sigma,
-                alpha = self.alpha,
-                h5_data = self.h5_data,
+            # Create final directory is not yet existing
+            if not os.path.isdir(save_dir):
+                full_path = ""
+                for d in save_dir.split("/"):
+                    full_path += d + "/"
+                    try:
+                        os.mkdir(full_path)
+                    except FileExistsError:
+                        pass
+                
+            try:
+                strain_bcdi(
+                    scan = self.scans, 
+                    root_folder = root_folder,
+                    save_dir = save_dir,
+                    data_dirname = self.data_dirname,
+                    sample_name = self.sample_name, 
+                    comment = self.user_comment, 
+                    sort_method = self.sort_method, 
+                    correlation_threshold = self.correlation_threshold,
+                    original_size = self.original_size, 
+                    phasing_binning = self.phasing_binning, 
+                    preprocessing_binning = self.preprocessing_binning, 
+                    output_size = self.output_size, 
+                    keep_size = self.keep_size, 
+                    fix_voxel = self.fix_voxel,
+                    data_frame = self.data_frame,
+                    ref_axis_q = self.ref_axis_q,
+                    save_frame = self.save_frame,
+                    isosurface_strain = self.isosurface_strain,
+                    strain_method = self.strain_method,
+                    phase_offset = self.phase_offset,
+                    phase_offset_origin = self.phase_offset_origin,
+                    offset_method = self.offset_method,
+                    centering_method = self.centering_method,
+                    beamline = self.beamline,
+                    actuators = self.actuators,
+                    rocking_angle = self.rocking_angle,
+                    sdd = self.sdd,
+                    energy = self.energy,
+                    beam_direction = self.beam_direction,
+                    outofplane_angle = self.outofplane_angle,
+                    inplane_angle = self.inplane_angle,
+                    tilt_angle = self.tilt_angle,
+                    sample_offsets = self.sample_offsets,
+                    specfile_name = self.specfile_name,
+                    custom_scan = self.custom_scan,
+                    custom_motors = self.custom_motors,
+                    detector = self.detector,
+                    nb_pixel_x = self.nb_pixel_x,
+                    nb_pixel_y = self.nb_pixel_y,
+                    pixel_size = self.pixel_size,
+                    template_imagefile = self.template_imagefile,
+                    correct_refraction = self.correct_refraction,
+                    optical_path_method = self.optical_path_method,
+                    dispersion = self.dispersion,
+                    absorption = self.absorption,
+                    threshold_unwrap_refraction = self.threshold_unwrap_refraction,
+                    simu_flag = self.simu_flag,
+                    invert_phase = self.invert_phase,
+                    flip_reconstruction = self.flip_reconstruction,
+                    phase_ramp_removal = self.phase_ramp_removal,
+                    threshold_gradient = self.threshold_gradient,
+                    save_raw = self.save_raw,
+                    save_support = self.save_support,
+                    save = self.save,
+                    debug = self.debug,
+                    roll_modes = self.roll_modes,
+                    align_axis = self.align_axis,
+                    ref_axis = self.ref_axis,
+                    axis_to_align = self.axis_to_align,
+                    strain_range = self.strain_range,
+                    phase_range = self.phase_range,
+                    grey_background = self.grey_background,
+                    tick_spacing = self.tick_spacing,
+                    tick_direction = self.tick_direction,
+                    tick_length = self.tick_length,
+                    tick_width = self.tick_width,
+                    get_temperature = self.temp_bool,
+                    reflection = self.reflection,
+                    reference_spacing = self.reference_spacing,
+                    reference_temperature = self.reference_temperature,
+                    avg_method = self.avg_method,
+                    avg_threshold = self.avg_threshold,
+                    hwidth = self.hwidth,
+                    apodize_flag = self.apodize_flag,
+                    apodize_window = self.apodize_window,
+                    mu = self.mu,
+                    sigma = self.sigma,
+                    alpha = self.alpha,
+                    h5_data = self.h5_data,
                 )
 
-            # At the end of the function 
-            self._list_widgets_strain.children[-2].disabled = False
+            except AttributeError:
+                print("Run angles correction first")
+
+            finally:
+                # At the end of the function 
+                self._list_widgets_strain.children[-2].disabled = False
+
+                self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
+                self.folder_plot_handler(change = self.tab_plot.children[1].value)
 
         if not run_strain:
             for w in self._list_widgets_strain.children[:-1]:
@@ -3347,6 +3493,7 @@ class Interface(object):
 
     def facet_analysis(self,
         label_facet,
+        facet_folder,
         facet_filename,
         load_data,
         ):
@@ -3892,11 +4039,13 @@ class Interface(object):
         """Loads exterior .csv file and displays it in the gui"""
 
         if load_data:
-            self.tab_plot.children[1].disabled = True
+            for w in self.tab_plot.children[:-2]:
+                w.disabled = True
             plot.Plotter(file_list)
 
         else:
-            self.tab_plot.children[1].disabled = False
+            for w in self.tab_plot.children[:-2]:
+                w.disabled = False
             clear_output(True)
 
 
@@ -4255,65 +4404,104 @@ class Interface(object):
 
                 self.temp_handler(change = self._list_widgets_correct.children[2].value)
 
-    def folder_plot_handler(self, change):
-        """Handles changes on the widget used to load a data file"""
-
-        self.tab_plot.children[2].options = glob.glob(change.new + "/*.npz") + glob.glob(change.new + "/*.cxi")
-
-    def folder_strain_handler(self, change):
-        """Handles changes on the widget used to load a data file"""
-
-        self._list_widgets_strain.children[-3].options = glob.glob(change.new + "/*.h5") + glob.glob(change.new + "/*.cxi") + glob.glob(change.new + "/*.npy") + glob.glob(change.new + "/*.npz")
-
     def folder_pynx_handler(self, change):
         """Handles changes on the widget used to load a data file"""
+        try:
+            self._list_widgets_pynx.children[2].options = sorted(glob.glob(change.new + "/*_pynx_align*.npz")) + [""]
+            self._list_widgets_pynx.children[3].options = sorted(glob.glob(change.new + "/*maskpynx*.npz")) + [""]
+            self._list_widgets_pynx.children[4].options = [""] + sorted(glob.glob(change.new + "/*.npz"))
+            self._list_widgets_pynx.children[5].options = [""] + sorted(glob.glob(change.new + "/*.npz"))
 
-        self._list_widgets_pynx.children[2].options = glob.glob(change.new + "/*_pynx_align*.npz") + [""]
-        self._list_widgets_pynx.children[3].options = glob.glob(change.new + "/*maskpynx*.npz") + [""]
-        self._list_widgets_pynx.children[4].options = [""] + glob.glob(change.new + "/*.npz")
-        self._list_widgets_pynx.children[5].options = [""] + glob.glob(change.new + "/*.npz")
+        except AttributeError:
+            self._list_widgets_pynx.children[2].options = sorted(glob.glob(change + "/*_pynx_align*.npz")) + [""]
+            self._list_widgets_pynx.children[3].options = sorted(glob.glob(change + "/*maskpynx*.npz")) + [""]
+            self._list_widgets_pynx.children[4].options = [""] + sorted(glob.glob(change + "/*.npz"))
+            self._list_widgets_pynx.children[5].options = [""] + sorted(glob.glob(change + "/*.npz"))
 
     def pynx_psf_handler(self, change):
         "Handles changes related to the psf"
         try:
             if change.new:
-                for w in self._list_widgets_pynx.children[15:19]:
+                for w in self._list_widgets_pynx.children[16:20]:
                     w.disabled = False
 
             if not change.new:
-                for w in self._list_widgets_pynx.children[15:19]:
+                for w in self._list_widgets_pynx.children[16:20]:
                     w.disabled = True
 
         except:
             if change:
-                for w in self._list_widgets_pynx.children[15:19]:
+                for w in self._list_widgets_pynx.children[16:20]:
                     w.disabled = False
 
             if not change:
-                for w in self._list_widgets_pynx.children[15:19]:
+                for w in self._list_widgets_pynx.children[16:20]:
                     w.disabled = True
 
     def pynx_peak_shape_handler(self, change):
-        "Handles changes related to the peak shape"
+        "Handles changes related to psf the peak shape"
         try:
             if change.new != "pseudo-voigt":
-                self._list_widgets_pynx.children[17].disabled = True
+                self._list_widgets_pynx.children[18].disabled = True
 
             if change.new == "pseudo-voigt":
-                self._list_widgets_pynx.children[17].disabled = False
+                self._list_widgets_pynx.children[18].disabled = False
 
         except:
             if change != "pseudo-voigt":
-                self._list_widgets_pynx.children[17].disabled = True
+                self._list_widgets_pynx.children[18].disabled = True
 
             if change == "pseudo-voigt":
-                self._list_widgets_pynx.children[17].disabled = False
+                self._list_widgets_pynx.children[18].disabled = False
+
+    def pynx_operator_handler(self, change):
+        "Handles changes related to operator algorithm instructions"
+        try:
+            if change.new:
+                self._list_widgets_pynx.children[22].disabled = False
+
+            if not change.new:
+                self._list_widgets_pynx.children[22].disabled = True
+
+        except:
+            if change:
+                self._list_widgets_pynx.children[22].disabled = False
+
+            if not change:
+                self._list_widgets_pynx.children[22].disabled = True
 
     def run_pynx_handler(self, change):
-        if change.new != "No phase retrieval":
+        if change.new:
             for w in self._list_widgets_pynx.children[:-2]:
                 w.disabled = True
 
-        elif change.new == "No phase retrieval":
+        elif not change.new:
             for w in self._list_widgets_pynx.children[:-2]:
                 w.disabled = False
+
+            self.pynx_psf_handler(change = self._list_widgets_pynx.children[15].value)
+            self.pynx_peak_shape_handler(change = self._list_widgets_pynx.children[16].value)
+            self.pynx_operator_handler(change = self._list_widgets_pynx.children[21].value)
+
+    def folder_strain_handler(self, change):
+        """Handles changes on the widget used to load a data file"""
+        try:
+            self._list_widgets_strain.children[-3].options = sorted(glob.glob(change.new + "/*.h5") + glob.glob(change.new + "/*.cxi") + glob.glob(change.new + "/*.npy") + glob.glob(change.new + "/*.npz")) + [""]
+        except:
+            self._list_widgets_strain.children[-3].options = sorted(glob.glob(change + "/*.h5") + glob.glob(change + "/*.cxi") + glob.glob(change + "/*.npy") + glob.glob(change + "/*.npz")) + [""]
+
+    def folder_plot_handler(self, change):
+        """Handles changes on the widget used to load a data file"""
+        try:
+            self.tab_plot.children[2].options = sorted(glob.glob(change.new + "/*.npz") + glob.glob(change.new + "/*.cxi")) + [""]
+
+        except AttributeError:
+            self.tab_plot.children[2].options = sorted(glob.glob(change + "/*.npz") + glob.glob(change + "/*.cxi")) + [""]
+
+    def folder_facet_handler(self, change):
+        """Handles changes on the widget used to load a data file"""
+        try:
+            self.tab_facet.children[2].options = sorted(glob.glob(change.new + "/*.vtk")) + [""]
+
+        except AttributeError:
+            self.tab_facet.children[2].options = sorted(glob.glob(change + "/*.vtk")) + [""]

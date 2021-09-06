@@ -1386,7 +1386,6 @@ def preprocess_bcdi(
             plt.tight_layout()
             plt.connect("key_press_event", press_key)
             fig_mask.set_facecolor(background_plot)
-            plt.show()
             del fig_mask, original_data, original_mask
 
             mask[np.nonzero(mask)] = 1
@@ -1484,7 +1483,6 @@ def preprocess_bcdi(
             plt.connect("key_press_event", press_key)
             plt.connect("button_press_event", on_click)
             fig_mask.set_facecolor(background_plot)
-            plt.show()
 
             mask[np.nonzero(updated_mask)] = 1
             data = original_data
@@ -2964,4 +2962,3 @@ def strain_bcdi(
         plt.savefig(detector.savedir + f"S{scan}_strain" + comment + ".png")
 
     print("\nEnd of script")
-    plt.show()
