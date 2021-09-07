@@ -1752,7 +1752,7 @@ class Interface(object):
                         icon = 'check'),
                     psf_model = widgets.Dropdown(
                         options = ["gaussian", "lorentzian", "pseudo-voigt"],
-                        value = "pseudo-voigt",
+                        value = "gaussian",
                         description = 'PSF peak shape',
                         continuous_update = False,
                         disabled = True,
@@ -2654,24 +2654,27 @@ class Interface(object):
                     sdd = self.sdd,
                     energy = self.energy,
                 )
-            
+
+                # Save metadata
+                for keys, values in self.metadata.items():
+                    setattr(self, keys, values)
+
+                self.extract_metadata()
+
+                # Save corrected angles in the widgets
+                print("Saving corrected angles values...")
+                self._list_widgets_preprocessing.children[59].value = self.metadata["bragg_outofplane"]
+                self._list_widgets_preprocessing.children[60].value = self.metadata["bragg_inplane"]
+                self.tilt_angle = np.round(np.mean(self.metadata["tilt_values"][1:] - self.metadata["tilt_values"][:-1]), 4)
+
             except ValueError:
                 print("Inplane or outofplane ?")
 
+            except TypeError:
+                print("Make sure you initialize the parameters by running the data preprocessing...")
+
             except Exception as e:
                 raise e
-
-            # Save metadata
-            for keys, values in self.metadata.items():
-                setattr(self, keys, values)
-
-            self.extract_metadata()
-
-            # Save corrected angles in the widgets
-            print("Saving corrected angles values...")
-            self._list_widgets_preprocessing.children[59].value = self.metadata["bragg_outofplane"]
-            self._list_widgets_preprocessing.children[60].value = self.metadata["bragg_inplane"]
-            self.tilt_angle = np.round(np.mean(self.metadata["tilt_values"][1:] - self.metadata["tilt_values"][:-1]), 4)
 
         if not angles_bool:
             clear_output(True)
@@ -2995,7 +2998,8 @@ class Interface(object):
                 # Run phase retrieval for nb_run
                 for i in range(self.nb_run):
                     print(f"Run {i}")
-                    if i>10:
+                    if i>5:
+                        print("\nStopping liveplot to go faster\n")
                         self.live_plot = False
 
 
@@ -3036,9 +3040,21 @@ class Interface(object):
                     # cdi = InitFreePixels() * cdi
 
                     # Initialize the support with autocorrelation
-                    cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
-                        threshold = 0.1, # extra argument
-                        verbose = True) * cdi
+                    if isinstance(self.live_plot, int):
+                        if i>5:
+                            cdi = ScaleObj() * AutoCorrelationSupport(
+                                threshold = 0.1, # extra argument
+                                verbose = True) * cdi
+
+                        else:
+                            cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
+                                threshold = 0.1, # extra argument
+                                verbose = True) * cdi
+
+                    else:
+                        cdi = ScaleObj() * AutoCorrelationSupport(
+                            threshold = 0.1, # extra argument
+                            verbose = True) * cdi
 
                     # Begin with HIO cycles without PSF and with support updates
                     try:
@@ -3134,16 +3150,17 @@ class Interface(object):
                         pass
 
                     print("\n##########################################################################################################\n")    
+            
+                # if filter, filter data
+                if self.filter_criteria:
+                    self.filter_reconstructions(self.scan_folder)
+
+                # run modes decomposition, no widget yet
+                self.run_modes_decomposition(self.scan_folder)
+
             except KeyboardInterrupt:
                 clear_output(True)
-                print("Phase retrieval stopped by you fool ... :'(")
-
-            # if filter, filter data
-            if self.filter_criteria:
-                self.filter_reconstructions(self.scan_folder)
-
-            # run modes decomposition, no widget yet
-            self.run_modes_decomposition(self.scan_folder)
+                print("Phase retrieval stopped by user ...")
 
         elif not self.run_phase_retrieval:
             clear_output(True)

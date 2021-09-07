@@ -11,7 +11,7 @@ support_smooth_width_begin = 2
 support_smooth_width_end = 1 # 0.5
 support_post_expand = 1,-2,1
 
-psf = "gaussian,0.3,30"  # For partial coherence
+psf = "gaussian,1,30"  # For partial coherence
 nb_hio = 400
 nb_raar = 1000
 nb_er = 300
