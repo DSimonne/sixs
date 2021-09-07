@@ -11,3 +11,6 @@ Used for handling sixs data
 
 ## xcat
 Used for mass spectrometer data analysis and plotting
+
+## analysis
+Used for ctr data analysis

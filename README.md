@@ -17,7 +17,7 @@ cmd:
 NoMachine:
 `ssh -X -p 5622 <login>@firewall.esrf.fr`
 
-## ID01
+## LID01
 `ssh -X <login>@lid01gpu1`
 
 `cd /data/id01/inhouse/david/`
@@ -35,7 +35,7 @@ NoMachine:
 `conda_bcdi (alias conda activate rnice.BCDI` | `source /sware/exp/paraview/envar.sh`
 
 ## slurm
-`ssh -X <login>@slurm-access`
+`ssh -X <login>@slurm-nice-devel`
 
 Demande GPU
 
@@ -43,12 +43,13 @@ Demande GPU
 
  BCDI | PyNX
 ------------ | -------------
-No bcdi | `source /sware/exp/pynx/devel.p9/bin/activate`
+Frequently updated: `source /data/id01/inhouse/david/py38-env/bin/activate` | p9.devel (official branch) `source /sware/exp/pynx/devel.p9/bin/activate`
+ | p9, own environment `source /data/id01/inhouse/david/py38-env/bin/activate`
 
 ### Kernels on slurm
-* p9.widgets : optimisé pour utiliser les widgets et thorondor
-* p9.bcdi : not existing yet, pb is the use of qt in bcdi, will correct soon
-* p9.pynx-devel : fonctionne pour pynx : `source /sware/exp/pynx/devel.p9/bin/activate`
+* python3: all but PyNX
+* py38-env : optimised for BCDI, phdutils and PyNX
+* p9.pynx-devel : fonctionne pour pynx, frequently updated : `source /sware/exp/pynx/devel.p9/bin/activate`
 * p9.pynx-gap : ?
 
 

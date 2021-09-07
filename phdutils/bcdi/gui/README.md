@@ -9,6 +9,18 @@ PhasingNotebook.ipynb `) and facet analysis (`https://github.com/DSimonne/phduti
 * merge the solutions for data visualisation in jupyter notebook(`https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/plot.py`)
 * Create a Dataset object that would used as iterable for the gui class, its attribute would then be all the parameters used for preprocessing, phase retrieval, facet retrieval, so that an external scientist could easily visualize the parameters used in the workflow
 
+## How to use
+* Connect to slurm, make sure that you do not need passwords when connecting for the batch scripts (see `http://www.linuxproblem.org/art_9.html`)
+* Clone phdutils and install it
+* Add phdutils/bcdi/terminal scripts to path
+* Change my username with yours in the following scripts: `quick_phase_retrieval_GUI.sh`, `quick_phase_retrieval_ID01.sh`
+* Add this environemnet to your jupyter kernels: `source /data/id01/inhouse/david/py38-env/bin/activate`
+* Open a jupyter notebook with this kernel and then run:
+
+`from phdutils.bcdi.gui.gui import Interface`
+`Test = Interface()`
+
+
 ### Dev
 * disable all when preprocess is on otherwise it runs again, same for pynx, psf better handler
 * images non sauvegardee pour preprocess, vient de bcdi.gu
