@@ -1638,6 +1638,7 @@ class Interface(object):
                         description="<p style='font-weight: bold;font-size:1.2em'>Data files",
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
+
                     folder = widgets.Text(
                         value = os.getcwd(),
                         placeholder = os.getcwd(),
@@ -1646,18 +1647,21 @@ class Interface(object):
                         continuous_update = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
+
                     iobs = widgets.Dropdown(
                         options = sorted(glob.glob(os.getcwd() + "*_pynx_align*.npz")) + [""],
                         description = 'Dataset',
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
+
                     mask = widgets.Dropdown(
                         options = sorted(glob.glob(os.getcwd() + "*maskpynx*.npz")) + [""],
                         description = 'Mask',
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
+
                     support  = widgets.Dropdown(
                         options = sorted(glob.glob(os.getcwd() + "*.npz")) + [""],
                         value = "",
@@ -1665,6 +1669,7 @@ class Interface(object):
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
+
                     obj = widgets.Dropdown(
                         options = sorted(glob.glob(os.getcwd() + "*.npz")) + [""],
                         value = "",
@@ -1672,6 +1677,7 @@ class Interface(object):
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
+
                     auto_center_resize = widgets.Checkbox(
                         value = True,
                         description = 'Auto center and resize',
@@ -1680,6 +1686,7 @@ class Interface(object):
                         indent = False,
                         layout = Layout(height = "50px"),
                         icon = 'check'),
+
                     max_size  = widgets.BoundedIntText(
                         value = 256,
                         step = 1,
@@ -1696,6 +1703,7 @@ class Interface(object):
                         description="<p style='font-weight: bold;font-size:1.2em'>Support parameters",
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
+
                     support_threshold = widgets.Text(
                         value = "(0.23, 0.30)",
                         placeholder = "(0.23, 0.30)",
@@ -1704,6 +1712,7 @@ class Interface(object):
                         layout = Layout(height = "50px", width = "40%"),
                         continuous_update = False,
                         style = {'description_width': 'initial'}),
+
                     support_only_shrink = widgets.Checkbox(
                         value = False,
                         description = 'Support only shrink',
@@ -1712,6 +1721,7 @@ class Interface(object):
                         indent = False,
                         layout = Layout(height = "50px", width = "15%"),
                         icon = 'check'),
+
                     support_update_period  = widgets.BoundedIntText(
                         value = 20,
                         step = 5,
@@ -1721,6 +1731,7 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
+
                     support_smooth_width =  widgets.Text(
                         value = "(2, 1, 600)",
                         placeholder = "(2, 1, 600)",
@@ -1729,6 +1740,7 @@ class Interface(object):
                         layout = Layout(height = "50px", width = "35%"),
                         continuous_update = False,
                         style = {'description_width': 'initial'}),
+
                     support_post_expand = widgets.Text(
                         value = "(1, -2, 1)",
                         placeholder = "(1, -2, 1)",
@@ -1742,6 +1754,7 @@ class Interface(object):
                         description="<p style='font-weight: bold;font-size:1.2em'>Point spread function parameters",
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
+
                     psf = widgets.Checkbox(
                         value = False,
                         description = 'Use point spread function:',
@@ -1750,6 +1763,7 @@ class Interface(object):
                         indent = False,
                         layout = Layout(height = "50px"),
                         icon = 'check'),
+
                     psf_model = widgets.Dropdown(
                         options = ["gaussian", "lorentzian", "pseudo-voigt"],
                         value = "gaussian",
@@ -1757,6 +1771,7 @@ class Interface(object):
                         continuous_update = False,
                         disabled = True,
                         style = {'description_width': 'initial'}),
+
                     fwhm = widgets.FloatText(
                         value = 1,
                         step = 0.01,
@@ -1767,6 +1782,7 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = True),
+
                     eta = widgets.FloatText(
                         value = 0.05,
                         step = 0.01,
@@ -1778,6 +1794,7 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = True),
+                    
                     update_psf = widgets.BoundedIntText(
                         value = 20,
                         step = 5,
@@ -1791,6 +1808,7 @@ class Interface(object):
                         description="<p style='font-weight: bold;font-size:1.2em'>Iterative algorithms parameters",
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
+                    
                     use_operators = widgets.Checkbox(
                         value = False,
                         description = 'Use operators:',
@@ -1799,6 +1817,7 @@ class Interface(object):
                         indent = False,
                         layout = Layout(height = "35px", width = "15%"),
                         icon = 'check'),
+                    
                     operator_chain = widgets.Text(
                         value = "",
                         placeholder = "",
@@ -1807,6 +1826,7 @@ class Interface(object):
                         disabled = True,
                         continuous_update = False,
                         style = {'description_width': 'initial'}),
+                    
                     nb_raar = widgets.BoundedIntText(
                         value = 1000,
                         min = 0,
@@ -1817,6 +1837,7 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
+                    
                     nb_hio = widgets.BoundedIntText(
                         value = 400,
                         min = 0,
@@ -1827,6 +1848,7 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
+                    
                     nb_er = widgets.BoundedIntText(
                         value = 300,
                         min = 0,
@@ -1837,6 +1859,7 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
+                    
                     nb_ml = widgets.BoundedIntText(
                         value = 0,
                         min = 0,
@@ -1847,6 +1870,7 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
+                    
                     nb_run = widgets.BoundedIntText(
                         value = 30,
                         continuous_update = False,
@@ -1860,12 +1884,14 @@ class Interface(object):
                         description="<p style='font-weight: bold;font-size:1.2em'>Filtering criteria for reconstructions",
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
+                    
                     filter_criteria = widgets.Dropdown(
                         options = [("No filtering", False), ("Standard deviation", "standard_deviation"), ("Log-likelihood", "LLK")],
                         description = 'Filtering criteria',
                         disabled = False,
                         layout = Layout(width='90%'),
                         style = {'description_width': 'initial'}),
+                    
                     nb_run_keep = widgets.BoundedIntText(
                         value = 20,
                         continuous_update = False,
@@ -1879,6 +1905,7 @@ class Interface(object):
                         description="<p style='font-weight: bold;font-size:1.2em'>Options",
                         style = {'description_width': 'initial'},
                         layout = Layout(width='90%', height = "35px")),
+                    
                     live_plot = widgets.BoundedIntText(
                         value = 200,
                         step = 10,
@@ -1890,6 +1917,7 @@ class Interface(object):
                         layout = Layout(height = "50px", width = "20%"),
                         style = {'description_width': 'initial'},
                         disabled = False),
+                    
                     positivity = widgets.Checkbox(
                         value = False,
                         description = 'Force positivity',
@@ -1899,6 +1927,7 @@ class Interface(object):
                         style = {'description_width': 'initial'},
                         layout = Layout(height = "50px", width = "20%"),
                         icon = 'check'),
+                    
                     beta = widgets.FloatText(
                         value = 0.9,
                         step = 0.01,
@@ -1910,6 +1939,7 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
+                    
                     detwin = widgets.Checkbox(
                         value = False,
                         description = 'Detwinning',
@@ -1919,6 +1949,7 @@ class Interface(object):
                         style = {'description_width': 'initial'},
                         layout = Layout(height = "50px", width = "15%"),
                         icon = 'check'),
+                    
                     rebin = widgets.Text(
                         value = "(1, 1, 1)",
                         placeholder = "(1, 1, 1)",
@@ -1927,6 +1958,7 @@ class Interface(object):
                         disabled = False,
                         continuous_update = False,
                         style = {'description_width': 'initial'}),
+                    
                     verbose = widgets.BoundedIntText(
                         value = 100,
                         continuous_update = False,
@@ -1935,6 +1967,7 @@ class Interface(object):
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
+                    
                     pixel_size_detector = widgets.BoundedIntText(
                         value = 55,
                         continuous_update = False,
@@ -2072,7 +2105,7 @@ class Interface(object):
 
         display(self.window)
 
-    # Widgets interactivbeam_directione functions
+    # Widgets interactive functions
     def initialize_directories(self,
         label_scan,
         sample_name,
@@ -2085,15 +2118,11 @@ class Interface(object):
         ):
         """
         Function to move file from datadir to folder where it will be used by preprocess.bcdi
-        Arg 1: Original data directory 
-        Arg 2: Path of EXISTING target directory (e.g. Pt_Al2O3/) (subdirectories S{scan}/data & S{scan}/pynx_raw will 
-            be updated/created)
-        Arg 3: Scan(s) number, list or single value
-
-        Looks recursively for one mu or omega scan including the scan number (glob.glob).
 
         Also moves all the notebooks needed for data analysis, and a pynx_run.txt file with all the parameters for phase retrieval,
-            initialized for this dataset
+        initialized for this dataset.
+
+        Mandatory to run before any other step
         """
 
         if run_dir_init:
@@ -2311,7 +2340,11 @@ class Interface(object):
         label_preprocess, 
         run_preprocess
         ):
+        """
+        Initialize the parameters of using in script taken from bcdi package, necessary for preprocessing, correction and strain
 
+        Will also run preprocessing of the data (cropping, masking, compiling files into .npz files, ...)
+        """
         if run_preprocess:
             # Disable all widgets until the end of the program, will update automatticaly after
             for w in self._list_widgets_init.children[:-1]:
@@ -2568,7 +2601,10 @@ class Interface(object):
         reference_temperature,
         angles_bool,
         ):
-
+        """
+        Use this script to extract and save the rocking curve as well as the detector image at the rocking curve's COM
+        Will correct the values of the inplane and outofplane angles corresponding to the COM of the Bragg peak, values used then to compute q_hkl
+        """
         if angles_bool:
             # # Disable all widgets until the end of the program, will update automatticaly after, no need here because quite fast
             # for w in self._list_widgets_init.children[:-1]:
@@ -2725,7 +2761,9 @@ class Interface(object):
         label_phase_retrieval,
         run_phase_retrieval,
         ):
-        """Get parameters from widgets and run phase retrieval"""
+        """
+        Get parameters from widgets and run phase retrieval
+        """
 
         self.label_data = label_data
         self.folder = folder
@@ -3167,6 +3205,10 @@ class Interface(object):
 
 
     def filter_reconstructions(self, folder):
+        """
+        Filter the phase retrieval output depending on a given parameter, for now only LLK and standard deviation are available.
+        This allows the user to run a lot of reconstructions but to then automatically keep the "best" ones, according to this parameter.
+        """
         cxi_files = sorted(glob.glob(f"{folder}pynxraw/*LLK*.cxi"))
 
         if cxi_files == []:
@@ -3200,6 +3242,9 @@ class Interface(object):
 
 
     def run_modes_decomposition(self, folder):
+        """
+        Run a decomposition into modes of the phase retrieval solutions, saves only the first mode
+        """
         print("Using /data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py (py38-env environment)")
         print(f"Using {folder}pynxraw/*LLK* files.")
         print("Running pynx-cdi-analysis.py *LLK* modes=1")
@@ -3271,7 +3316,11 @@ class Interface(object):
         h5_data,
         run_strain,
         ):
-        """Loading argument from strain tab widgets but also values of parameters used in preprocessing that are common"""
+        """
+        Loading argument from strain tab widgets but also values of parameters used in preprocessing that are common
+        Runs postprocessing script from bcdi package to extract the strain from the reconstructed phase. 
+        Also plots images depending on the given isosurface.
+        """
         
         if run_strain:
             # Disable all widgets until the end of the program, will update automatticaly after
@@ -4034,7 +4083,9 @@ class Interface(object):
         csv_file,
         show_logs
         ):
-        """Loads exterior .csv file and displays it in the gui"""
+        """
+        Loads exterior .csv file and displays it in the gui
+        """
         self.csv_file = csv_file
 
         if show_logs:
@@ -4053,7 +4104,9 @@ class Interface(object):
         file_list,
         load_data
         ):
-        """Loads exterior .csv file and displays it in the gui"""
+        """
+        Allows the user to plot an array (1D, 2D or 3D) from npz, npy or .cxi files.
+        """
 
         if load_data:
             for w in self.tab_plot.children[:-2]:
@@ -4072,6 +4125,8 @@ class Interface(object):
         Python script to rotate the data for vertical configuration
                 Arg 1: Path of target directory (before /S{scan} ... )
                 Arg 2: Scan(s) number, list or single value
+
+        Only for SIXS data in the vertical MED configuration
         """
 
         print("Rotating SIXS data ...")
@@ -4130,7 +4185,10 @@ class Interface(object):
 
 
     def extract_metadata(self):
-        """Needs dataset to be corrected beforehand"""
+        """
+        Needs dataset to be corrected beforehand
+        Extract meaningful data and saves them in a csv file to allow comparison
+        """
 
         # Save rocking curve data
         np.savez(f"{self.scan_folder}postprocessing/interpolated_rocking_curve.npz",

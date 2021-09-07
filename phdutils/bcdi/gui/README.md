@@ -8,8 +8,19 @@
 PhasingNotebook.ipynb `) and facet analysis (`https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/CompareFacetsEvolution.ipynb`) with the GUI
 * merge the solutions for data visualisation in jupyter notebook(`https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/plot.py`)
 * Create a Dataset object that would used as iterable for the gui class, its attribute would then be all the parameters used for preprocessing, phase retrieval, facet retrieval, so that an external scientist could easily visualize the parameters used in the workflow
-* clean the code at the end
 
+### Dev
+* disable all when preprocess is on otherwise it runs again, same for pynx, psf better handler
+* images non sauvegardee pour preprocess, vient de bcdi.gu
+* better interatcion between tabs if problem appears
+* nest tab
+* si long pour correct
+* make sure that bcdi works also for script and then save commit
+* select environment possibility
+* netter separate all reconstructions
+* catch all control c
+* multiple plot comparison for rocking curves
+* add inplane outofplane widget in correct and strain
 
 Some screenshots of the work so far:
 ![Tab1](https://user-images.githubusercontent.com/51970962/130641516-ffe670b1-7b72-4b86-bef4-3b8bf4b7a797.png)
