@@ -2054,7 +2054,7 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
 
             facet_filename = widgets.Dropdown(
-                options = sorted(glob.glob(os.getcwd() + f"/postprocessing/*.vtk")) + [""],
+                options = sorted(glob.glob(os.getcwd() + f"/postprocessing/")) + [""],
                 description = 'Vtk data',
                 disabled = False,
                 layout = Layout(width='90%'),
@@ -2268,7 +2268,7 @@ class Interface(object):
             self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
             self.folder_strain_handler(change = self._list_widgets_strain.children[-4].value)
  
-            self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/*.vtk"
+            self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/"
             self.folder_facet_handler(change = self.tab_facet.children[1].value)
 
         if not run_dir_init:
@@ -2594,7 +2594,7 @@ class Interface(object):
             self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
             self.folder_strain_handler(change = self._list_widgets_strain.children[-4].value)
  
-            self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/*.vtk"
+            self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/"
             self.folder_facet_handler(change = self.tab_facet.children[1].value)
 
 
@@ -2708,7 +2708,7 @@ class Interface(object):
                 self.extract_metadata()
 
                 # Save corrected angles in the widgets
-                print("Saving corrected angles values...")
+                print("Saving corrected angles values..., takes a lot of time, idk why :/, yet")
                 self._list_widgets_preprocessing.children[59].value = self.metadata["bragg_outofplane"]
                 self._list_widgets_preprocessing.children[60].value = self.metadata["bragg_inplane"]
                 self.tilt_angle = np.round(np.mean(self.metadata["tilt_values"][1:] - self.metadata["tilt_values"][:-1]), 4)
@@ -2923,9 +2923,9 @@ class Interface(object):
             print(f"Saved parameters in {self.scan_folder}pynxraw/pynx_run_gui.txt")
             
             if self.run_phase_retrieval == "batch":
-
-                # Full path for now, this can be corrected later hehehe
-                # runs modes directly and saves all data in an "all" subdir, filter based on LLK
+                """
+                Runs modes directly and saves all data in an "all" subdir, filter based on LLK
+                """
                 os.system(f"/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.user_name} {self.scan_folder}pynxraw")
                 print(f"/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.user_name} {self.scan_folder}pynxraw")
             
@@ -3273,6 +3273,7 @@ class Interface(object):
         except KeyboardInterrupt:
             print("Decomposition into modes stopped by user...")
 
+
     def strain_gui(self,
         label_averaging,
         sort_method, 
@@ -3454,14 +3455,26 @@ class Interface(object):
             self.pixel_size = None
 
             # Check beamline for save folder
-            if self.beamline == "SIXS_2019":
-                root_folder = self.root_folder
+            try:
+                if self.beamline == "SIXS_2019":
+                    root_folder = self.root_folder
                 
-            if self.beamline == "ID01":
-                root_folder = self.data_directory
-            
-            save_dir = f"{self.root_folder}S{self.scans}/result_{self.data_frame}/"
+                if self.beamline == "ID01":
+                    root_folder = self.data_directory
                 
+                save_dir = f"{self.root_folder}S{self.scans}/result_{self.data_frame}/"
+            except AttributeError:
+                for w in self._list_widgets_strain.children[:-1]:
+                    w.disabled = False
+
+                for w in self._list_widgets_preprocessing.children[:-2]:
+                    w.disabled = False
+
+                for w in self._list_widgets_correct.children[:-1]:
+                    w.disabled = False
+
+                print("You need to initialize all the parameters with the preprocess tab first""")
+                    
             # Create final directory is not yet existing
             if not os.path.isdir(save_dir):
                 full_path = ""

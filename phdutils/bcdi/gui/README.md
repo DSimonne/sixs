@@ -11,15 +11,42 @@ PhasingNotebook.ipynb `) and facet analysis (`https://github.com/DSimonne/phduti
 
 ## How to use
 * Connect to slurm, make sure that you do not need passwords when connecting for the batch scripts (see `http://www.linuxproblem.org/art_9.html`)
-* Clone phdutils and install it
-* Add phdutils/bcdi/terminal scripts to path
-* Change my username with yours in the following scripts: `quick_phase_retrieval_GUI.sh`, `quick_phase_retrieval_ID01.sh`
 * Add this environemnet to your jupyter kernels: `source /data/id01/inhouse/david/py38-env/bin/activate`
 * Open a jupyter notebook with this kernel and then run:
 
 `from phdutils.bcdi.gui.gui import Interface`
 `Test = Interface()`
 
+## Guidelines for widgets
+* Always press enter after editing a widget
+* If somehow widgets are disabled when they should not be, please rerun the Interface cell and raise an issue with the details of each step that was undertaken, so that I can correct the bog
+* You can also assign widgets values outside the interface, it will automaticcally update the widget, to do so, check the following code example:
+
+```
+specfile = "BCDI_2021_09_06_093352"
+# specfile = "BCDI_2021_09_05_144113"
+# specfile = "BCDI_2021_09_02_145714"
+# specfile = "BCDI_2021_09_02_203654"
+# 
+Test._list_widgets_init.children[2].value = 242
+Test._list_widgets_init.children[3].value = f"/data/visitor/hc4534/id01/B8_S1_P2/{specfile}/"
+Test._list_widgets_init.children[4].value = "/data/id01/inhouse/david/ID01_September_2021/450/CO2/III_C17/"
+
+
+Test._list_widgets_preprocessing.children[36].value = "Maxipix"
+Test._list_widgets_preprocessing.children[42].value = ""
+Test._list_widgets_preprocessing.children[44].value = f"/data/visitor/hc4534/id01/B8_S1_P2/{specfile}/mpx/data_mpx4_%05d.edf"
+
+Test._list_widgets_preprocessing.children[1].value = "ID01"
+Test._list_widgets_preprocessing.children[7].value = f"spec/{specfile}"
+Test._list_widgets_preprocessing.children[8].value = "outofplane"
+
+Test._list_widgets_preprocessing.children[52].value = "(-0.0011553664, 0, 0)"
+Test._list_widgets_preprocessing.children[53].value = "0.60"
+Test._list_widgets_preprocessing.children[54].value = "12994"
+```
+
+The widgets number might change with the evolution code, you can try to find the good one by playing with the different _list_widgets attributes, (should rename to list_widgets only)
 
 ### Dev
 * disable all when preprocess is on otherwise it runs again, same for pynx, psf better handler
