@@ -17,8 +17,8 @@ cd $1
 
 # Running phase retrieval
 echo "Running phase retrieval with PyNX ..."
-echo "/sware/exp/pynx/devel.p9/bin/pynx-id01cdi.py $1/pynx_run_gui.txt > README_pynx.md"
-mpiexec -n $SLURM_NTASKS /sware/exp/pynx/devel.p9/bin/pynx-id01cdi.py $1/pynx_run_gui.txt > README_pynx.md
+echo "/data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py $1/pynx_run_gui.txt > README_pynx.md"
+mpiexec -n $SLURM_NTASKS /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py $1/pynx_run_gui.txt > README_pynx.md
 
 # Moving the results in all/ sub-directory
 mkdir all
@@ -32,5 +32,5 @@ std_filter.py
 
 # Running modes decomposition
 echo "Running modes decomposition ..."
-echo "/sware/exp/pynx/devel.p9/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes_job.h5 > README_modes.md"
+echo "/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes_job.h5 > README_modes.md"
 /sware/exp/pynx/devel.p9/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes_job.h5 > README_modes.md

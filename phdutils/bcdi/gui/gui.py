@@ -2836,7 +2836,7 @@ class Interface(object):
         self.wavelength = 1.2399*1e-6 / self.energy
         self.sdd = self._list_widgets_preprocessing.children[53].value
 
-        print("CXI input: Energy = %8.2fkeV" % self.energy)
+        print("CXI input: Energy = %8.2feV" % self.energy)
         print(f"CXI input: Wavelength = {self.wavelength*1e10} A")
         print("CXI input: detector distance = %8.2fm" % self.sdd)
         print("CXI input: detector pixel size = %8.2fum" % (self.pixel_size_detector * 1e6))
@@ -2910,17 +2910,20 @@ class Interface(object):
                 for line in self.text_file:
                     v.write(line)
                     
-            print(f"Saved parameters in {self.scan_folder}pynxraw/pynx_run_gui.tx")
+            print(f"Saved parameters in {self.scan_folder}pynxraw/pynx_run_gui.txt")
             
             if self.run_phase_retrieval == "batch":
                 # Full path for now, this can be corrected later hehehe
                 # runs modes directly and saves all data in an "all" subdir, filter based on LLK
-                os.system(f"/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.scan_folder}pynxraw")
-                print(f"/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.scan_folder}pynxraw")
-
+                os.system(f"/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.scan_folder}pynxraw")
+                print(f"/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.scan_folder}pynxraw")
+            
             elif self.run_phase_retrieval == "local_script":
-                os.system(f"cd {self.scan_folder}pynxraw; /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
-                print(f"Running /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
+                try:
+                    os.system(f"cd {self.scan_folder}pynxraw; /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
+                    print(f"Running /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt")
+                except KeyboardInterrupt:
+                    print("Phase retrieval stopped by user ...")
 
         elif self.run_phase_retrieval == "operators":
             # Extract data
