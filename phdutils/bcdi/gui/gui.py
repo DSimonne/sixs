@@ -11,6 +11,7 @@ import shutil
 import math
 from ast import literal_eval
 import operator as operator_lib
+import getpass
 
 # import lmfit
 # from lmfit import minimize, Parameters, Parameter
@@ -74,6 +75,15 @@ class Interface(object):
 
         self.work_dir = os.getcwd()
         self.path_package = inspect.getfile(phdutils).split("__")[0]
+
+        # Get user name
+        try:
+            self.user_name = getpass.getuser()
+
+            print("Login used for slurm:", self.user_name)
+            print("If wrong login, please change self.user_name attribute")
+        except:
+            print("Could not get user name, please create self.user_name attribute for batch jobs")
 
         # Widgets for initialization 
         self._list_widgets_init = interactive(self.initialize_directories,
@@ -2913,10 +2923,11 @@ class Interface(object):
             print(f"Saved parameters in {self.scan_folder}pynxraw/pynx_run_gui.txt")
             
             if self.run_phase_retrieval == "batch":
+
                 # Full path for now, this can be corrected later hehehe
                 # runs modes directly and saves all data in an "all" subdir, filter based on LLK
-                os.system(f"/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.scan_folder}pynxraw")
-                print(f"/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.scan_folder}pynxraw")
+                os.system(f"/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.user_name} {self.scan_folder}pynxraw")
+                print(f"/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/terminal_scripts/quick_phase_retrieval_GUI.sh {self.user_name} {self.scan_folder}pynxraw")
             
             elif self.run_phase_retrieval == "local_script":
                 try:
@@ -3212,48 +3223,55 @@ class Interface(object):
         Filter the phase retrieval output depending on a given parameter, for now only LLK and standard deviation are available.
         This allows the user to run a lot of reconstructions but to then automatically keep the "best" ones, according to this parameter.
         """
-        cxi_files = sorted(glob.glob(f"{folder}pynxraw/*LLK*.cxi"))
 
-        if cxi_files == []:
-            print(f"No *LLK*.cxi files in {folder}pynxraw/*LLK*.cxi")
+        try:
+            print(f"Iterating on files cooresponding to {folder}pynxraw/*LLK*.cxi")
+            cxi_files = sorted(glob.glob(f"{folder}pynxraw/*LLK*.cxi"))
 
-        else:
-            # Keep filtering criteria of reconstruction modules in dictionnary
-            filtering_criteria = {}
+            if cxi_files == []:
+                print(f"No *LLK*.cxi files in {folder}pynxraw/*LLK*.cxi")
 
-            if self.filter_criteria[0] == "standard_deviation":
-                for filename in cxi_files:
-                    print("Computing standard deviation of object modulus for ", filename)
-                    with tb.open_file(filename, "r") as f:
-                        data = f.root.entry_1.image_1.data[:]
-                        filtering_criteria[filename] = np.std(np.abs(data))
+            else:
+                # Keep filtering criteria of reconstruction modules in dictionnary
+                filtering_criteria = {}
 
-            elif self.filter_criteria[0] == "LLK":
-                for filename in cxi_files:
-                    print("Extracting llk value for poisson statistics for ", filename)
-                    with tb.open_file(filename, "r") as f:
-                        llk = f.root.entry_1.image_1.process_1.results.llk_poisson[...]
-                        filtering_criteria[filename] = llk
+                if self.filter_criteria[0] == "standard_deviation":
+                    for filename in cxi_files:
+                        print("Computing standard deviation of object modulus for ", filename)
+                        with tb.open_file(filename, "r") as f:
+                            data = f.root.entry_1.image_1.data[:]
+                            filtering_criteria[filename] = np.std(np.abs(data))
 
-            sorted_dict = sorted(filtering_criteria.items(), key=operator_lib.itemgetter(1))
+                elif self.filter_criteria[0] == "LLK":
+                    for filename in cxi_files:
+                        print("Extracting llk value for poisson statistics for ", filename)
+                        with tb.open_file(filename, "r") as f:
+                            llk = f.root.entry_1.image_1.process_1.results.llk_poisson[...]
+                            filtering_criteria[filename] = llk
 
-            for f, filtering_criteria in sorted_dict[self.nb_run_keep:]:
-                print(f"Removed scan {f}")
-                os.remove(f)
-            
-            print("Filtered the reconstructions ")
+                sorted_dict = sorted(filtering_criteria.items(), key=operator_lib.itemgetter(1))
+
+                for f, filtering_criteria in sorted_dict[self.nb_run_keep:]:
+                    print(f"Removed scan {f}")
+                    os.remove(f)
+                
+                print("Filtered the reconstructions ")
+        except KeyboardInterrupt:
+            print("cxi files filtering stopped by user ...")
 
 
     def run_modes_decomposition(self, folder):
         """
         Run a decomposition into modes of the phase retrieval solutions, saves only the first mode
         """
-        print("Using /data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py (py38-env environment)")
-        print(f"Using {folder}pynxraw/*LLK* files.")
-        print("Running pynx-cdi-analysis.py *LLK* modes=1")
-        print(f"Output in {folder}pynxraw/modes_gui.h5")
-        os.system(f"/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py {folder}pynxraw/*LLK* modes=1 modes_output={folder}pynxraw/modes_gui.h5")
-
+        try:
+            print("Using /data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py (py38-env environment)")
+            print(f"Using {folder}pynxraw/*LLK* files.")
+            print("Running pynx-cdi-analysis.py *LLK* modes=1")
+            print(f"Output in {folder}pynxraw/modes_gui.h5")
+            os.system(f"/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py {folder}pynxraw/*LLK* modes=1 modes_output={folder}pynxraw/modes_gui.h5")
+        except KeyboardInterrupt:
+            print("Decomposition into modes stopped by user...")
 
     def strain_gui(self,
         label_averaging,
