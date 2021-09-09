@@ -81,21 +81,21 @@ for scan in scans:
         pass
 
     try:
-        shutil.copy("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/pynx_run.txt", f"{TG_folder}S{scan}/pynxraw")
+        shutil.copy("/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/pynx_run.txt", f"{TG_folder}S{scan}/pynxraw")
         print(f"Copied pynx_run.txt to {TG_folder}S{scan}/pynxraw")
     except FileExistsError:
         print(f"{TG_folder}S{scan}/pynxraw/pynx_run.txt exists")
         pass
 
     try:
-        shutil.copy("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/PhasingNotebook.ipynb", f"{TG_folder}S{scan}/pynxraw")
+        shutil.copy("/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/PhasingNotebook.ipynb", f"{TG_folder}S{scan}/pynxraw")
         print(f"Copied PhasingNotebook.ipynb.txt to {TG_folder}S{scan}/pynxraw")
     except FileExistsError:
         print(f"{TG_folder}S{scan}/pynxraw/PhasingNotebook.ipynb exists")
         pass
 
     try:
-        shutil.copy("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/CompareFacetsEvolution.ipynb", f"{TG_folder}S{scan}/postprocessing")
+        shutil.copy("/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/CompareFacetsEvolution.ipynb", f"{TG_folder}S{scan}/postprocessing")
         print(f"Copied CompareFacetsEvolution.ipynb.txt to {TG_folder}S{scan}/postprocessing")
     except FileExistsError:
         print(f"{TG_folder}S{scan}/postprocessing/CompareFacetsEvolution.ipynb exists")

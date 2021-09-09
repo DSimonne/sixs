@@ -24,14 +24,9 @@ import os
 import pprint
 import tkinter as tk
 from tkinter import filedialog
-
-import bcdi
-
-print("Checking environment for bcdi...")
-print(bcdi.__file__)
-
 import bcdi.graph.graph_utils as gu
-import bcdi.experiment.experiment_utils as exp
+from bcdi.experiment.detector import Detector
+from bcdi.experiment.setup import Setup
 import bcdi.postprocessing.postprocessing_utils as pu
 import bcdi.preprocessing.preprocessing_utils as pru
 import bcdi.simulation.simulation_utils as simu
@@ -164,7 +159,8 @@ sys.stdout = open(README_file, "a")
 """end of personal script"""
 # root_folder = "/data/id01/inhouse/data/IHR/hc4050/id01/"  # folder of the experiment, where all scans are stored
 # root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/"  # folder of the experiment, where all scans are stored
-root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/test/BCDI_2021_07_26_165851/"  # folder of the experiment, 
+# root_folder = "/data/id01/inhouse/data/IHR/hc4050_a/id01/test/BCDI_2021_07_26_165851/"  # folder of the experiment, 
+root_folder = "/data/visitor/hc4534/id01/B8_S1_P2/BCDI_2021_09_02_203654/"  # folder of the experiment, up to spec filesave_dir = None  # images will be saved here, leave it to None otherwise
 
 #########################################################
 # parameters used when averaging several reconstruction #
@@ -229,11 +225,11 @@ beam_direction = np.array(
 # outofplane_angle = -0.01815149389135301 # detector angle in deg (rotation around x outboard): delta ID01, delta SIXS, gamma 34ID
 # inplane_angle = 37.51426377175866  # detector angle in deg(rotation around y vertical up): nu ID01, gamma SIXS, tth 34ID
 # tilt_angle = 0.007737016574585642  # angular step size for rocking angle, eta ID01, mu SIXS, does not matter for energy scan
-sample_offsets = (1.1562481, 0, 0)  # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
+sample_offsets = (-0.0011553664, 0, 0) # tuple of offsets in degrees of the sample around (downstream, vertical up, outboard)
 # the sample offsets will be subtracted to the motor values
 # specfile_name = "spec/2021_07_20_085405_ni" #'analysis/alias_dict_2021.txt'
 # specfile_name = "spec/2021_07_24_083204_test" #'analysis/alias_dict_2021.txt'
-specfile_name = "spec/BCDI_2021_07_26_165851" #'analysis/alias_dict_2021.txt'
+specfile_name = "spec/BCDI_2021_09_02_203654" #'analysis/alias_dict_2021.txt'
 # template for SIXS_2018: full path of the alias dictionnary, typically root_folder + 'alias_dict_2019.txt'
 # template for all other beamlines: ''
 
@@ -256,7 +252,7 @@ nb_pixel_x = None  # fix to declare a known detector but with less pixels (e.g. 
 nb_pixel_y = None  # fix to declare a known detector but with less pixels (e.g. one tile HS), leave None otherwise
 pixel_size = None  # use this to declare the pixel size of the "Dummy" detector if different from 55e-6
 # template_imagefile = root_folder + 'detector/2021_07_24_072032_b8_s1_p2/data_mpx4_%05d.edf.gz'
-template_imagefile = root_folder + 'mpx/data_mpx4_%05d.edf.gz'
+template_imagefile = root_folder + 'mpx/data_mpx4_%05d.edf'
 # template_imagefile = root_folder + 'detector/2021_07_20_085405_ni/data_mpx4_%05d.edf.gz'
 # template_imagefile = root_folder + 'detector/2021_07_24_072032_b8_s1_p2/data_mpx4_%05d.edf.gz'
 # template for ID01: 'data_mpx4_%05d.edf.gz' or 'align_eiger2M_%05d.edf.gz'
@@ -492,7 +488,7 @@ if pixel_size:
     kwargs[
         "pixel_size"
     ] = pixel_size  # to declare the pixel size of the "Dummy" detector
-detector = exp.Detector(
+detector = Detector(
     name=detector,
     template_imagefile=template_imagefile,
     binning=phasing_binning,
@@ -504,7 +500,7 @@ detector = exp.Detector(
 ####################################
 # correct the tilt_angle for binning
 tilt_angle = tilt_angle * preprocessing_binning[0] * phasing_binning[0]
-setup = exp.Setup(
+setup = Setup(
     beamline=beamline,
     detector=detector,
     energy=energy,

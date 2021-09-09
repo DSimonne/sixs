@@ -1521,7 +1521,7 @@ with open(README_file, 'a') as outfile:
     outfile.write("```")
 
 # Create file for phase retrieval
-with open("/home/esrf/simonne/Packages/phdutils/phdutils/bcdi/pynx_run.txt", "r") as f:
+with open("/data/id01/inhouse/david/Packages/phdutils/phdutils/bcdi/pynx_run.txt", "r") as f:
     text_file = f.readlines()
     
     text_file[1] = f"data = \"S{scan_nb}_pynx{comment}.npz\"\n"

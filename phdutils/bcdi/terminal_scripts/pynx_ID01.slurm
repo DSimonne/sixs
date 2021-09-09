@@ -21,6 +21,8 @@ echo "/sware/exp/pynx/devel.p9/bin/pynx-id01cdi.py pynx_run.txt > README_pynx.md
 mpiexec -n $SLURM_NTASKS /sware/exp/pynx/devel.p9/bin/pynx-id01cdi.py pynx_run.txt > README_pynx.md
 
 # Moving the results in all/ sub-directory
+
+echo "Creating a subdirector all/ and moving all the .cxi files there..."
 mkdir all
 mv *LLK*.cxi all/
 # mkdir all/pynx_images

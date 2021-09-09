@@ -21,6 +21,7 @@ echo "/data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py $1/pynx_run_gui.txt 
 mpiexec -n $SLURM_NTASKS /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py $1/pynx_run_gui.txt > README_pynx.md
 
 # Moving the results in all/ sub-directory
+echo "Creating a subdirector all/ and moving all the .cxi files there..."
 mkdir all
 mv *LLK*.cxi all/
 mv README_pynx.md all/
