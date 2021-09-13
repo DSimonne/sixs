@@ -12,6 +12,7 @@
 env | grep CUDA
 scontrol --details show jobs \$SLURM_JOBID |grep RES
 
+# echo `date`  | mail -s " SLURM JOB $SLURM_JOBID has started" <YOUR-EMAIL>
 # Moving to pynxraw directory
 cd $1
 
@@ -19,6 +20,9 @@ cd $1
 echo "Running phase retrieval with PyNX ..."
 echo "/data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py $1/pynx_run_gui.txt > README_pynx.md"
 mpiexec -n $SLURM_NTASKS /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py $1/pynx_run_gui.txt > README_pynx.md
+
+# echo `date`  | mail -s " SLURM has finished job: $SLURM_JOBID !! " <YOUR-EMAIL>
+
 
 # Moving the results in all/ sub-directory
 echo "Creating a subdirector all/ and moving all the .cxi files there..."
