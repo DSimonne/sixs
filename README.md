@@ -53,6 +53,7 @@ Then you should create an alias such as: `alias source_p9="source /data/id01/inh
 * `cd /Packages`
 * `git clone https://salsa.debian.org/science-team/facet-analyser.git`
 * `cd facet-analyser`
+* `git checkout`
 * `sudo mk-build-deps -i`
 * `debuild -b`
 * `sudo debi`
