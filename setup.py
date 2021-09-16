@@ -9,16 +9,27 @@ setuptools.setup(
     description="Python package for BCDI and SXRD",
     author="David Simonne",
     author_email="david.simonne@synchrotron-soleil.fr",
-    data_files=[('', ["phdutils/bcdi/pynx_run.txt",
-                      "phdutils/bcdi/CompareFacetsEvolution.ipynb", 
-                      "phdutils/bcdi/PhasingNotebook.ipynb", 
-                      "licence.txt"
+    data_files=[('', ["phdutils/bcdi/data_files/pynx_run.txt",
+                      "phdutils/bcdi/data_files/CompareFacetsEvolution.ipynb", 
+                      "phdutils/bcdi/data_files/PhasingNotebook.ipynb", 
+                      "licence.txt",
+                      "phdutils/sixs/alias_dict_2021.txt"
                      ])],
     url="https://github.com/DSimonne/PhDUtils/tree/master",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
+    ],
+    scripts=[
+        "phdutils/bcdi/scripts/compute_q.py",
+        "phdutils/bcdi/scripts/run_correct_angles_detector.py",
+        "phdutils/bcdi/scripts/run_movetodir.py",
+        "phdutils/bcdi/scripts/run_preprocess_bcdi.py",
+        "phdutils/bcdi/scripts/run_rotate.py",
+        "phdutils/bcdi/scripts/run_slice_cxi.py",
+        "phdutils/bcdi/scripts/run_std_filter.py",
+        "phdutils/bcdi/scripts/run_strain.py",
     ],
     keywords = "BCDI SXRD",
     long_description=long_description,
@@ -34,6 +45,7 @@ setuptools.setup(
         "ipython",
         "scipy",
         "xrayutilities",
-        "tables"
+        "tables",
+        "PyQt5"
         ]
 )

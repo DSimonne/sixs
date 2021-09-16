@@ -4,6 +4,8 @@ import shutil
 import sys
 import ast
 import glob
+import phdutils
+import inspect
 
 """Python script to move file from datadir to folder where it will be used by preprocess.bcdi
     Arg 1: directory
@@ -61,7 +63,8 @@ for scan in scans:
         pass
 
     try:
-        shutil.copy("/home/experiences/sixs/simonne/Documents/phdutils/phdutils/bcdi/pynx_run.txt", f"{TG_folder}S{scan}/pynxraw")
+        root_dir = inspect.getfile(phdutils).split("__")[0]
+        shutil.copy(f"{root_dir}phdutils/bcdi/data_files/pynx_run.txt", f"{TG_folder}S{scan}/pynxraw")
         print(f"Copied pynx-run-no-support.txt to {TG_folder}S{scan}/pynxraw")
     except FileExistsError:
         print(f"{TG_folder}S{scan}/pynxraw/pynx-run-no-support.txt exists")

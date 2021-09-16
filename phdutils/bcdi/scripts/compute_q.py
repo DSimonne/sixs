@@ -2,19 +2,10 @@
 
 """Compute distance from gamma and delta"""
 
-try:
-    import hdf5plugin  # for P10, should be imported before h5py or PyTables
-except ModuleNotFoundError:
-    pass
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.interpolate import interp1d
-import tkinter as tk
-from tkinter import filedialog
 import sys
-import bcdi.postprocessing.postprocessing_utils as pu
-import bcdi.preprocessing.preprocessing_utils as pru
-import bcdi.experiment.experiment_utils as exp
 
 # Print help
 try:
