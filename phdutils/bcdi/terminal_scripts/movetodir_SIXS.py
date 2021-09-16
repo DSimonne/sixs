@@ -87,4 +87,5 @@ for scan in scans:
         except IndexError:
             print("Not a mu or an omega scan.")
             pass
+            
     print("\n")

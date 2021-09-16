@@ -41,8 +41,8 @@ import tkinter as tk
 from tkinter import filedialog
 import sys
 import bcdi.postprocessing.postprocessing_utils as pu
-import bcdi.preprocessing.preprocessing_utils as pru
-from bcdi.experiment.detector import Detector
+import bcdi.preprocessing.bcdi_utils as bu
+from bcdi.experiment.detector import create_detector
 from bcdi.experiment.setup import Setup
 import bcdi.utils.utilities as util
 
@@ -131,11 +131,10 @@ def correct_angles_detector(
     #######################
     # Initialize detector #
     #######################
-    detector = Detector(
+    detector = create_detector(
         name=detector,
         template_imagefile=template_imagefile,
         roi=roi_detector,
-        is_series=is_series,
     )
 
     ####################
@@ -154,6 +153,7 @@ def correct_angles_detector(
         custom_motors=custom_motors,
         sample_offsets=sample_offsets,
         actuators=actuators,
+        is_series=is_series,
     )
 
     ########################################
@@ -165,7 +165,6 @@ def correct_angles_detector(
         scan_number=scan,
         root_folder=root_folder,
         save_dir=None,
-        create_savedir=False,
         specfile_name=specfile_name,
         template_imagefile=template_imagefile,
         verbose=True,
@@ -182,7 +181,7 @@ def correct_angles_detector(
     hotpix_array = util.load_hotpixels(hotpixels_file)
 
     if not filtered_data:
-        data, _, monitor, frames_logical = pru.load_data(
+        data, _, monitor, frames_logical = setup.diffractometer.load_check_dataset(
             logfile=logfile,
             scan_number=scan,
             detector=detector,
@@ -192,20 +191,9 @@ def correct_angles_detector(
             normalize=normalize_flux,
             debugging=debug,
         )
-        if normalize_flux == "skip":
-            print("Skip intensity normalization")
-        else:
-            print("Intensity normalization using " + normalize_flux)
-            data, monitor = pru.normalize_dataset(
-                array=data,
-                raw_monitor=monitor,
-                frames_logical=frames_logical,
-                norm_to_min=True,
-                debugging=debug,
-            )
     else:
-        # root = tk.Tk()
-        # root.withdraw()
+        root = tk.Tk()
+        root.withdraw()
         file_path = filedialog.askopenfilename(
             initialdir=detector.scandir + "pynxraw/",
             title="Select 3D data",
@@ -225,10 +213,10 @@ def correct_angles_detector(
     if high_threshold != 0:
         nb_thresholded = (data > high_threshold).sum()
         data[data > high_threshold] = 0
-        print(f'Applying photon threshold, {nb_thresholded} high intensity pixels masked')
+        print(f"Applying photon threshold, {nb_thresholded} high intensity pixels masked")
 
     ###############################
-    # load relevant motor values #
+    # load releavant motor values #
     ###############################
     (
         tilt_values,
@@ -248,7 +236,7 @@ def correct_angles_detector(
     #######################
     # Find the Bragg peak #
     #######################
-    z0, y0, x0 = pru.find_bragg(data, peak_method=peak_method)
+    z0, y0, x0 = bu.find_bragg(data, peak_method=peak_method)
     z0 = np.rint(z0).astype(int)
     y0 = np.rint(y0).astype(int)
     x0 = np.rint(x0).astype(int)
@@ -265,7 +253,7 @@ def correct_angles_detector(
     rocking_curve = np.zeros(nb_frames)
     if filtered_data == 0:  # take a small ROI to avoid parasitic peaks
         for idx in range(nb_frames):
-            rocking_curve[idx] = data[idx, y0 - 20:y0 + 20, x0 - 20:x0 + 20].sum()
+            rocking_curve[idx] = data[idx, y0 - 20 : y0 + 20, x0 - 20 : x0 + 20].sum()
         plot_title = "Rocking curve for a 40x40 pixels ROI"
     else:  # take the whole detector
         for idx in range(nb_frames):
@@ -273,8 +261,8 @@ def correct_angles_detector(
         plot_title = "Rocking curve (full detector)"
     z0 = np.unravel_index(rocking_curve.argmax(), rocking_curve.shape)[0]
 
-    interpolation = interp1d(tilt_values, rocking_curve, kind='cubic')
-    interp_points = 5*nb_frames
+    interpolation = interp1d(tilt_values, rocking_curve, kind="cubic")
+    interp_points = 5 * nb_frames
     interp_tilt = np.linspace(tilt_values.min(), tilt_values.max(), interp_points)
     interp_curve = interpolation(interp_tilt)
     interp_fwhm = (
@@ -282,8 +270,9 @@ def correct_angles_detector(
         * (tilt_values.max() - tilt_values.min())
         / (interp_points - 1)
     )
-    print('FWHM by interpolation', str('{:.3f}'.format(interp_fwhm)), 'deg')
+    print("FWHM by interpolation", str("{:.3f}".format(interp_fwhm)), "deg")
 
+    # added plot 
     plt.close()
     fig, (ax0, ax1) = plt.subplots(2, 1, sharex='col', figsize=(10, 5))
     ax0.plot(tilt_values, rocking_curve, '.')
@@ -321,18 +310,15 @@ def correct_angles_detector(
         / detector.pixelsize_y
     )  # outofplane_coeff is +1 or -1
 
-
     print(
-        f"\nDirect beam at (gam={direct_inplane}, del={direct_outofplane}) (X, Y): {directbeam_x}, {directbeam_y}"
+        f"\nDirect beam at (gam={direct_inplane}, "
+        f"del={direct_outofplane}) (X, Y): {directbeam_x}, {directbeam_y}"
     )
     print(f"Direct beam at (gam=0, del=0) (X, Y): ({x_direct_0:.2f}, {y_direct_0:.2f})")
     print(
-        f"\nBragg peak at (gam={setup.inplane_angle}, del={setup.outofplane_angle}) (X, Y): ({bragg_x:.2f}, {bragg_y:.2f})"
+        f"\nBragg peak at (gam={setup.inplane_angle}, "
+        f"del={setup.outofplane_angle}) (X, Y): ({bragg_x:.2f}, {bragg_y:.2f})"
     )
-
-    # add error on bragg peak position to computer errorbars
-    # bragg_y+=5
-    # bragg_x+=5
 
     bragg_inplane = setup.inplane_angle + setup.inplane_coeff * (
         detector.pixelsize_x * (bragg_x - x_direct_0) / sdd * 180 / np.pi
@@ -348,10 +334,12 @@ def correct_angles_detector(
     )  # outofplane_coeff is +1 or -1
 
     print(
-        f"\nBragg angles before correction (gam, del): ({setup.inplane_angle:.4f}, {setup.outofplane_angle:.4f})"
+        f"\nBragg angles before correction (gam, del): ({setup.inplane_angle:.4f}, "
+        f"{setup.outofplane_angle:.4f})"
     )
     print(
-        f"Bragg angles after correction (gam, del): ({bragg_inplane:.4f}, {bragg_outofplane:.4f})"
+        f"Bragg angles after correction (gam, del): ({bragg_inplane:.4f}, "
+        f"{bragg_outofplane:.4f})"
     )
 
     # update setup with the corrected detector angles
@@ -373,7 +361,6 @@ def correct_angles_detector(
     dist_plane = 2 * np.pi / qnorm
     print(f"\nWavevector transfer of Bragg peak: {q}, Qnorm={qnorm:.4f}")
     print(f"Interplanar distance: {dist_plane:.6f} angstroms")
-    print(f"Wavelength = {setup.wavelength}")
 
     if get_temperature:
         print("\nEstimating the temperature:")
@@ -385,9 +372,6 @@ def correct_angles_detector(
             use_q=False,
             material="Pt",
         )
-
-    else:
-        temperature = None
 
     #########################
     # calculate voxel sizes #

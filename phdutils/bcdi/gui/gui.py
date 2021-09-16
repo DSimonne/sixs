@@ -843,9 +843,9 @@ class Interface(object):
                 style = {'description_width': 'initial'},
                 layout = Layout(width='90%', height = "35px")),
 
-            run_preprocess = widgets.ToggleButton(
+            init_para = widgets.ToggleButton(
                 value = False,
-                description = 'Run data preprocessing ...',
+                description = 'Initialize parameters ...',
                 disabled = True,
                 continuous_update = False,
                 button_style = '', # 'success', 'info', 'warning', 'danger' or ''
@@ -2169,7 +2169,8 @@ class Interface(object):
                         print("Omega scan") 
 
                 self.template_imagefile = self.path_to_data.split("%05d"%self.scans)[0]+"%05d.nxs" #  +"%05d_R.nxs" If rotated before
-                self._list_widgets_preprocessing[46].value = self.template_imagefile
+
+                self._list_widgets_preprocessing.children[44].value = self.template_imagefile.split("/")[-1]
                 print("File template:", self.template_imagefile, end = "\n\n")
 
             except IndexError:
@@ -2233,7 +2234,7 @@ class Interface(object):
                 print(f"Copied {self.path_to_data} to {self.root_folder}S{self.scans}/data")
             except FileExistsError:
                 print(f"{self.root_folder}S{self.scans}/data/{self.path_to_data} exists")
-            except (AttributeError, FileNotFoundError):
+            except (AttributeError, FileNotFoundError,shutil.SameFileError):
                 pass
 
             # move pynx_run.txt file
@@ -2348,14 +2349,14 @@ class Interface(object):
         tiltazimuth, 
         tilt,
         label_preprocess, 
-        run_preprocess
+        init_para
         ):
         """
         Initialize the parameters of using in script taken from bcdi package, necessary for preprocessing, correction and strain
 
         Will also run preprocessing of the data (cropping, masking, compiling files into .npz files, ...)
         """
-        if run_preprocess:
+        if init_para:
             # Disable all widgets until the end of the program, will update automatticaly after
             for w in self._list_widgets_init.children[:-1]:
                 w.disabled = True
@@ -2500,105 +2501,118 @@ class Interface(object):
             # leave it as [] to use the full detector. Use with center_fft='skip' if you want this exact size.
 
             self.linearity_func = None
+            print("Parameters initialized...")
 
-            # Check is SIXS data, in that case rotate
-            if self.beamline == "SIXS_2019":
-                self.rotate_sixs_data()
-                root_folder = self.root_folder
-                save_dir = None
-                
-            if self.beamline == "ID01":
-                root_folder = self.data_directory
-                save_dir = self.root_folder + f"S{self.scans}/pynxraw/"
+            button_run_preprocess = Button(
+                description = "Run data preprocessing...",
+                continuous_update = False,
+                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                layout = Layout(width='40%'),
+                style = {'description_width': 'initial'},
+                icon = 'fast-forward')
+            display(button_run_preprocess)
 
-            # On lance BCDI
-            preprocess_bcdi(
-                scans = self.scans,
-                sample_name = self.sample_name,
-                root_folder = root_folder,
-                save_dir = save_dir,
-                data_dirname = self.data_dirname,
-                user_comment = self.user_comment,
-                debug = self.debug,
-                binning = self.binning,
-                flag_interact = self.flag_interact,
-                background_plot = self.background_plot,
-                centering = self.centering,
-                fix_bragg = self.fix_bragg,
-                fix_size = self.fix_size,
-                center_fft = self.center_fft,
-                pad_size = self.pad_size,
-                normalize_flux = self.normalize_flux,
-                mask_zero_event = self.mask_zero_event,
-                flag_medianfilter = self.flag_medianfilter,
-                medfilt_order = self.medfilt_order,
-                reload_previous = self.reload_previous,
-                reload_orthogonal = self.reload_orthogonal,
-                preprocessing_binning = self.preprocessing_binning,
-                save_rawdata = self.save_rawdata,
-                save_to_npz = self.save_to_npz,
-                save_to_mat = self.save_to_mat,
-                save_to_vti = self.save_to_vti,
-                save_asint = self.save_asint,
-                beamline = self.beamline,
-                actuators = self.actuators,
-                is_series = self.is_series,
-                custom_scan = self.custom_scan,
-                custom_images = self.custom_images,
-                custom_monitor = self.custom_monitor,
-                rocking_angle = self.rocking_angle,
-                follow_bragg = self.follow_bragg,
-                specfile_name = self.specfile_name,
-                detector = self.detector,
-                linearity_func = self.linearity_func,
-                x_bragg = self.x_bragg,
-                y_bragg = self.y_bragg,
-                roi_detector = self.roi_detector,
-                photon_threshold = self.photon_threshold,
-                photon_filter = self.photon_filter,
-                background_file = self.background_file,
-                hotpixels_file = self.hotpixels_file,
-                flatfield_file = self.flatfield_file,
-                template_imagefile = self.template_imagefile,
-                nb_pixel_x = self.nb_pixel_x,
-                nb_pixel_y = self.nb_pixel_y,
-                use_rawdata = self.use_rawdata,
-                interp_method = self.interp_method,
-                fill_value_mask = self.fill_value_mask,
-                beam_direction = self.beam_direction,
-                sample_offsets = self.sample_offsets,
-                sdd = self.sdd,
-                energy = self.energy,
-                custom_motors = self.custom_motors,
-                align_q = self.align_q,
-                ref_axis_q = self.ref_axis_q,
-                outofplane_angle = self.outofplane_angle,
-                inplane_angle = self.inplane_angle,
-                sample_inplane = self.sample_inplane,
-                sample_outofplane = self.sample_outofplane,
-                offset_inplane = self.offset_inplane,
-                cch1 = self.cch1,
-                cch2 = self.cch2,
-                detrot = self.detrot,
-                tiltazimuth = self.tiltazimuth,
-                tilt = self.tilt,
-            )
+            @button_run_preprocess.on_click
+            def action_button_run_preprocess(selfbutton):
 
-            # Scan folder, refresh
-            self._list_widgets_pynx.children[1].value = self.scan_folder + f"pynxraw/"
-            self.folder_pynx_handler(change = self._list_widgets_pynx.children[1].value)
+                # Check is SIXS data, in that case rotate
+                if self.beamline == "SIXS_2019":
+                    self.rotate_sixs_data()
+                    root_folder = self.root_folder
+                    save_dir = None
+                    
+                if self.beamline == "ID01":
+                    root_folder = self.data_directory
+                    save_dir = self.root_folder + f"S{self.scans}/pynxraw/"
 
-            self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
-            self.folder_plot_handler(change = self.tab_plot.children[1].value)
+                # On lance BCDI
+                preprocess_bcdi(
+                    scans = self.scans,
+                    sample_name = self.sample_name,
+                    root_folder = root_folder,
+                    save_dir = save_dir,
+                    data_dirname = self.data_dirname,
+                    user_comment = self.user_comment,
+                    debug = self.debug,
+                    binning = self.binning,
+                    flag_interact = self.flag_interact,
+                    background_plot = self.background_plot,
+                    centering = self.centering,
+                    fix_bragg = self.fix_bragg,
+                    fix_size = self.fix_size,
+                    center_fft = self.center_fft,
+                    pad_size = self.pad_size,
+                    normalize_flux = self.normalize_flux,
+                    mask_zero_event = self.mask_zero_event,
+                    flag_medianfilter = self.flag_medianfilter,
+                    medfilt_order = self.medfilt_order,
+                    reload_previous = self.reload_previous,
+                    reload_orthogonal = self.reload_orthogonal,
+                    preprocessing_binning = self.preprocessing_binning,
+                    save_rawdata = self.save_rawdata,
+                    save_to_npz = self.save_to_npz,
+                    save_to_mat = self.save_to_mat,
+                    save_to_vti = self.save_to_vti,
+                    save_asint = self.save_asint,
+                    beamline = self.beamline,
+                    actuators = self.actuators,
+                    is_series = self.is_series,
+                    custom_scan = self.custom_scan,
+                    custom_images = self.custom_images,
+                    custom_monitor = self.custom_monitor,
+                    rocking_angle = self.rocking_angle,
+                    follow_bragg = self.follow_bragg,
+                    specfile_name = self.specfile_name,
+                    detector = self.detector,
+                    linearity_func = self.linearity_func,
+                    x_bragg = self.x_bragg,
+                    y_bragg = self.y_bragg,
+                    roi_detector = self.roi_detector,
+                    photon_threshold = self.photon_threshold,
+                    photon_filter = self.photon_filter,
+                    background_file = self.background_file,
+                    hotpixels_file = self.hotpixels_file,
+                    flatfield_file = self.flatfield_file,
+                    template_imagefile = self.template_imagefile,
+                    nb_pixel_x = self.nb_pixel_x,
+                    nb_pixel_y = self.nb_pixel_y,
+                    use_rawdata = self.use_rawdata,
+                    interp_method = self.interp_method,
+                    fill_value_mask = self.fill_value_mask,
+                    beam_direction = self.beam_direction,
+                    sample_offsets = self.sample_offsets,
+                    sdd = self.sdd,
+                    energy = self.energy,
+                    custom_motors = self.custom_motors,
+                    align_q = self.align_q,
+                    ref_axis_q = self.ref_axis_q,
+                    outofplane_angle = self.outofplane_angle,
+                    inplane_angle = self.inplane_angle,
+                    sample_inplane = self.sample_inplane,
+                    sample_outofplane = self.sample_outofplane,
+                    offset_inplane = self.offset_inplane,
+                    cch1 = self.cch1,
+                    cch2 = self.cch2,
+                    detrot = self.detrot,
+                    tiltazimuth = self.tiltazimuth,
+                    tilt = self.tilt,
+                )
 
-            self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
-            self.folder_strain_handler(change = self._list_widgets_strain.children[-4].value)
- 
-            self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/"
-            self.folder_facet_handler(change = self.tab_facet.children[1].value)
+                # Scan folder, refresh
+                self._list_widgets_pynx.children[1].value = self.scan_folder + f"pynxraw/"
+                self.folder_pynx_handler(change = self._list_widgets_pynx.children[1].value)
+
+                self.tab_plot.children[1].value = self.scan_folder + f"pynxraw/"
+                self.folder_plot_handler(change = self.tab_plot.children[1].value)
+
+                self._list_widgets_strain.children[-4].value = self.scan_folder + f"pynxraw/"
+                self.folder_strain_handler(change = self._list_widgets_strain.children[-4].value)
+     
+                self.tab_facet.children[1].value = self.scan_folder + f"postprocessing/"
+                self.folder_facet_handler(change = self.tab_facet.children[1].value)
 
 
-        if not run_preprocess:
+        if not init_para:
             clear_output(True)
 
 
@@ -2713,11 +2727,11 @@ class Interface(object):
                 self._list_widgets_preprocessing.children[60].value = self.metadata["bragg_inplane"]
                 self.tilt_angle = np.round(np.mean(self.metadata["tilt_values"][1:] - self.metadata["tilt_values"][:-1]), 4)
 
-            except ValueError:
-                print("Inplane or outofplane ?")
+            # except ValueError:
+            #     print("Inplane or outofplane ?")
 
-            except TypeError:
-                print("Make sure you initialize the parameters by running the data preprocessing...")
+            # except TypeError:
+            #     print("Make sure you initialize the parameters by running the data preprocessing...")
 
             except Exception as e:
                 raise e
@@ -3225,11 +3239,11 @@ class Interface(object):
         """
 
         try:
-            print(f"Iterating on files cooresponding to {folder}pynxraw/*LLK*.cxi")
-            cxi_files = sorted(glob.glob(f"{folder}pynxraw/*LLK*.cxi"))
+            print(f"Iterating on files corresponding to {folder}pynxraw/*LLK*.cxi")
+            cxi_files = sorted(glob.glob(f"{folder}pynxraw/result_scan*LLK*.cxi"))
 
             if cxi_files == []:
-                print(f"No *LLK*.cxi files in {folder}pynxraw/*LLK*.cxi")
+                print(f"No *LLK*.cxi files in {folder}pynxraw/result_scan*LLK*.cxi")
 
             else:
                 # Keep filtering criteria of reconstruction modules in dictionnary
@@ -3241,6 +3255,14 @@ class Interface(object):
                         with tb.open_file(filename, "r") as f:
                             data = f.root.entry_1.image_1.data[:]
                             filtering_criteria[filename] = np.std(np.abs(data))
+                    
+                    sorted_dict = sorted(filtering_criteria.items(), key=operator_lib.itemgetter(1))
+
+                    for f, filtering_criteria in sorted_dict[self.nb_run_keep:]:
+                        print(f"Removed scan {f}")
+                        os.remove(f)
+                    
+                    print("Filtered the reconstructions ")
 
                 elif self.filter_criteria[0] == "LLK":
                     for filename in cxi_files:
@@ -3249,13 +3271,16 @@ class Interface(object):
                             llk = f.root.entry_1.image_1.process_1.results.llk_poisson[...]
                             filtering_criteria[filename] = llk
 
-                sorted_dict = sorted(filtering_criteria.items(), key=operator_lib.itemgetter(1))
+                    sorted_dict = sorted(filtering_criteria.items(), key=operator_lib.itemgetter(1))
 
-                for f, filtering_criteria in sorted_dict[self.nb_run_keep:]:
-                    print(f"Removed scan {f}")
-                    os.remove(f)
-                
-                print("Filtered the reconstructions ")
+                    for f, filtering_criteria in sorted_dict[self.nb_run_keep:]:
+                        print(f"Removed scan {f}")
+                        os.remove(f)
+                    
+                    print("Filtered the reconstructions ")
+        
+                else:
+                    print("No filtering")
         except KeyboardInterrupt:
             print("cxi files filtering stopped by user ...")
 
@@ -3266,10 +3291,10 @@ class Interface(object):
         """
         try:
             print("Using /data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py (py38-env environment)")
-            print(f"Using {folder}pynxraw/*LLK* files.")
-            print("Running pynx-cdi-analysis.py *LLK* modes=1")
+            print(f"Using {folder}pynxraw/result_scan*LLK* files.")
+            print("Running pynx-cdi-analysis.py result_scan*LLK* modes=1")
             print(f"Output in {folder}pynxraw/modes_gui.h5")
-            os.system(f"/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py {folder}pynxraw/*LLK* modes=1 modes_output={folder}pynxraw/modes_gui.h5")
+            os.system(f"/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py {folder}pynxraw/result_scan*LLK* modes=1 modes_output={folder}pynxraw/modes_gui.h5")
         except KeyboardInterrupt:
             print("Decomposition into modes stopped by user...")
 
