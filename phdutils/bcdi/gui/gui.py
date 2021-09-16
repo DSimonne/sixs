@@ -38,9 +38,9 @@ import warnings
 import tables as tb
 
 # Import preprocess_bcdi modified for gui and usable as a function
-from phdutils.bcdi.gui.gui_functions import *
 from phdutils.bcdi import read_vtk, plot
 from phdutils.sixs import ReadNxs4 as rd
+from phdutils.bcdi.runner import preprocess, correct_angles, strain
 
 # For PyNX
 import h5py
@@ -2526,7 +2526,7 @@ class Interface(object):
                     save_dir = self.root_folder + f"S{self.scans}/pynxraw/"
 
                 # On lance BCDI
-                preprocess_bcdi(
+                preprocess.preprocess_bcdi(
                     scans = self.scans,
                     sample_name = self.sample_name,
                     root_folder = root_folder,
@@ -2674,7 +2674,7 @@ class Interface(object):
 
             try:
                 # On lance la correction
-                self.metadata = correct_angles_detector(
+                self.metadata = correct_angles.correct_angles_detector(
                     filename = self.path_to_data,
                     direct_inplane = self.direct_inplane,
                     direct_outofplane = self.direct_outofplane,
@@ -3511,7 +3511,7 @@ class Interface(object):
                         pass
                 
             try:
-                strain_bcdi(
+                strain.strain_bcdi(
                     scan = self.scans, 
                     root_folder = root_folder,
                     save_dir = save_dir,
