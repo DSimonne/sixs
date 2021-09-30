@@ -143,8 +143,11 @@ def correct_angles_detector(
             debugging=debug,
         )
     else:
-        root = tk.Tk()
-        root.withdraw()
+        try:
+            root = tk.Tk()
+            root.withdraw()
+        except tk.TclError:
+            pass
         file_path = filedialog.askopenfilename(
             initialdir=detector.scandir + "pynxraw/",
             title="Select 3D data",
@@ -356,23 +359,42 @@ def correct_angles_detector(
     # added script
     COM_rocking_curve = tilt_values[z0],
     detector_data_COM = abs(data[int(round(z0)), :, :]),
-
-    metadata = {
-        "tilt_values" : tilt_values,
-        "rocking_curve" : rocking_curve,
-        "interp_tilt" : interp_tilt,
-        "interp_curve" : interp_curve,
-        "COM_rocking_curve" : tilt_values[z0],
-        "detector_data_COM" : abs(data[int(round(z0)), :, :]),
-        "interp_fwhm" : interp_fwhm,
-        "temperature" : temperature,
-        "bragg_x" : bragg_x, 
-        "bragg_y" : bragg_y,
-        "q" : q, 
-        "qnorm" : qnorm, 
-        "dist_plane" : dist_plane, 
-        "bragg_inplane" : bragg_inplane, 
-        "bragg_outofplane" : bragg_outofplane,
-    }
-
+    try:
+        metadata = {
+            "tilt_values" : tilt_values,
+            "rocking_curve" : rocking_curve,
+            "interp_tilt" : interp_tilt,
+            "interp_curve" : interp_curve,
+            "COM_rocking_curve" : tilt_values[z0],
+            "detector_data_COM" : abs(data[int(round(z0)), :, :]),
+            "interp_fwhm" : interp_fwhm,
+            "temperature" : temperature,
+            "bragg_x" : bragg_x, 
+            "bragg_y" : bragg_y,
+            "q" : q, 
+            "qnorm" : qnorm, 
+            "dist_plane" : dist_plane, 
+            "bragg_inplane" : bragg_inplane, 
+            "bragg_outofplane" : bragg_outofplane,
+        }
+    except:
+        try:
+            metadata = {
+                "tilt_values" : tilt_values,
+                "rocking_curve" : rocking_curve,
+                "interp_tilt" : interp_tilt,
+                "interp_curve" : interp_curve,
+                "COM_rocking_curve" : tilt_values[z0],
+                "detector_data_COM" : abs(data[int(round(z0)), :, :]),
+                "interp_fwhm" : interp_fwhm,
+                "bragg_x" : bragg_x, 
+                "bragg_y" : bragg_y,
+                "q" : q, 
+                "qnorm" : qnorm, 
+                "dist_plane" : dist_plane, 
+                "bragg_inplane" : bragg_inplane, 
+                "bragg_outofplane" : bragg_outofplane,
+            }
+        except Exception as e:
+            raise e
     return metadata

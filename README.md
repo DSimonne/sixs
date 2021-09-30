@@ -39,6 +39,8 @@ Then you should create an alias such as: `alias source_p9="source /data/id01/inh
 * `pip install pynx-devel-nightly.tar.bz2[cuda,gui,mpi]`                        # Install avec les extras cuda, mpi, cdi
 * cite `PyNX: high-performance computing toolkit for coherent X-ray imaging based on operators is out: J. Appl. Cryst. 53 (2020), 1404`, also available as `arXiv:2008.11511`
 
+Please use the commit from the data: Wednesday, August 18, 17:36:37, 2021 +0200, commit number: `2c822d3f`
+
 ## Install bcdi
 * Send a thank you email to Jerome Carnis =D
 * `cd /Packages`
@@ -47,6 +49,8 @@ Then you should create an alias such as: `alias source_p9="source /data/id01/inh
 * `source_p9`
 * `pip install .`
 * cite `DOI: 10.5281/zenodo.3257616`
+
+For now it is mandatory to use the version 0.1.5 of bcdi
 
 ## Install facet-analyser (Debian 11 only)
 * Send a thank you email to Fred Picca =D

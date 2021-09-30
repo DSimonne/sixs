@@ -30,6 +30,8 @@ setuptools.setup(
         "phdutils/bcdi/scripts/run_slice_cxi.py",
         "phdutils/bcdi/scripts/run_std_filter.py",
         "phdutils/bcdi/scripts/run_strain.py",
+        "phdutils/bcdi/scripts/job.slurm",
+        "phdutils/bcdi/scripts/run_slurm_job.sh",
     ],
     keywords = "BCDI SXRD",
     long_description=long_description,

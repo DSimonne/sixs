@@ -6,25 +6,33 @@ import tables as tb
 import glob
 import os
 import operator
+import sys
 
 # CXI files qlreqdy filtered by LLK
 cxi_files = glob.glob("*LLK*.cxi")
 
-# Keep standard deviation of reconstruction modules in dictionnary
-std = {}
+if cxi_files == []:
+    print(f"No *LLK*.cxi files cwd.")
 
-for filename in cxi_files:
-    print("Computing standard deviation of object modulus for ", filename)
-    with tb.open_file(filename, "r") as f:
-        data = f.root.entry_1.image_1.data[:]
-        std[filename] = np.std(np.abs(data))
-        
-n_keep = 5
-n_llk = len(cxi_files)
-sorted_dict = sorted(std.items(), key=operator.itemgetter(1))
+else:
+    std = {}
 
-for f, std in sorted_dict[n_keep:]:
-    print(f"Removed scan {f}")
-    os.remove(f)
-    
-print("Ready to run modes decomposition...")
+    for filename in cxi_files:
+        print("Computing standard deviation of object modulus for ", filename)
+        with tb.open_file(filename, "r") as f:
+            data = f.root.entry_1.image_1.data[:]
+            std[filename] = np.std(np.abs(data))
+            
+    n_keep = sys.argv[1]
+    print(f"Keeping {n_keep} reconstructions ...")
+    nb_files = len(cxi_files)
+    sorted_dict = sorted(std.items(), key=operator.itemgetter(1))
+
+    if n_keep < nb_files:
+        for f, std in sorted_dict[n_keep:]:
+            print(f"Removed scan {f}")
+            os.remove(f)
+
+        print("Filtered the reconstructionns.")
+    else:
+        print("n_keep is superior or equal to the number of recosntructions...")

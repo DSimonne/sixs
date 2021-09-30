@@ -327,8 +327,11 @@ def strain_bcdi(
         file_path = h5_data,
 
     if not h5_data:
-        root = tk.Tk()
-        root.withdraw()
+        try:
+            root = tk.Tk()
+            root.withdraw()
+        except tk.TclError:
+            pass
         file_path = filedialog.askopenfilenames(
             initialdir=detector.scandir,
             filetypes=[("HDF5", "*.h5"), ("NPZ", "*.npz"), ("NPY", "*.npy"), ("CXI", "*.cxi")],
@@ -1255,3 +1258,6 @@ def strain_bcdi(
     print("\nEnd of script")
     plt.close()
     plt.ioff()
+
+    # Added script
+    return f"{detector.savedir}S{scan}_amp{phase_fieldname}strain{comment}.h5", voxel_size, q_final

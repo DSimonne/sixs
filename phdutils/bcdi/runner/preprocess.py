@@ -14,9 +14,12 @@ import xrayutilities as xu
 import numpy as np
 import matplotlib.pyplot as plt
 
-plt.switch_backend(
-    "Qt5Agg"
-)  # "Qt5Agg" or "Qt4Agg" depending on the version of Qt installer, bug with Tk
+try:
+    plt.switch_backend(
+        "Qt5Agg"
+    )  # "Qt5Agg" or "Qt4Agg" depending on the version of Qt installer, bug with Tk
+except ImportError:
+    pass
 import os
 import scipy.signal  # for medfilt2d
 from scipy.ndimage.measurements import center_of_mass
@@ -450,8 +453,11 @@ def preprocess_bcdi(
     ############################
     # start looping over scans #
     ############################
-    root = tk.Tk()
-    root.withdraw()
+    try:
+        root = tk.Tk()
+        root.withdraw()
+    except tk.TclError:
+        pass
 
     for scan_idx, scan_nb in enumerate(scans, start=1):
         plt.ion()
