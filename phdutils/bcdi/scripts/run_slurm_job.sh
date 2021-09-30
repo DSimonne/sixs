@@ -6,9 +6,9 @@ PARAMS=""
 while (( "$#" )); do
   # echo $1
   case "$1" in
-    -g|--gui)
+    -r|--reconstruct)
       if [ -n "$2" ] && [ ${2:0:1} != "-" ]; then
-        gui=$2
+        reconstruct=$2
         shift 2
       else
         echo "Error: Argument for $1 is missing" >&2
@@ -71,11 +71,11 @@ done
 
 echo 
 echo "################################################################################################"
-if [[ -z $gui ]]; then # Check if empty
-    gui=false
-    echo "Defaulted gui to false, assign with e.g.: -g=true"
+if [[ -z $reconstruct ]]; then # Check if empty
+    reconstruct="terminal"
+    echo "Defaulted reconstruct to terminal, assign with e.g.: -g=true, possibilites are gui, terminal, false"
 else
-    echo "GUI: "$gui
+    echo "Reconstruct: "$reconstruct
 fi
 
 if [[ -z $username ]]; then # Check if empty
@@ -110,17 +110,17 @@ echo "##########################################################################
 echo 
 
 # Remove '='
-gui=${gui/#=/}
+reconstruct=${reconstruct/#=/}
 username=${username/#=/}
 path=${path/#=/}
 modes=${modes/#=/}
 filtering=${filtering/#=/}
 
 ssh simonne@slurm-nice-devel << EOF
-    # echo "Running "sbatch /data/id01/inhouse/david/py38-env/bin/job.slurm $gui $username $path $modes $filtering
-    sbatch /data/id01/inhouse/david/py38-env/bin/job.slurm $gui $username $path $modes $filtering
+    # echo "Running "sbatch /data/id01/inhouse/david/py38-env/bin/job.slurm $reconstruct $username $path $modes $filtering
+    sbatch /data/id01/inhouse/david/py38-env/bin/job.slurm $reconstruct $username $path $modes $filtering
 
-    echo "You may follow the evolution of the job by typing: 'tail -f job.slurm-XXXXX.out', replace XXXXX by the previous job number, the file should be in your home directory."
+    echo "You may follow the evolution of the job by typing: 'tail -f job.slurm-XXXXX.out', replace XXXXX by the previous job number, the job file should be in your home directory."
 
 	exit
 EOF

@@ -13,7 +13,7 @@ try :
     import pandas as pd
     import time
     import h5py
-    
+
     import glob
     import os
 
@@ -186,7 +186,7 @@ class Dataset():
             try:
                 detector.create_dataset("nb_pixel_x", data = self.nb_pixel_x) 
                 detector.create_dataset("nb_pixel_y", data = self.nb_pixel_y)
-            except TypeError:
+            except (TypeError, AttributeError):
                 pass
 
             ### Orthogonalisation
@@ -442,34 +442,38 @@ class Dataset():
             # Data
             data = f.create_group("data")
 
-            ## Real space
-            real_space = data.create_group("real_space")
-            real_space.create_dataset("data",
-                                      data = np.load(self.iobs)["data"],
-                                      chunks=True,
-                                      shuffle=True,
-                                      compression="gzip")
-            real_space.create_dataset("mask",
-                                      data = np.load(self.mask)["mask"],
-                                      chunks=True,
-                                      shuffle=True,
-                                      compression="gzip")
-
-            real_space["detector_distance"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/sdd")
-            real_space["pixel_size_detector"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/pixel_size_detector")
-            real_space["energy"] = h5py.SoftLink("/parameters/preprocessing/orthogonalisation/linearized_transformation_matrix/energy")
-            real_space.create_dataset("wavelength", data = self.wavelength)
-
-            ### Facets
-
             ## Reciprocal space
             reciprocal_space = data.create_group("reciprocal_space")
 
+            try:
+                reciprocal_space.create_dataset("data",
+                                          data = np.load(self.iobs)["data"],
+                                          chunks=True,
+                                          shuffle=True,
+                                          compression="gzip")
+                reciprocal_space.create_dataset("mask",
+                                          data = np.load(self.mask)["mask"],
+                                          chunks=True,
+                                          shuffle=True,
+                                          compression="gzip")
+            except:
+                print("Could not save reciprocal space data and mask")
+
+            reciprocal_space["detector_distance"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/sdd")
+            reciprocal_space["pixel_size_detector"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/pixel_size_detector")
+            reciprocal_space["energy"] = h5py.SoftLink("/parameters/preprocessing/orthogonalisation/linearized_transformation_matrix/energy")
+            reciprocal_space.create_dataset("wavelength", data = self.wavelength)
+
+            ### Facets
+
+            ## Real space
+            real_space = data.create_group("real_space")
+
             ### Save raw electronic density
             try:
-                with h5py.File(self.h5_data, "r") as fi:
-                    reciprocal_space.create_dataset("raw_electronic_density_file", data = self.h5_data)
-                    reciprocal_space.create_dataset("raw_electronic_density", 
+                with h5py.File(self.reconstruction_file, "r") as fi:
+                    real_space.create_dataset("raw_electronic_density_file", data = self.reconstruction_file)
+                    real_space.create_dataset("raw_electronic_density", 
                                                     data = fi["entry_1"]["image_1"]["data"][:],
                                                     chunks=True, 
                                                     shuffle=True,
@@ -480,33 +484,37 @@ class Dataset():
 
             ### Save strain output
             try:
-                reciprocal_space.create_dataset("q_final", data = self.q_final)
-                reciprocal_space.create_dataset("voxel_size", data = self.voxel_size)
-                reciprocal_space.create_dataset("strain_analysis_output_file", data = self.strain_output_file)
+                real_space.create_dataset("q_final", data = self.q_final)
+                real_space.create_dataset("voxel_size", data = self.voxel_size)
+                real_space.create_dataset("strain_analysis_output_file", data = self.strain_output_file)
 
                 with h5py.File(self.strain_output_file, "r") as fi:
-                            reciprocal_space.create_dataset("amplitude", 
+                            real_space.create_dataset("amplitude", 
                                                     data = fi["output"]["amp"][:],
                                                     chunks=True, 
                                                     shuffle=True,
                                                     compression="gzip")
 
-                            reciprocal_space.create_dataset("phase", 
+                            real_space.create_dataset("phase", 
                                                     data = fi["output"]["phase"][:],
                                                     chunks=True, 
                                                     shuffle=True,
                                                     compression="gzip")
 
-                            reciprocal_space.create_dataset("bulk", 
+                            real_space.create_dataset("bulk", 
                                                     data = fi["output"]["bulk"][:],
                                                     chunks=True, 
                                                     shuffle=True,
                                                     compression="gzip")
 
-                            reciprocal_space.create_dataset("strain", 
+                            real_space.create_dataset("strain", 
                                                     data = fi["output"]["strain"][:],
                                                     chunks=True, 
                                                     shuffle=True,
                                                     compression="gzip")
             except AttributeError:
                 print("Could not save strain output")
+
+
+
+        print(f"Saved file as {self.scan_folder}{self.sample_name}{self.scans}.h5")

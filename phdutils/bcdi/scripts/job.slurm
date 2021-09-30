@@ -10,13 +10,13 @@
 #SBATCH --output=%x-%j.out
 
 # Arguments needed
-gui=$1         # if launched via the gui or terminal
+reconstruct=$1         # if launched via the gui or terminal
 username=$2    # username, if not specified, default to simonne
 path=$3      # pynxraw directory with npz files and pynx_run.txt file
 modes=$4       # if running modes analysis or not, in that case, run strain
 filtering=$5   # if applying standard deviation filter, should be an integer number, less than n_run
 
-echo "Launched via gui: " $gui
+echo "Reconstruct data via: " $reconstruct
 echo "Username: " $username
 echo "Working directory: " $path
 echo "Running modes decomposition: " $modes
@@ -41,7 +41,7 @@ echo "##########################################################################
 echo 
 
 ## GUI
-if [[ $gui = true ]]; then
+if [[ $reconstruct = "gui" ]]; then
     echo "################################################################################################################"
     echo "Loading pynx_run_gui.txt arguments..."
     echo "/data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt |& tee README_pynx_gui.md"
@@ -57,7 +57,7 @@ if [[ $gui = true ]]; then
     echo
 
 ## Terminal
-else
+elif [[ $reconstruct = "terminal" ]]; then
     echo "################################################################################################################"
     echo "Loading pynx_run.txt arguments..."
     echo "/data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run.txt |& tee README_pynx_terminal.md"
@@ -71,7 +71,6 @@ else
     cd terminal_run/
     echo "################################################################################################################"
     echo
-
 fi
 
 if [[ $filtering == ?(-)+([0-9]) ]]; then # Verify that it is an integer
@@ -88,7 +87,7 @@ if [[ $modes = true ]]; then
     echo "################################################################################################################"
     echo
 
-    if [[ $gui = false ]]; then
+    if [[ $reconstruct = "terminal" ]]; then
         echo "################################################################################################################"
         echo "Running strain analysis"
         # ssh username@rnice9 << EOF

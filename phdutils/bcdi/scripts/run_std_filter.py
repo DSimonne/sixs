@@ -8,7 +8,12 @@ import os
 import operator
 import sys
 
-# CXI files qlreqdy filtered by LLK
+try:
+    n_keep = int(sys.argv[1])
+except:
+    print("n_keep must be an integer")
+
+# CXI files alreqdy filtered by LLK
 cxi_files = glob.glob("*LLK*.cxi")
 
 if cxi_files == []:
@@ -23,7 +28,6 @@ else:
             data = f.root.entry_1.image_1.data[:]
             std[filename] = np.std(np.abs(data))
             
-    n_keep = sys.argv[1]
     print(f"Keeping {n_keep} reconstructions ...")
     nb_files = len(cxi_files)
     sorted_dict = sorted(std.items(), key=operator.itemgetter(1))
@@ -35,4 +39,4 @@ else:
 
         print("Filtered the reconstructionns.")
     else:
-        print("n_keep is superior or equal to the number of recosntructions...")
+        print("n_keep is superior or equal to the number of reconstructions...")

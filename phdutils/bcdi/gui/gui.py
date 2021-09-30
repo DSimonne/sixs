@@ -170,6 +170,7 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
             )
         self._list_widgets_init.children[7].observe(self.init_handler, names = "value")
+        self._list_widgets_init.children[8].observe(self.init_handler, names = "value")
 
         self.tab_init = widgets.VBox([
             self._list_widgets_init.children[0],
@@ -1128,7 +1129,7 @@ class Interface(object):
 
             save_frame = widgets.ToggleButtons(
                 options = ['crystal', 'laboratory', "lab_flat_sample"],
-                value = "crystal",
+                value = "lab_flat_sample",
                 description = 'Final frame',
                 tooltips = [
                     "Save the data with q aligned along ref_axis_q",
@@ -1541,7 +1542,7 @@ class Interface(object):
                 layout = Layout(width='90%'),
                 style = {'description_width': 'initial'}),
 
-            h5_data = widgets.Dropdown(
+            reconstruction_file = widgets.Dropdown(
                 options = sorted(glob.glob(os.getcwd() + "/*.h5") + glob.glob(os.getcwd() + "/*.cxi") + glob.glob(os.getcwd() + "/*.npy") + glob.glob(os.getcwd() + "/*.npz")),
                 description = 'Compatible file list',
                 disabled = False,
@@ -1908,7 +1909,14 @@ class Interface(object):
                         layout = Layout(width='90%', height = "35px")),
                     
                     filter_criteria = widgets.Dropdown(
-                        options = [("No filtering", False), ("Standard deviation", "standard_deviation"), ("Log-likelihood", "LLK")],
+                        options = [
+                            ("No filtering", "no_filtering"),
+                            ("Standard deviation", "standard_deviation"),
+                            ("Log-likelihood (LLK)", "LLK"),
+                            ("LLK > Standard deviation", "LLK_standard_deviation"),
+                            # ("Standard deviation > LLK", "standard_deviation_LLK"),
+                            ],
+                        value = "LLK_standard_deviation", 
                         description = 'Filtering criteria',
                         disabled = False,
                         layout = Layout(width='90%'),
@@ -2243,39 +2251,37 @@ class Interface(object):
                 print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing exists", end = "\n\n")
                 pass
 
-            print(f"Moving files ...")
-
             # move data file
             try:
                 shutil.copy2(self.Dataset.path_to_data, f"{self.Dataset.root_folder}S{self.Dataset.scans}/data")
                 print(f"Copied {self.Dataset.path_to_data} to {self.Dataset.root_folder}S{self.Dataset.scans}/data")
-            except FileExistsError:
+            except (FileExistsError,shutil.SameFileError):
                 print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/data/{self.Dataset.path_to_data} exists")
-            except (AttributeError, FileNotFoundError,shutil.SameFileError):
+            except (AttributeError, FileNotFoundError):
                 pass
 
             # move pynx_run.txt file
-            try:
-                shutil.copy(f"{self.path_package}bcdi/pynx_run.txt", f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
-                print(f"Copied pynx_run.txt to {self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
-            except FileExistsError:
-                print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw/pynx_run.txt exists")
-                pass
+            # try:
+            #     shutil.copy(f"{self.path_package}bcdi/pynx_run.txt", f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
+            #     print(f"Copied pynx_run.txt to {self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
+            # except FileExistsError:
+            #     print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw/pynx_run.txt exists")
+            #     pass
 
             # Move notebooks
-            try:
-                shutil.copy(f"{self.path_package}bcdi/PhasingNotebook.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
-                print(f"Copied PhasingNotebook.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
-            except FileExistsError:
-                print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw/PhasingNotebook.ipynb exists")
-                pass
+            # try:
+            #     shutil.copy(f"{self.path_package}bcdi/PhasingNotebook.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
+            #     print(f"Copied PhasingNotebook.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
+            # except FileExistsError:
+            #     print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw/PhasingNotebook.ipynb exists")
+            #     pass
 
-            try:
-                shutil.copy(f"{self.path_package}bcdi/CompareFacetsEvolution.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
-                print(f"Copied CompareFacetsEvolution.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
-            except FileExistsError:
-                print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/CompareFacetsEvolution.ipynb exists")
-                pass
+            # try:
+            #     shutil.copy(f"{self.path_package}bcdi/CompareFacetsEvolution.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
+            #     print(f"Copied CompareFacetsEvolution.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
+            # except FileExistsError:
+            #     print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/CompareFacetsEvolution.ipynb exists")
+            #     pass
 
             self._list_widgets_pynx.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
             self.folder_pynx_handler(change = self._list_widgets_pynx.children[1].value)
@@ -2288,6 +2294,22 @@ class Interface(object):
  
             self.tab_facet.children[1].value = self.Dataset.scan_folder + f"postprocessing/"
             self.folder_facet_handler(change = self.tab_facet.children[1].value)
+
+            # Button to save data
+            button_save_as_gwr = Button(
+                description = "Save work as .gwr file",
+                continuous_update = False,
+                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                layout = Layout(width='40%'),
+                style = {'description_width': 'initial'},
+                icon = 'fast-forward')
+            display(button_save_as_gwr)
+
+            @button_save_as_gwr.on_click
+            def action_button_save_as_gwr(selfbutton):
+                clear_output(True)
+                display(button_save_as_gwr)
+                self.Dataset.to_gwr()
 
         elif reload_previous_data:
             # Reload previous data that was saved as .gwr file, initialize all related widgets values, authorize all functions 
@@ -2679,7 +2701,7 @@ class Interface(object):
                 if self.Dataset.beamline == "SIXS_2019":
                     root_folder = self.Dataset.root_folder
                     
-                if self.Dataset.beamline == "ID01":
+                elif self.Dataset.beamline == "ID01":
                     root_folder = self.Dataset.data_directory
                 
                 save_dir = f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/corrections/"
@@ -2694,7 +2716,8 @@ class Interface(object):
                         except FileExistsError:
                             pass
             except AttributeError:
-                return("Make sure you initialize the parameters by running the data preprocessing...")
+                print("Make sure you initialize the parameters by running the data preprocessing...")
+                return
 
             try:
                 # On lance la correction
@@ -2838,7 +2861,7 @@ class Interface(object):
         self.Dataset.nb_er = nb_er
         self.Dataset.nb_ml = nb_ml
         self.Dataset.nb_run = nb_run
-        self.Dataset.filter_criteria = filter_criteria[0],
+        self.Dataset.filter_criteria = filter_criteria
         self.Dataset.nb_run_keep = nb_run_keep
         self.Dataset.live_plot = live_plot
         # self.Dataset.zero_mask = zero_mask
@@ -2920,7 +2943,20 @@ class Interface(object):
                 
             if self.Dataset.psf_model == "pseudo-voigt":
                 self.text_file.append(f"psf = \"{self.Dataset.psf_model},{self.Dataset.fwhm},{self.Dataset.eta}\"\n")
-            
+
+            # Filtering the reconstructions
+            if self.Dataset.filter_criteria == "LLK":
+                nb_keep_LLK = self.Dataset.nb_run_keep
+                nb_keep_std = False
+
+            elif self.Dataset.filter_criteria == "std":
+                nb_keep_LLK = self.Dataset.nb_run
+                nb_keep_std = self.Dataset.nb_run_keep
+
+            elif self.Dataset.filter_criteria == "LLK_standard_deviation":
+                nb_keep_LLK = self.Dataset.nb_run_keep + (self.Dataset.nb_run - self.Dataset.nb_run_keep) // 2
+                nb_keep_std = self.Dataset.nb_run_keep
+      
             # Other parameters
             self.text_file += [
                 'data2cxi = True\n',
@@ -2932,7 +2968,7 @@ class Interface(object):
                 f'nb_ml = {self.Dataset.nb_ml}\n',
                 '\n',
                 f'nb_run = {self.Dataset.nb_run}\n',
-                f'nb_run_keep = {self.Dataset.nb_run_keep}\n',
+                f'nb_run_keep = {nb_keep_LLK}\n',
                 '\n',
                 f'# max_size = {self.Dataset.max_size}\n',
                 'zero_mask = auto # masked pixels will start from imposed 0 and then let free\n',
@@ -2964,8 +3000,8 @@ class Interface(object):
                 Runs modes directly and saves all data in an "all" subdir, filter based on LLK
                 seems that |& does not work for now ?
                 """
-                print(f"\nRunning /data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --gui true --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --modes true")
-                os.system(f"/data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --gui true --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --modes true")
+                print(f"\nRunning /data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
+                os.system(f"/data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
             
             elif self.run_phase_retrieval == "local_script":
                 try:
@@ -3110,7 +3146,7 @@ class Interface(object):
                     if mask is not None:
                         mask = mask[iy0 - ny1 // 2:iy0 + ny1 // 2, ix0 - nx1 // 2:ix0 + nx1 // 2]
             
-            print("\n#################################################################################################################\n")    
+            print("\n#############################################################################################################\n")    
             
             try:
                 # Run phase retrieval for nb_run
@@ -3283,13 +3319,13 @@ class Interface(object):
                         print("Threshold value probably too low, support too large too continue")
                         pass
 
-                    print("\n##########################################################################################################\n")    
+                    print("\n#############################################################################################################\n")    
             
-                # if filter, filter data
+                # If filter, filter data
                 if self.Dataset.filter_criteria:
-                    self.filter_reconstructions(self.Dataset.scan_folder+"pynxraw", self.Dataset.nb_run_keep, self.Dataset.filter_criteria)
+                    self.filter_reconstructions(self.Dataset.scan_folder+"pynxraw", self.Dataset.nb_run, self.Dataset.nb_run_keep, self.Dataset.filter_criteria)
 
-                # run modes decomposition, no widget yet
+                # Run modes decomposition, no widget yet
                 self.run_modes_decomposition(self.Dataset.scan_folder+"pynxraw")
 
             except KeyboardInterrupt:
@@ -3300,13 +3336,48 @@ class Interface(object):
             clear_output(True)
 
 
-    def filter_reconstructions(self, folder, nb_keep, filter_criteria):
+    def filter_reconstructions(self, folder, nb_run, nb_keep, filter_criteria):
         """
         Filter the phase retrieval output depending on a given parameter, for now only LLK and standard deviation are available.
         This allows the user to run a lot of reconstructions but to then automatically keep the "best" ones, according to this parameter.
         filter_criteria can take the values "LLK" or "standard_deviation"
+        If you take filter based on both, the function will filter nb_keep/2 files by the first criteria, and the remaining files by the second criteria 
         """
 
+        # Different functions depending in the criteria
+        def filter_by_std(cxi_files, nb_keep):
+            # Keep filtering criteria of reconstruction modules in dictionnary
+            filtering_criteria_value = {}
+
+            for filename in cxi_files:
+                print("Computing standard deviation of object modulus for ", filename)
+                with tb.open_file(filename, "r") as f:
+                    data = f.root.entry_1.image_1.data[:]
+                    filtering_criteria_value[filename] = np.std(np.abs(data))
+            
+            sorted_dict = sorted(filtering_criteria_value.items(), key=operator_lib.itemgetter(1))
+
+            for f, filtering_criteria_value in sorted_dict[nb_keep:]:
+                print(f"Removed scan {f}")
+                os.remove(f)
+
+        def filter_by_LLK(cxi_files, nb_keep):
+            # Keep filtering criteria of reconstruction modules in dictionnary
+            filtering_criteria_value = {}
+            
+            for filename in cxi_files:
+                print("Extracting llk value for poisson statistics for ", filename)
+                with tb.open_file(filename, "r") as f:
+                    llk = f.root.entry_1.image_1.process_1.results.llk_poisson[...]
+                    filtering_criteria_value[filename] = llk
+
+            sorted_dict = sorted(filtering_criteria_value.items(), key=operator_lib.itemgetter(1))
+
+            for f, filtering_criteria_value in sorted_dict[nb_keep:]:
+                print(f"Removed scan {f}")
+                os.remove(f)
+
+        # Main function, different cases
         try:
             print(f"Iterating on files corresponding to {folder}/*LLK*.cxi")
             cxi_files = sorted(glob.glob(f"{folder}/result_scan*LLK*.cxi"))
@@ -3315,39 +3386,34 @@ class Interface(object):
                 print(f"No *LLK*.cxi files in {folder}/result_scan*LLK*.cxi")
 
             else:
-                # Keep filtering criteria of reconstruction modules in dictionnary
-                filtering_criteria_value = {}
-
                 if filter_criteria == "standard_deviation":
-                    for filename in cxi_files:
-                        print("Computing standard deviation of object modulus for ", filename)
-                        with tb.open_file(filename, "r") as f:
-                            data = f.root.entry_1.image_1.data[:]
-                            filtering_criteria_value[filename] = np.std(np.abs(data))
+                    filter_by_std(cxi_files, nb_keep)
                     
-                    sorted_dict = sorted(filtering_criteria_value.items(), key=operator_lib.itemgetter(1))
-
-                    for f, filtering_criteria_value in sorted_dict[nb_keep:]:
-                        print(f"Removed scan {f}")
-                        os.remove(f)
-                    
-                    print("Filtered the reconstructions ")
-
                 elif filter_criteria == "LLK":
-                    for filename in cxi_files:
-                        print("Extracting llk value for poisson statistics for ", filename)
-                        with tb.open_file(filename, "r") as f:
-                            llk = f.root.entry_1.image_1.process_1.results.llk_poisson[...]
-                            filtering_criteria_value[filename] = llk
+                    filter_by_LLK(cxi_files, nb_keep)
 
-                    sorted_dict = sorted(filtering_criteria_value.items(), key=operator_lib.itemgetter(1))
+                elif filter_criteria == "standard_deviation_LLK":
+                    filter_by_std(cxi_files, nb_keep + (nb_run - nb_keep) // 2)
 
-                    for f, filtering_criteria_value in sorted_dict[nb_keep:]:
-                        print(f"Removed scan {f}")
-                        os.remove(f)
-                    
-                    print("Filtered the reconstructions ")
-        
+                    print(f"Iterating on remaining files in {folder}/*LLK*.cxi")
+                    cxi_files = sorted(glob.glob(f"{folder}/result_scan*LLK*.cxi"))
+
+                    if cxi_files == []:
+                        print(f"No *LLK*.cxi files remaining in {folder}/result_scan*LLK*.cxi")
+                    else:
+                        filter_by_LLK(cxi_files, nb_keep)     
+
+                elif filter_criteria == "LLK_standard_deviation":
+                    filter_by_LLK(cxi_files, nb_keep + (nb_run - nb_keep) // 2)
+
+                    print(f"Iterating on remaining files in {folder}/*LLK*.cxi")
+                    cxi_files = sorted(glob.glob(f"{folder}/result_scan*LLK*.cxi"))
+
+                    if cxi_files == []:
+                        print(f"No *LLK*.cxi files remaining in {folder}/result_scan*LLK*.cxi")
+                    else:
+                        filter_by_std(cxi_files, nb_keep)
+
                 else:
                     print("No filtering")
         except KeyboardInterrupt:
@@ -3429,7 +3495,7 @@ class Interface(object):
         alpha,
         label_strain,
         folder_strain,
-        h5_data,
+        reconstruction_file,
         run_strain,
         ):
         """
@@ -3508,7 +3574,7 @@ class Interface(object):
             self.Dataset.mu = mu
             self.Dataset.sigma = sigma
             self.Dataset.alpha = alpha
-            self.Dataset.h5_data = h5_data
+            self.Dataset.reconstruction_file = reconstruction_file
 
             # Extract dict, list and tuple from strings
             list_parameters = ["original_size", "output_size", "axis_to_align", "mu", "sigma", "alpha"]
@@ -3568,6 +3634,7 @@ class Interface(object):
                     w.disabled = False
 
                 print("You need to initialize all the parameters with the preprocess tab first""")
+                return
                     
             # Create final directory is not yet existing
             if not os.path.isdir(save_dir):
@@ -3659,7 +3726,7 @@ class Interface(object):
                     mu = self.Dataset.mu,
                     sigma = self.Dataset.sigma,
                     alpha = self.Dataset.alpha,
-                    h5_data = self.Dataset.h5_data,
+                    reconstruction_file = self.Dataset.reconstruction_file,
                     GUI=True,
                 )
 
@@ -4337,7 +4404,7 @@ class Interface(object):
         try:
             if self.Dataset.beamline == "SIXS_2019":
                 # Load Dataset, quite slow 
-                data = rd.Dataset(self.Dataset.path_to_data)
+                data = rd.DataSet(self.Dataset.path_to_data)
 
                 ## Add new data
                 temp_df = pd.DataFrame([[
@@ -4350,7 +4417,7 @@ class Interface(object):
                     (data.mu[-1] - data.mu[-0]) / len(data.mu), data.integration_time[0], len(data.integration_time), 
                     self.Dataset.interp_fwhm, self.Dataset.COM_rocking_curve,
                     data.ssl3hg[0], data.ssl3vg[0], 
-                    data.ssl1hg[0], data.ssl1vg[0]
+                    # data.ssl1hg[0], data.ssl1vg[0]
                     ]],
                     columns = [
                         "scan",
@@ -4362,7 +4429,7 @@ class Interface(object):
                         "step size", "integration time", "steps", 
                         "FWHM", "COM_rocking_curve",
                         "ssl3hg", "ssl3vg", 
-                        "ssl1hg", "ssl1vg", 
+                    #     "ssl1hg", "ssl1vg", 
                     ])
             else:
                 ## Add new data
@@ -4398,8 +4465,9 @@ class Interface(object):
             result.to_csv(self.csv_file, index = False)
             print(f"Saved logs in {self.csv_file}")
 
-        except AttributeError:
-            print("Could not extract metadata from Dataset ...")
+        except Exception as e:
+            raise e
+            # print("Could not extract metadata from Dataset ...")
 
 
     # Below are handlers
