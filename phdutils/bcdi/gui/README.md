@@ -49,17 +49,10 @@ Test._list_widgets_preprocessing.children[54].value = "12994"
 The widgets number might change with the evolution code, you can try to find the good one by playing with the different _list_widgets attributes, (should rename to list_widgets only)
 
 ### Dev
-* disable all when preprocess is on otherwise it runs again, same for pynx, psf better handler
 * images non sauvegardee pour preprocess, vient de bcdi.gu
-* better interatcion between tabs if problem appears
-* nest tab
-* si long pour correct
-* make sure that bcdi works also for script and then save commit
-* select environment possibility
-* netter separate all reconstructions
-* catch all control c
 * multiple plot comparison for rocking curves
-* add inplane outofplane widget in correct and strain
+* add inplane outofplane widget in correct and strain (link)
+* load gwr
 
 Some screenshots of the work so far:
 ![Tab1](https://user-images.githubusercontent.com/51970962/130641516-ffe670b1-7b72-4b86-bef4-3b8bf4b7a797.png)

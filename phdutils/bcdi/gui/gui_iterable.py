@@ -445,6 +445,7 @@ class Dataset():
             ## Reciprocal space
             reciprocal_space = data.create_group("reciprocal_space")
 
+            ### Save 3D coherent diffraction intensity
             try:
                 reciprocal_space.create_dataset("data",
                                           data = np.load(self.iobs)["data"],
@@ -459,6 +460,7 @@ class Dataset():
             except:
                 print("Could not save reciprocal space data and mask")
 
+            reciprocal_space.create_dataset("q_final", data = self.q_final)
             reciprocal_space["detector_distance"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/sdd")
             reciprocal_space["pixel_size_detector"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/pixel_size_detector")
             reciprocal_space["energy"] = h5py.SoftLink("/parameters/preprocessing/orthogonalisation/linearized_transformation_matrix/energy")
@@ -484,7 +486,6 @@ class Dataset():
 
             ### Save strain output
             try:
-                real_space.create_dataset("q_final", data = self.q_final)
                 real_space.create_dataset("voxel_size", data = self.voxel_size)
                 real_space.create_dataset("strain_analysis_output_file", data = self.strain_output_file)
 
@@ -514,7 +515,5 @@ class Dataset():
                                                     compression="gzip")
             except AttributeError:
                 print("Could not save strain output")
-
-
 
         print(f"Saved file as {self.scan_folder}{self.sample_name}{self.scans}.h5")

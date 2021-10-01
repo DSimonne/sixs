@@ -110,7 +110,7 @@ def strain_bcdi(
     mu,
     sigma,
     alpha,
-    h5_data,
+    reconstruction_file,
     GUI,
     ):
     """
@@ -323,10 +323,10 @@ def strain_bcdi(
     # preload data #
     ################
 
-    if h5_data:
-        file_path = h5_data,
+    if reconstruction_file:
+        file_path = reconstruction_file,
 
-    if not h5_data:
+    if not reconstruction_file:
         try:
             root = tk.Tk()
             root.withdraw()

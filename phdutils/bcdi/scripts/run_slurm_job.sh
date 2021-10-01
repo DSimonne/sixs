@@ -73,35 +73,35 @@ echo
 echo "################################################################################################"
 if [[ -z $reconstruct ]]; then # Check if empty
     reconstruct="terminal"
-    echo "Defaulted reconstruct to terminal, assign with e.g.: -g=true, possibilites are gui, terminal, false"
+    echo "Defaulted reconstruct to terminal, assign with e.g.: -r gui, possibilites are gui, terminal, false"
 else
     echo "Reconstruct: "$reconstruct
 fi
 
 if [[ -z $username ]]; then # Check if empty
     username="simonne"
-    echo "Defaulted username to simonne, assign with e.g.: -u=tombombadil"
+    echo "Defaulted username to simonne, assign with e.g.: -u tombombadil"
 else
     echo "Username: "$username
 fi
 
 if [[ -z $path ]]; then # Check if empty
     path=$(pwd)
-    echo "Defaulted path to data to cwd, assign with e.g.: -p=gna/gna/gna/"
+    echo "Defaulted path to data to cwd, assign with e.g.: -p gna/gna/gna/"
 else
     echo "Path to data: "$path
 fi
 
 if [[ -z $modes ]]; then # Check if empty
     modes=false
-    echo "Defaulted modes decomposition to false, assign with e.g.: -m=true"
+    echo "Defaulted modes decomposition to false, assign with e.g.: -m true"
 else
     echo "Modes: "$modes
 fi
 
 if [[ -z $filtering ]]; then # Check if empty
     filtering=false
-    echo "Defaulted filtering to false, assign with e.g.: -f=5"
+    echo "Defaulted filtering to false, assign with e.g.: -f 5"
 else
     echo "Filtering: "$filtering
 fi

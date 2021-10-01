@@ -43,7 +43,7 @@ from phdutils import plot
 from phdutils.sixs import ReadNxs4 as rd
 from phdutils.bcdi.runner import preprocess, correct_angles, strain
 from phdutils.bcdi.gui import gui_iterable
-
+from phdutils.bcdi.support import SupportTools
 # For PyNX
 import h5py
 from numpy.fft import fftshift
@@ -1008,7 +1008,6 @@ class Interface(object):
             )
         self._list_widgets_correct.children[2].observe(self.temp_handler, names = "value")
         self._list_widgets_correct.children[-2].observe(self.correct_angles_handler, names = "value")
-
         self.tab_correct = widgets.VBox([
             self._list_widgets_correct.children[0],
             self._list_widgets_correct.children[1],
@@ -1387,7 +1386,7 @@ class Interface(object):
             
             strain_range = widgets.FloatText(
                 value = 0.002,
-                step = 0.0001,
+                step = 0.00001,
                 continuous_update = False,
                 description = 'Strain range:',
                 readout = True,
@@ -1559,7 +1558,6 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
                 )
         self._list_widgets_strain.children[-4].observe(self.folder_strain_handler, names = "value")
-
         self.tab_strain = widgets.VBox([
             self._list_widgets_strain.children[0],
             widgets.HBox(self._list_widgets_strain.children[1:3]),
@@ -1622,7 +1620,7 @@ class Interface(object):
             )
 
         # Widgets for plotting
-        self.tab_plot = interactive(self.plot_data,
+        self.tab_data = interactive(self.load_data,
             label_plot = widgets.HTML(
                 description="<p style='font-weight: bold;font-size:1.2em'>Loads data files (.cxi or npz/npy) and displays it in the gui", # 
                 style = {'description_width': 'initial'},
@@ -1644,16 +1642,28 @@ class Interface(object):
                 layout = Layout(width='90%'),
                 style = {'description_width': 'initial'}),
 
-            load_data = widgets.ToggleButton(
+            data_use = widgets.ToggleButtons(
+                options = [
+                    ("Clear output", False),
+                    ('Plot data', "plot"),
+                    ("Create support", "create_support"),
+                    ("Extract support", "extract_support"),
+                    ("Smooth support", "smooth_support"),
+                    ],
                 value = False,
                 description = 'Load data',
+                tooltips = [
+                    "Clear the output and unload data from gui, saves RAM",
+                    "Load data and present plotting options", 
+                    "Load data and present support creation options"
+                    ],
                 disabled = False,
                 button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                 icon = 'fast-forward',
-                layout = Layout(width='40%'),
+                layout = Layout(width='90%'),
                 style = {'description_width': 'initial'}),
             )
-        self.tab_plot.children[1].observe(self.folder_plot_handler, names = "value")
+        self.tab_data.children[1].observe(self.folder_plot_handler, names = "value")
 
         # Widgets for PyNX
         self._list_widgets_pynx = interactive(self.init_pynx,
@@ -2036,7 +2046,6 @@ class Interface(object):
         self._list_widgets_pynx.children[16].observe(self.pynx_peak_shape_handler, names = "value")
         self._list_widgets_pynx.children[21].observe(self.pynx_operator_handler, names = "value")
         self._list_widgets_pynx.children[-2].observe(self.run_pynx_handler, names = "value")
-
         self.tab_pynx = widgets.VBox([
             widgets.VBox(self._list_widgets_pynx.children[:6]),
             widgets.HBox(self._list_widgets_pynx.children[6:8]),
@@ -2092,7 +2101,7 @@ class Interface(object):
                 layout = Layout(width='40%'),
                 style = {'description_width': 'initial'}),
             )
-        self.tab_plot.children[1].observe(self.folder_facet_handler, names = "value")
+        self.tab_facet.children[1].observe(self.folder_facet_handler, names = "value")
 
         # Widgets for readme tab
         self.tab_readme = interactive(self.display_readme, 
@@ -2120,7 +2129,7 @@ class Interface(object):
                             self.tab_logs,
                             self.tab_pynx,
                             self.tab_strain,
-                            self.tab_plot,
+                            self.tab_data,
                             self.tab_facet,
                             self.tab_readme,
                         ])
@@ -2179,7 +2188,7 @@ class Interface(object):
             self.Dataset.scan_folder = self.Dataset.root_folder + f"S{scans}/"
             print("Scan folder:", self.Dataset.scan_folder)
             self.tab_facet.children[1].value = self.Dataset.scan_folder + f"postprocessing/{self.Dataset.scans}_fa.vtk"
-            self.tab_plot.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
+            self.tab_data.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
             self._list_widgets_strain.children[-4].value = self.Dataset.scan_folder + f"pynxraw/"
             self._list_widgets_pynx.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
 
@@ -2286,8 +2295,8 @@ class Interface(object):
             self._list_widgets_pynx.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
             self.folder_pynx_handler(change = self._list_widgets_pynx.children[1].value)
 
-            self.tab_plot.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
-            self.folder_plot_handler(change = self.tab_plot.children[1].value)
+            self.tab_data.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
+            self.folder_plot_handler(change = self.tab_data.children[1].value)
 
             self._list_widgets_strain.children[-4].value = self.Dataset.scan_folder + f"pynxraw/"
             self.folder_strain_handler(change = self._list_widgets_strain.children[-4].value)
@@ -2646,8 +2655,8 @@ class Interface(object):
                 self._list_widgets_pynx.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
                 self.folder_pynx_handler(change = self._list_widgets_pynx.children[1].value)
 
-                self.tab_plot.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
-                self.folder_plot_handler(change = self.tab_plot.children[1].value)
+                self.tab_data.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
+                self.folder_plot_handler(change = self.tab_data.children[1].value)
 
                 self._list_widgets_strain.children[-4].value = self.Dataset.scan_folder + f"pynxraw/"
                 self.folder_strain_handler(change = self._list_widgets_strain.children[-4].value)
@@ -2920,6 +2929,7 @@ class Interface(object):
             self.Dataset.live_plot = False
             
             # Load files
+            self.text_file.append("# Parameters")
             for file, parameter in [(self.Dataset.iobs, "data"), (self.Dataset.mask, "mask"), (self.Dataset.obj, "object")]:
                 if file:
                     self.text_file.append(f"{parameter} = \"{file}\"\n")
@@ -2973,6 +2983,8 @@ class Interface(object):
                 f'# max_size = {self.Dataset.max_size}\n',
                 'zero_mask = auto # masked pixels will start from imposed 0 and then let free\n',
                 'crop_output= 0 # set to 0 to avoid cropping the output in the .cxi\n',
+                "mask_interp=8,2"
+                "confidence_interval_factor_mask=0.5,1.2"
                 '\n',
                 f'positivity = {self.Dataset.positivity}\n',
                 f'beta = {self.Dataset.beta}\n',
@@ -3064,6 +3076,11 @@ class Interface(object):
                         print("CXI input: loading support")
                     except:
                         print("Could not load 'data' array from npz file")
+                        try:
+                            support = np.load(self.Dataset.support)["support"]
+                            print("CXI input: loading support")
+                        except:
+                            print("Could not load 'support' array from npz file")
 
                 if self.Dataset.rebin != (1,1,1):
                     try:
@@ -3336,7 +3353,12 @@ class Interface(object):
             clear_output(True)
 
 
-    def filter_reconstructions(self, folder, nb_run, nb_keep, filter_criteria):
+    def filter_reconstructions(self,
+        folder, 
+        nb_run, 
+        nb_keep, 
+        filter_criteria
+        ):
         """
         Filter the phase retrieval output depending on a given parameter, for now only LLK and standard deviation are available.
         This allows the user to run a lot of reconstructions but to then automatically keep the "best" ones, according to this parameter.
@@ -3420,7 +3442,9 @@ class Interface(object):
             print("cxi files filtering stopped by user ...")
 
 
-    def run_modes_decomposition(self, folder):
+    def run_modes_decomposition(self, 
+        folder
+        ):
         """
         Run a decomposition into modes of the phase retrieval solutions, saves only the first mode
         """
@@ -3622,7 +3646,7 @@ class Interface(object):
                 if self.Dataset.beamline == "ID01":
                     root_folder = self.Dataset.data_directory
                 
-                save_dir = f"{self.Dataset.root_folder}S{self.Dataset.scans}/result_{self.Dataset.data_frame}/"
+                save_dir = f"{self.Dataset.root_folder}S{self.Dataset.scans}/result_{self.Dataset.save_frame}/"
             except AttributeError:
                 for w in self._list_widgets_strain.children[:-1]:
                     w.disabled = False
@@ -3633,7 +3657,7 @@ class Interface(object):
                 for w in self._list_widgets_correct.children[:-1]:
                     w.disabled = False
 
-                print("You need to initialize all the parameters with the preprocess tab first""")
+                print("You need to initialize all the parameters with the preprocess tab first, some parameters are used here such as the energy, detector distance, ...""")
                 return
                     
             # Create final directory is not yet existing
@@ -3731,14 +3755,16 @@ class Interface(object):
                 )
 
             except AttributeError:
-                print("Run angles correction first")
+                print("Run angles correction first, the values of the inplane and outofplane angles are the bragg peak center of mass will be automatically computed.")
+            except KeyboardInterrupt:
+                print("Strain analysis stopped by user ...")
 
             finally:
                 # At the end of the function 
                 self._list_widgets_strain.children[-2].disabled = False
 
-                self.tab_plot.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
-                self.folder_plot_handler(change = self.tab_plot.children[1].value)
+                self.tab_data.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
+                self.folder_plot_handler(change = self.tab_data.children[1].value)
 
         if not run_strain:
             for w in self._list_widgets_strain.children[:-1]:
@@ -4294,23 +4320,133 @@ class Interface(object):
             clear_output(True)
 
 
-    def plot_data(self,
+    def load_data(self,
         label_plot,
         folder,
         file_list,
-        load_data
+        data_use
         ):
         """
         Allows the user to plot an array (1D, 2D or 3D) from npz, npy or .cxi files.
         """
 
-        if load_data:
-            for w in self.tab_plot.children[:-2]:
+        if data_use == "plot":
+            # Disable widgets 
+           for w in self.tab_data.children[:-2]:
                 w.disabled = True
-            plot.Plotter(file_list)
 
-        else:
-            for w in self.tab_plot.children[:-2]:
+           # Plot data
+           plot.Plotter(file_list)
+
+        elif data_use == "create_support":
+            # Disable widgets 
+            for w in self.tab_data.children[:-2]:
+                w.disabled = True
+                
+            # Initialize class
+            sup = SupportTools(path_to_data = file_list)
+
+            # Interactive function to loadt threshold value
+            window_support = interactive(sup.compute_support,
+                threshold = widgets.FloatText(
+                                value = 0.05,
+                                step = 0.001,
+                                max = 1,
+                                min = 0.001,
+                                continuous_update = False,
+                                description = 'Threshold:',
+                                readout = True,
+                                layout = Layout(width='20%'),
+                                style = {'description_width': 'initial'},
+                                disabled = False),
+                compute =  widgets.ToggleButton(
+                                value = False,
+                                description = 'Compute support ...',
+                                disabled = False,
+                                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                                icon = 'step-forward',
+                                layout = Layout(width='45%'),
+                                style = {'description_width': 'initial'})
+                )
+
+            def support_handler(change):
+                """Handles changes on the widget used for the initialization"""
+
+                if not change.new:
+                    window_support.children[0].disabled = False
+
+                if change.new:
+                    window_support.children[0].disabled = True
+
+            window_support.children[1].observe(support_handler, names = "value")
+
+            display(window_support)
+
+        elif data_use == "extract_support":
+            # Disable widgets 
+            for w in self.tab_data.children[:-2]:
+                w.disabled = True
+                
+            # Initialize class
+            sup = SupportTools(path_to_data = file_list)
+
+            # Extract the support from the data file and save it as npz
+            sup.extract_support()
+
+        elif data_use == "smooth_support":
+            # Disable widgets 
+            for w in self.tab_data.children[:-2]:
+                w.disabled = True
+                
+            # Initialize class
+            sup = SupportTools(path_to_support = file_list)
+
+            # Interactive function to loadt threshold value
+            window_support = interactive(sup.gaussian_convolution,
+                sigma = widgets.FloatText(
+                                value = 0.05,
+                                step = 0.001,
+                                max = 1,
+                                min = 0.001,
+                                continuous_update = False,
+                                description = 'Sigma:',
+                                readout = True,
+                                layout = Layout(width='20%'),
+                                style = {'description_width': 'initial'}),
+                threshold = widgets.FloatText(
+                                value = 0.05,
+                                step = 0.001,
+                                max = 1,
+                                min = 0.001,
+                                continuous_update = False,
+                                description = 'Threshold:',
+                                readout = True,
+                                layout = Layout(width='20%'),
+                                style = {'description_width': 'initial'}),
+                compute =  widgets.ToggleButton(
+                                value = False,
+                                description = 'Compute support ...',
+                                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                                icon = 'step-forward',
+                                layout = Layout(width='45%'),
+                                style = {'description_width': 'initial'})
+                )
+
+            def support_handler(change):
+                """Handles changes on the widget used for the initialization"""
+
+                if not change.new:
+                    window_support.children[0].disabled = False
+
+                if change.new:
+                    window_support.children[0].disabled = True
+
+            window_support.children[1].observe(support_handler, names = "value")
+
+            display(window_support)
+
+        elif data_use == False:
+            for w in self.tab_data.children[:-2]:
                 w.disabled = False
             clear_output(True)
 
@@ -4771,10 +4907,10 @@ class Interface(object):
     def folder_plot_handler(self, change):
         """Handles changes on the widget used to load a data file"""
         try:
-            self.tab_plot.children[2].options = sorted(glob.glob(change.new + "/*.npz") + glob.glob(change.new + "/*.cxi")) + [""]
+            self.tab_data.children[2].options = sorted(glob.glob(change.new + "/*.npz") + glob.glob(change.new + "/*.cxi")) + [""]
 
         except AttributeError:
-            self.tab_plot.children[2].options = sorted(glob.glob(change + "/*.npz") + glob.glob(change + "/*.cxi")) + [""]
+            self.tab_data.children[2].options = sorted(glob.glob(change + "/*.npz") + glob.glob(change + "/*.cxi")) + [""]
 
     def folder_facet_handler(self, change):
         """Handles changes on the widget used to load a data file"""

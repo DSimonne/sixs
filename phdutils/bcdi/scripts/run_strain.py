@@ -292,7 +292,7 @@ tick_length = 3  # 10  # in plots
 tick_width = 1  # 2  # in plots
 
 ##########################################
-# parameteres for temperature estimation #
+# parameters for temperature estimation #
 ##########################################
 get_temperature = False  # only available for platinum at the moment
 reflection = np.array(
