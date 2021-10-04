@@ -523,20 +523,12 @@ class Interface(object):
                 disabled = True,
                 style = {'description_width': 'initial'}),
 
-            x_bragg = widgets.IntText(
-                value = 160,
+            roi_detector = widgets.Text(
+                placeholder = "[low_y_bound, high_y_bound, low_x_bound, high_x_bound]",
+                description = 'Fix roi area, will overwrite cropping parameters', # fix the Bragg peak position [z_bragg, y_bragg, x_bragg] considering the full detector
+                disabled = True, # It is useful if hotpixels or intense aliens. Leave it [] otherwise.
                 continuous_update = False,
-                description = 'X Bragg, used for roi definition:',
-                disabled = True,
-                tooltip = "Horizontal pixel number of the Bragg peak, can be used for the definition of the ROI",
-                style = {'description_width': 'initial'}),
-
-            y_bragg = widgets.IntText(
-                value = 325,
-                description = 'Y Bragg, used for roi definition:',
-                continuous_update = False,
-                disabled = True,
-                tooltip = "Vertical pixel number of the Bragg peak, can be used for the definition of the ROI",
+                layout = Layout(width='90%'),
                 style = {'description_width': 'initial'}),
 
             photon_threshold = widgets.IntText(
@@ -870,35 +862,35 @@ class Interface(object):
         self._list_widgets_preprocessing.children[8].observe(self.energy_scan_handler, names = "value")
         self._list_widgets_preprocessing.children[14].observe(self.bragg_peak_centering_handler, names = "value")
         self._list_widgets_preprocessing.children[26].observe(self.reload_data_handler, names = "value")
-        self._list_widgets_preprocessing.children[48].observe(self.interpolation_handler, names = "value")
+        self._list_widgets_preprocessing.children[47].observe(self.interpolation_handler, names = "value")
         self._list_widgets_preprocessing.children[-2].observe(self.preprocess_handler, names = "value")
 
         self.tab_detector = widgets.VBox([
             self._list_widgets_preprocessing.children[35],
             self._list_widgets_preprocessing.children[36],
-            widgets.HBox(self._list_widgets_preprocessing.children[37:39]),
-            widgets.HBox(self._list_widgets_preprocessing.children[39:41]),
+            self._list_widgets_preprocessing.children[37],
+            widgets.HBox(self._list_widgets_preprocessing.children[38:40]),
+            self._list_widgets_preprocessing.children[40],
             self._list_widgets_preprocessing.children[41],
             self._list_widgets_preprocessing.children[42],
             self._list_widgets_preprocessing.children[43],
-            self._list_widgets_preprocessing.children[44],
-            widgets.HBox(self._list_widgets_preprocessing.children[45:47]),
+            widgets.HBox(self._list_widgets_preprocessing.children[44:46]),
             ])
 
         self.tab_ortho = widgets.VBox([
+            self._list_widgets_preprocessing.children[46],
             self._list_widgets_preprocessing.children[47],
-            self._list_widgets_preprocessing.children[48],
-            widgets.HBox(self._list_widgets_preprocessing.children[49:51]),
+            widgets.HBox(self._list_widgets_preprocessing.children[48:50]),
+            self._list_widgets_preprocessing.children[50],
             self._list_widgets_preprocessing.children[51],
             self._list_widgets_preprocessing.children[52],
-            self._list_widgets_preprocessing.children[53],
-            widgets.HBox(self._list_widgets_preprocessing.children[54:56]),
-            self._list_widgets_preprocessing.children[56],
-            widgets.HBox(self._list_widgets_preprocessing.children[57:59]),
-            widgets.HBox(self._list_widgets_preprocessing.children[59:62]),
-            widgets.HBox(self._list_widgets_preprocessing.children[62:64]),
-            widgets.HBox(self._list_widgets_preprocessing.children[64:68]),
-            widgets.HBox(self._list_widgets_preprocessing.children[68:71]),
+            widgets.HBox(self._list_widgets_preprocessing.children[53:55]),
+            self._list_widgets_preprocessing.children[55],
+            widgets.HBox(self._list_widgets_preprocessing.children[56:58]),
+            widgets.HBox(self._list_widgets_preprocessing.children[58:61]),
+            widgets.HBox(self._list_widgets_preprocessing.children[61:63]),
+            widgets.HBox(self._list_widgets_preprocessing.children[63:67]),
+            widgets.HBox(self._list_widgets_preprocessing.children[67:70]),
             ])
 
         self.tab_beamline = widgets.VBox([
@@ -914,7 +906,8 @@ class Interface(object):
 
         self.tab_reduction = widgets.VBox([
             self._list_widgets_preprocessing.children[13],
-            widgets.HBox(self._list_widgets_preprocessing.children[14:16]), 
+            widgets.HBox(self._list_widgets_preprocessing.children[14:16]),
+            self._list_widgets_preprocessing.children[16],
             widgets.HBox(self._list_widgets_preprocessing.children[17:20]),
             self._list_widgets_preprocessing.children[20],
             widgets.HBox(self._list_widgets_preprocessing.children[21:24]),
@@ -1712,7 +1705,7 @@ class Interface(object):
                         style = {'description_width': 'initial'}),
 
                     auto_center_resize = widgets.Checkbox(
-                        value = True,
+                        value = False,
                         description = 'Auto center and resize',
                         continuous_update = False,
                         disabled = False,
@@ -1933,7 +1926,7 @@ class Interface(object):
                         style = {'description_width': 'initial'}),
                     
                     nb_run_keep = widgets.BoundedIntText(
-                        value = 20,
+                        value = 10,
                         continuous_update = False,
                         description = 'Number of run to keep:',
                         layout = Layout(height = "50px"),
@@ -2206,7 +2199,7 @@ class Interface(object):
                 print("File template:", self.Dataset.template_imagefile, end = "\n\n")
 
                 # Save file name
-                self._list_widgets_preprocessing.children[44].value = self.Dataset.template_imagefile.split("/")[-1]
+                self._list_widgets_preprocessing.children[43].value = self.Dataset.template_imagefile.split("/")[-1]
 
             except IndexError:
                 self.Dataset.template_imagefile = ""
@@ -2366,8 +2359,7 @@ class Interface(object):
         save_asint,
         label_detector, 
         detector, 
-        x_bragg, 
-        y_bragg, 
+        roi_detector,
         photon_threshold, 
         photon_filter, 
         background_file, 
@@ -2423,7 +2415,10 @@ class Interface(object):
             self.Dataset.binning = binning
             self.Dataset.flag_interact = flag_interact
             self.Dataset.background_plot = str(background_plot)
-            self.Dataset.centering = centering
+            if centering == "manual": # will be overridden
+                self.Dataset.centering = "max"
+            else:
+                self.Dataset.centering = centering                
             self.Dataset.fix_bragg = fix_bragg
             self.Dataset.fix_size = fix_size
             self.Dataset.center_fft = center_fft
@@ -2450,8 +2445,7 @@ class Interface(object):
             self.Dataset.follow_bragg = follow_bragg
             self.Dataset.specfile_name = specfile_name
             self.Dataset.detector = detector
-            self.Dataset.x_bragg = x_bragg
-            self.Dataset.y_bragg = y_bragg
+            self.Dataset.roi_detector = roi_detector
             self.Dataset.photon_threshold = photon_threshold
             self.Dataset.photon_filter = photon_filter
             self.Dataset.background_file = background_file
@@ -2485,7 +2479,7 @@ class Interface(object):
             self.Dataset.data_dirname = None
 
             # Extract dict, list and tuple from strings
-            list_parameters = ["fix_bragg", "fix_size", "pad_size"]
+            list_parameters = ["fix_bragg", "fix_size", "pad_size", "roi_detector"]
 
             tuple_parameters = ["binning", "preprocessing_binning", "beam_direction", "sample_offsets", "sample_inplane", "sample_outofplane"]
 
@@ -2548,7 +2542,7 @@ class Interface(object):
 
 
             # self.Dataset.roi_detector = [self.Dataset.y_bragg - 160, self.Dataset.y_bragg + 160, self.Dataset.x_bragg - 160, self.Dataset.x_bragg + 160]
-            self.Dataset.roi_detector = None
+            # self.Dataset.roi_detector = None
             # [Vstart, Vstop, Hstart, Hstop]
             # leave it as [] to use the full detector. Use with center_fft='skip' if you want this exact size.
 
@@ -2617,8 +2611,6 @@ class Interface(object):
                     specfile_name = self.Dataset.specfile_name,
                     detector = self.Dataset.detector,
                     linearity_func = self.Dataset.linearity_func,
-                    x_bragg = self.Dataset.x_bragg,
-                    y_bragg = self.Dataset.y_bragg,
                     roi_detector = self.Dataset.roi_detector,
                     photon_threshold = self.Dataset.photon_threshold,
                     photon_filter = self.Dataset.photon_filter,
@@ -2757,9 +2749,7 @@ class Interface(object):
                     rocking_angle = self.Dataset.rocking_angle,
                     specfile_name = self.Dataset.specfile_name,
                     detector = self.Dataset.detector,
-                    x_bragg = self.Dataset.x_bragg,
-                    y_bragg = self.Dataset.y_bragg,
-                    roi_detector = None,
+                    roi_detector = self.Dataset.roi_detector,
                     hotpixels_file = self.Dataset.hotpixels_file, 
                     flatfield_file = self.Dataset.flatfield_file,
                     template_imagefile = self.Dataset.template_imagefile,
@@ -2780,8 +2770,8 @@ class Interface(object):
 
                 # Save corrected angles in the widgets
                 print("Saving corrected angles values...")
-                self._list_widgets_preprocessing.children[59].value = self.Dataset.bragg_outofplane
-                self._list_widgets_preprocessing.children[60].value = self.Dataset.bragg_inplane
+                self._list_widgets_preprocessing.children[58].value = self.Dataset.bragg_outofplane
+                self._list_widgets_preprocessing.children[59].value = self.Dataset.bragg_inplane
                 self.Dataset.tilt_angle = np.round(np.mean(self.Dataset.tilt_values[1:] - self.Dataset.tilt_values[:-1]), 4)
 
             # except ValueError:
@@ -2911,14 +2901,14 @@ class Interface(object):
         
         print("Scan n°", self.Dataset.scans)
 
-        self.Dataset.energy = self._list_widgets_preprocessing.children[54].value
+        self.Dataset.energy = self._list_widgets_preprocessing.children[53].value
         self.Dataset.wavelength = 1.2399*1e-6 / self.Dataset.energy
-        self.Dataset.sdd = self._list_widgets_preprocessing.children[53].value
+        self.Dataset.sdd = self._list_widgets_preprocessing.children[52].value
 
         print("CXI input: Energy = %8.2feV" % self.Dataset.energy)
         print(f"CXI input: Wavelength = {self.Dataset.wavelength*1e10} A")
         print("CXI input: detector distance = %8.2fm" % self.Dataset.sdd)
-        print("CXI input: detector pixel size = %8.2fum" % (self.Dataset.pixel_size_detector))
+        print(f"CXI input: detector pixel size = {self.Dataset.pixel_size_detector}")
 
         # PyNX arguments text files
         self.Dataset.pynx_parameter_gui_file = self.Dataset.scan_folder + '/pynxraw/pynx_run_gui.txt'
@@ -2929,7 +2919,7 @@ class Interface(object):
             self.Dataset.live_plot = False
             
             # Load files
-            self.text_file.append("# Parameters")
+            self.text_file.append("# Parameters\n")
             for file, parameter in [(self.Dataset.iobs, "data"), (self.Dataset.mask, "mask"), (self.Dataset.obj, "object")]:
                 if file:
                     self.text_file.append(f"{parameter} = \"{file}\"\n")
@@ -2983,8 +2973,8 @@ class Interface(object):
                 f'# max_size = {self.Dataset.max_size}\n',
                 'zero_mask = auto # masked pixels will start from imposed 0 and then let free\n',
                 'crop_output= 0 # set to 0 to avoid cropping the output in the .cxi\n',
-                "mask_interp=8,2"
-                "confidence_interval_factor_mask=0.5,1.2"
+                "mask_interp=8,2\n"
+                "confidence_interval_factor_mask=0.5,1.2\n"
                 '\n',
                 f'positivity = {self.Dataset.positivity}\n',
                 f'beta = {self.Dataset.beta}\n',
@@ -3169,7 +3159,7 @@ class Interface(object):
                 # Run phase retrieval for nb_run
                 for i in range(self.Dataset.nb_run):
                     print(f"Run {i}")
-                    if i>5:
+                    if i>4:
                         print("\nStopping liveplot to go faster\n")
                         self.Dataset.live_plot = False
 
@@ -4573,7 +4563,7 @@ class Interface(object):
                     self.Dataset.scans,
                     self.Dataset.q[0], self.Dataset.q[1], self.Dataset.q[2], self.Dataset.qnorm, self.Dataset.dist_plane,
                     self.Dataset.bragg_inplane, self.Dataset.bragg_outofplane,
-                    self.Dataset.bragg_x, self.Datase.bragg_y,
+                    self.Dataset.bragg_x, self.Dataset.bragg_y,
                     self.Dataset.interp_fwhm, self.Dataset.COM_rocking_curve,
                     ]],
                     columns = [
@@ -4628,7 +4618,7 @@ class Interface(object):
             self.energy_scan_handler(change = self._list_widgets_preprocessing.children[8].value)
             self.bragg_peak_centering_handler(change = self._list_widgets_preprocessing.children[14].value)
             self.reload_data_handler(change = self._list_widgets_preprocessing.children[26].value)
-            self.interpolation_handler(change = self._list_widgets_preprocessing.children[48].value)
+            self.interpolation_handler(change = self._list_widgets_preprocessing.children[47].value)
 
     def beamline_handler(self, change):
         "Handles changes on the widget used for the initialization"
@@ -4704,19 +4694,19 @@ class Interface(object):
         "Handles changes related to data interpolation"
         try:
             if change.new:
-                for w in self._list_widgets_preprocessing.children[49:71]:
+                for w in self._list_widgets_preprocessing.children[48:70]:
                     w.disabled = False
 
             if not change.new:
-                for w in self._list_widgets_preprocessing.children[49:71]:
+                for w in self._list_widgets_preprocessing.children[48:70]:
                     w.disabled = True
         except AttributeError:
             if change:
-                for w in self._list_widgets_preprocessing.children[49:71]:
+                for w in self._list_widgets_preprocessing.children[48:70]:
                     w.disabled = False
 
             if not change:
-                for w in self._list_widgets_preprocessing.children[49:71]:
+                for w in self._list_widgets_preprocessing.children[48:70]:
                     w.disabled = True
 
     def preprocess_handler(self, change):
@@ -4735,7 +4725,7 @@ class Interface(object):
                 self.energy_scan_handler(change = self._list_widgets_preprocessing.children[8].value)
                 self.bragg_peak_centering_handler(change = self._list_widgets_preprocessing.children[14].value)
                 self.reload_data_handler(change = self._list_widgets_preprocessing.children[26].value)
-                self.interpolation_handler(change = self._list_widgets_preprocessing.children[48].value)
+                self.interpolation_handler(change = self._list_widgets_preprocessing.children[47].value)
 
             if change.new:
                 self._list_widgets_init.children[7].disabled = True
@@ -4762,7 +4752,7 @@ class Interface(object):
                 self.energy_scan_handler(change = self._list_widgets_preprocessing.children[8].value)
                 self.bragg_peak_centering_handler(change = self._list_widgets_preprocessing.children[14].value)
                 self.reload_data_handler(change = self._list_widgets_preprocessing.children[26].value)
-                self.interpolation_handler(change = self._list_widgets_preprocessing.children[48].value)
+                self.interpolation_handler(change = self._list_widgets_preprocessing.children[47].value)
 
             if change:
                 self._list_widgets_init.children[7].disabled = True

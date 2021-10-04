@@ -92,8 +92,6 @@ def preprocess_bcdi(
     specfile_name,
     detector, 
     linearity_func, 
-    x_bragg, 
-    y_bragg, 
     roi_detector, 
     photon_threshold, 
     photon_filter, 
@@ -1355,16 +1353,16 @@ def preprocess_bcdi(
     plt.show()
 
     ############################################################## ADDED SCRIPT ################################################################
+    if not GUI:
+        # Modify file for phase retrieval
+        print("Saving in pynx run ...")
 
-    # Modify file for phase retrieval
-    print("Saving in pynx run ...")
+        with open(f"{detector.savedir}pynx_run.txt", "r") as f:
+            text_file = f.readlines()
+            
+            text_file[1] = f"data = \"{detector.savedir}S{scan_nb}_pynx{comment}.npz\"\n"
+            text_file[2] = f"mask = \"{detector.savedir}S{scan_nb}_maskpynx{comment}.npz\"\n"
 
-    with open(f"{detector.savedir}pynx_run.txt", "r") as f:
-        text_file = f.readlines()
-        
-        text_file[1] = f"data = \"{detector.savedir}S{scan_nb}_pynx{comment}.npz\"\n"
-        text_file[2] = f"mask = \"{detector.savedir}S{scan_nb}_maskpynx{comment}.npz\"\n"
-
-        with open(f"{save_dir}pynx_run.txt", "w") as v:
-            new_file_contents = "".join(text_file)
-            v.write(new_file_contents)
+            with open(f"{save_dir}pynx_run.txt", "w") as v:
+                new_file_contents = "".join(text_file)
+                v.write(new_file_contents)
