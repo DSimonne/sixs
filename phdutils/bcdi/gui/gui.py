@@ -3890,10 +3890,10 @@ class Interface(object):
                 list_parameters = ["u0", "v0", "w0", "hkl_reference", "view"]
                 try:
                     for p in list_parameters:
-                        if getattr(self.Dataset, p) == "":
-                            setattr(self.Dataset, p, [])
+                        if getattr(self.Facets, p) == "":
+                            setattr(self.Facets, p, [])
                         else:
-                            setattr(self.Dataset, p, literal_eval(getattr(self.Dataset, p)))
+                            setattr(self.Facets, p, literal_eval(getattr(self.Facets, p)))
                         # print(f"{p}:", getattr(self.Dataset, p))
                 except ValueError:
                     print(f"Wrong list syntax for {p}")

@@ -365,7 +365,8 @@ class Facets(object):
 				n0 = mask.n0.values[0]
 				n1 = mask.n1.values[0]
 				n2 = mask.n2.values[0]
-				print(f"Facet normal: [{n0}, {n1}, {n2}].")
+				n = np.array([n0, n1, n2])
+				print(f"Facet normal: [{np.round(n, 2)}].")
 			except Exception as e:
 				raise e
 				# pass
