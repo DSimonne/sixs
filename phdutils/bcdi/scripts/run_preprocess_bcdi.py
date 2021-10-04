@@ -320,8 +320,6 @@ preprocess.preprocess_bcdi(
     specfile_name,
     detector, 
     linearity_func, 
-    x_bragg, 
-    y_bragg, 
     roi_detector, 
     photon_threshold, 
     photon_filter, 

@@ -51,8 +51,6 @@ def correct_angles_detector(
     rocking_angle,
     specfile_name,
     detector,
-    x_bragg,
-    y_bragg,
     roi_detector,
     hotpixels_file,
     flatfield_file,

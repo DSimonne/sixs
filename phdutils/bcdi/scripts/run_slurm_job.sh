@@ -116,7 +116,7 @@ path=${path/#=/}
 modes=${modes/#=/}
 filtering=${filtering/#=/}
 
-ssh simonne@slurm-nice-devel << EOF
+ssh $username@slurm-nice-devel << EOF
     # echo "Running "sbatch /data/id01/inhouse/david/py38-env/bin/job.slurm $reconstruct $username $path $modes $filtering
     sbatch /data/id01/inhouse/david/py38-env/bin/job.slurm $reconstruct $username $path $modes $filtering
 
