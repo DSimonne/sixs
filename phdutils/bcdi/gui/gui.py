@@ -3798,152 +3798,202 @@ class Interface(object):
             except:
                 return "Wrong file."
 
-            @interact(
-                facet_a_id = widgets.Dropdown(
-                    options = [i+1 for i in range(self.Facets.nb_facets)],
-                    value = 1,
-                    description = 'Facet a id:',
-                    disabled = False,
-                    continuous_update = True,
-                    layout = Layout(width='45%'),
-                    style = {'description_width': 'initial'}),
-                facet_b_id = widgets.Dropdown(
-                    options = [i+1 for i in range(self.Facets.nb_facets)],
-                    value = 2,
-                    description = 'Facet b id:',
-                    disabled = False,
-                    continuous_update = True,
-                    layout = Layout(width='45%'),
-                    style = {'description_width': 'initial'}),
-                u0 = widgets.Text(
-                    value = "[1, 1, 1]",
-                    placeholder = "[1, 1, 1]",
-                    description = 'Vector parallel to facet a:',
-                    disabled = False,
-                    continuous_update = False,
-                    # layout = Layout(width='20%'),
-                    style = {'description_width': 'initial'},),
-                v0 = widgets.Text(
-                    value = "[1, -1, 0]",
-                    placeholder = "[1, -1, 0]",
-                    description = 'Vector parallel to facet b:',
-                    disabled = False,
-                    continuous_update = False,
-                    # layout = Layout(width='20%'),
-                    style = {'description_width': 'initial'},),
-                w0 = widgets.Text(
-                    value = "[1, 1, -2]",
-                    placeholder = "[1, 1, -2]",
-                    description = 'Cross product of u0 and v0:',
-                    disabled = False,
-                    continuous_update = False,
-                    # layout = Layout(width='20%'),
-                    style = {'description_width': 'initial'},),
-                hkl_reference = widgets.Text(
-                    value = "[1, 1, 1]",
-                    placeholder = "[1, 1, 1]",
-                    description = 'Reference for interplanar angles:',
-                    disabled = False,
-                    continuous_update = False,
-                    # layout = Layout(width='20%'),
-                    style = {'description_width': 'initial'},),
-                view = widgets.Text(
-                    value = "[90, 0]",
-                    placeholder = "[90, 0]",
-                    description = 'Elevation and azimuth of the axes in degrees:',
-                    disabled = False,
-                    continuous_update = False,
-                    layout = Layout(width='70%'),
-                    style = {'description_width': 'initial'},),
-                )
-            def fix_facets(
-                facet_a_id,
-                facet_b_id,
-                u0,
-                v0,
-                w0,
-                hkl_reference,
-                view,
-                ):
-                """Function to interactively visualize the two facets tht will be chosen, to also help pick two vectors"""
+            # Button to rotate data
+            button_rotate = Button(
+                description = "Work on facet data",
+                continuous_update = False,
+                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                layout = Layout(width='40%'),
+                style = {'description_width': 'initial'},
+                icon = 'fast-forward')
 
-                # Save parameters value
-                self.Facets.facet_a_id = facet_a_id
-                self.Facets.facet_b_id = facet_b_id
-                self.Facets.u0 = u0
-                self.Facets.v0 = v0
-                self.Facets.w0 = w0
-                self.Facets.hkl_reference = hkl_reference
-                self.Facets.view = view
+            # Button to view data
+            button_view_particle = Button(
+                description = "View particle",
+                continuous_update = False,
+                button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                layout = Layout(width='40%'),
+                style = {'description_width': 'initial'},
+                icon = 'fast-forward')
 
-                # Extract list from strings
-                list_parameters = ["u0", "v0", "w0", "hkl_reference", "view"]
-                try:
-                    for p in list_parameters:
-                        if getattr(self.Facets, p) == "":
-                            setattr(self.Facets, p, [])
-                        else:
-                            setattr(self.Facets, p, literal_eval(getattr(self.Facets, p)))
-                        # print(f"{p}:", getattr(self.Dataset, p))
-                except ValueError:
-                    print(f"Wrong list syntax for {p}")
+            # Common button as widget
+            buttons_facets = widgets.HBox([button_rotate, button_view_particle])
 
-                # Plot the chosen facet to help the user to pick the facets he wants to use to orient the particule
-                self.Facets.extract_facet(facet_id = facet_a_id, plot = True, view = self.Facets.view, output = False, save = False)
-                self.Facets.extract_facet(facet_id = facet_b_id, plot = True, view = self.Facets.view, output = False, save = False)
+            @button_rotate.on_click
+            def action_button_rotate(selfbutton):
+                clear_output(True)
+                display(buttons_facets)
 
-                display(Markdown("""# Field data"""))
-                display(self.Facets.field_data)
+                # Run interactive function
+                @interact(
+                    facet_a_id = widgets.Dropdown(
+                        options = [i+1 for i in range(self.Facets.nb_facets)],
+                        value = 1,
+                        description = 'Facet a id:',
+                        disabled = False,
+                        continuous_update = True,
+                        layout = Layout(width='45%'),
+                        style = {'description_width': 'initial'}),
+                    facet_b_id = widgets.Dropdown(
+                        options = [i+1 for i in range(self.Facets.nb_facets)],
+                        value = 2,
+                        description = 'Facet b id:',
+                        disabled = False,
+                        continuous_update = True,
+                        layout = Layout(width='45%'),
+                        style = {'description_width': 'initial'}),
+                    u0 = widgets.Text(
+                        value = "[1, 1, 1]",
+                        placeholder = "[1, 1, 1]",
+                        description = 'Vector parallel to facet a:',
+                        disabled = False,
+                        continuous_update = False,
+                        # layout = Layout(width='20%'),
+                        style = {'description_width': 'initial'},),
+                    v0 = widgets.Text(
+                        value = "[1, -1, 0]",
+                        placeholder = "[1, -1, 0]",
+                        description = 'Vector parallel to facet b:',
+                        disabled = False,
+                        continuous_update = False,
+                        # layout = Layout(width='20%'),
+                        style = {'description_width': 'initial'},),
+                    w0 = widgets.Text(
+                        value = "[1, 1, -2]",
+                        placeholder = "[1, 1, -2]",
+                        description = 'Cross product of u0 and v0:',
+                        disabled = False,
+                        continuous_update = False,
+                        # layout = Layout(width='20%'),
+                        style = {'description_width': 'initial'},),
+                    hkl_reference = widgets.Text(
+                        value = "[1, 1, 1]",
+                        placeholder = "[1, 1, 1]",
+                        description = 'Reference for interplanar angles:',
+                        disabled = False,
+                        continuous_update = False,
+                        # layout = Layout(width='20%'),
+                        style = {'description_width': 'initial'},),
+                    view = widgets.Text(
+                        value = "[90, 0]",
+                        placeholder = "[90, 0]",
+                        description = 'Elevation and azimuth of the axes in degrees:',
+                        disabled = False,
+                        continuous_update = False,
+                        layout = Layout(width='70%'),
+                        style = {'description_width': 'initial'},),
+                    )
+                def fix_facets(
+                    facet_a_id,
+                    facet_b_id,
+                    u0,
+                    v0,
+                    w0,
+                    hkl_reference,
+                    view,
+                    ):
+                    """Function to interactively visualize the two facets tht will be chosen, to also help pick two vectors"""
 
-                button_fix_facets = Button(
-                    description = "Fix parameters and extract data.",
-                    layout = Layout(width='50%', height='35px'))
-                display(button_fix_facets)
+                    # Save parameters value
+                    self.Facets.facet_a_id = facet_a_id
+                    self.Facets.facet_b_id = facet_b_id
+                    self.Facets.u0 = u0
+                    self.Facets.v0 = v0
+                    self.Facets.w0 = w0
+                    self.Facets.hkl_reference = hkl_reference
+                    self.Facets.view = view
 
-                @button_fix_facets.on_click
-                def action_button_show_facet(selfbutton):
-                    "Fix facets to compute the new rotation matrix and launch the data extraction"
+                    # Extract list from strings
+                    list_parameters = ["u0", "v0", "w0", "hkl_reference", "view"]
+                    try:
+                        for p in list_parameters:
+                            if getattr(self.Facets, p) == "":
+                                setattr(self.Facets, p, [])
+                            else:
+                                setattr(self.Facets, p, literal_eval(getattr(self.Facets, p)))
+                            # print(f"{p}:", getattr(self.Dataset, p))
+                    except ValueError:
+                        print(f"Wrong list syntax for {p}")
 
-                    clear_output(True)
-
-                    display(button_fix_facets)
-
-                    display(Markdown("""# Computing the rotation matrix"""))
-
-                    # Take those facets' vectors (perp to surface)
-                    self.Facets.u = np.array([self.Facets.field_data.n0[facet_a_id-1], self.Facets.field_data.n1[facet_a_id-1], self.Facets.field_data.n2[facet_a_id-1]])
-                    self.Facets.v = np.array([self.Facets.field_data.n0[facet_b_id-1], self.Facets.field_data.n1[facet_b_id-1], self.Facets.field_data.n2[facet_b_id-1]])
-
-                    self.Facets.set_rotation_matrix(
-                        u0 = self.Facets.u0 / np.linalg.norm(self.Facets.u0),
-                        v0 = self.Facets.v0 / np.linalg.norm(self.Facets.v0),
-                        w0 = self.Facets.w0 / np.linalg.norm(self.Facets.w0),
-                        u = self.Facets.u,
-                        v = self.Facets.v,
-                        )
-
-                    self.Facets.rotate_particle()
-
-                    display(Markdown("""# Computing interplanar angles from reference"""))
-                    print(f"Used reference: {self.Facets.hkl_reference}")
-                    self.Facets.fixed_reference(hkl = self.Facets.hkl_reference)
+                    # Plot the chosen facet to help the user to pick the facets he wants to use to orient the particule
+                    self.Facets.extract_facet(facet_id = self.Facets.facet_a_id, plot = True, view = self.Facets.view, output = False, save = False)
+                    self.Facets.extract_facet(facet_id = self.Facets.facet_b_id, plot = True, view = self.Facets.view, output = False, save = False)
 
                     display(Markdown("""# Field data"""))
                     display(self.Facets.field_data)
 
-                    display(Markdown("""# Strain values for each surface voxel and averaged per facet"""))
-                    self.Facets.plot_strain(view = self.Facets.view)
+                    button_fix_facets = Button(
+                        description = "Fix parameters and extract data.",
+                        layout = Layout(width='50%', height='35px'))
+                    display(button_fix_facets)
 
-                    display(Markdown("""# Displacement values for each surface voxel and averaged per facet"""))
-                    self.Facets.plot_displacement(view = self.Facets.view)
+                    @button_fix_facets.on_click
+                    def action_button_fix_facets(selfbutton):
+                        "Fix facets to compute the new rotation matrix and launch the data extraction"
 
-                    display(Markdown("""# Evolution curves"""))
-                    self.Facets.evolution_curves()
+                        clear_output(True)
 
-                    try:
-                        self.Facets.save_data(f"{self.Dataset.root_folder}postprocessing/facets_analysis/field_data_{self.Dataset.scans}.csv")
-                    except AttributeError:
-                        print("Initialize the directories first to save the figures and data ...")
+                        display(button_fix_facets)
+
+                        display(Markdown("""# Computing the rotation matrix"""))
+
+                        # Take those facets' vectors (perp to surface)
+                        u = np.array([self.Facets.field_data.n0[self.Facets.facet_a_id-1], self.Facets.field_data.n1[self.Facets.facet_a_id-1], self.Facets.field_data.n2[self.Facets.facet_a_id-1]])
+                        v = np.array([self.Facets.field_data.n0[self.Facets.facet_b_id-1], self.Facets.field_data.n1[self.Facets.facet_b_id-1], self.Facets.field_data.n2[self.Facets.facet_b_id-1]])
+
+                        self.Facets.set_rotation_matrix(
+                            u0 = self.Facets.u0 / np.linalg.norm(self.Facets.u0),
+                            v0 = self.Facets.v0 / np.linalg.norm(self.Facets.v0),
+                            w0 = self.Facets.w0 / np.linalg.norm(self.Facets.w0),
+                            u = u,
+                            v = v,
+                            )
+
+                        self.Facets.rotate_particle()
+
+                        display(Markdown("""# Computing interplanar angles from reference"""))
+                        print(f"Used reference: {self.Facets.hkl_reference}")
+                        self.Facets.fixed_reference(hkl = self.Facets.hkl_reference)
+
+                        display(Markdown("""# Field data"""))
+                        display(self.Facets.field_data)
+
+                        display(Markdown("""# Strain values for each surface voxel and averaged per facet"""))
+                        self.Facets.plot_strain(view = self.Facets.view)
+
+                        display(Markdown("""# Displacement values for each surface voxel and averaged per facet"""))
+                        self.Facets.plot_displacement(view = self.Facets.view)
+
+                        display(Markdown("""# Evolution curves"""))
+                        self.Facets.evolution_curves()
+
+                        button_save_facet_data = Button(
+                            description = "Save data",
+                            layout = Layout(width='50%', height='35px'))
+                        display(button_save_facet_data)
+
+                        @button_save_facet_data.on_click
+                        def action_button_save_facet_data(selfbutton):
+                            """Save data ..."""
+                            try:
+                                self.Facets.save_data(f"{self.Dataset.root_folder}{self.Dataset.sample_name}{self.Dataset.scans}/postprocessing/facets_analysis/field_data_{self.Dataset.scans}.csv")
+                                self.Facets.to_hdf5(f"{self.Dataset.scan_folder}{self.Dataset.sample_name}{self.Dataset.scans}.h5")
+
+                            except AttributeError:
+                                print("Initialize the directories first to save the figures and data ...")
+
+
+            @button_view_particle.on_click
+            def action_button_view_particle(selfbutton):
+                clear_output(True)
+                display(buttons_facets)
+
+                # Display visualisation window of facet class
+                display(self.Facets.window)
+
+
+            # Display button
+            display(buttons_facets)
 
         if not load_data:
             self.tab_facet.children[1].disabled = False
@@ -4434,6 +4484,12 @@ class Interface(object):
             window_support.children[1].observe(support_handler, names = "value")
 
             display(window_support)
+
+        elif data_use == "plot_vtk":
+            # Disable widgets 
+            for w in self.tab_data.children[:-2]:
+                w.disabled = True
+                
 
         elif data_use == False:
             for w in self.tab_data.children[:-2]:

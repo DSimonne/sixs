@@ -5,6 +5,7 @@ import os
 import glob
 import pandas as pd
 import pickle
+import h5py
 
 import ipywidgets as widgets
 from ipywidgets import interact, Button, Layout, interactive, fixed
@@ -60,7 +61,7 @@ class Facets(object):
 		# Create widget for particle viewing
 		self.window = interactive(self.view_particle,
 		           elev = widgets.IntSlider(
-		                value = 90,
+		                value = 0,
 		                step = 1,
 		                min = 0,
 		                max = 360,
@@ -70,9 +71,9 @@ class Facets(object):
 		                readout = True,
 		                style = {'description_width': 'initial'},
 		                orientation='horizontal',
-		                disabled = False),
+		                ),
 		           azim = widgets.IntSlider(
-		                value = 90,
+		                value = 0,
 		                step = 1,
 		                min = 0,
 		                max = 360,
@@ -82,7 +83,7 @@ class Facets(object):
 		                readout = True,
 		                style = {'description_width': 'initial'},
 		                orientation='horizontal',
-		                disabled = False),
+		                ),
 		           facet_id_range = widgets.IntRangeSlider(
 		                value = [0, self.nb_facets],
 		                step = 1,
@@ -94,7 +95,13 @@ class Facets(object):
 		                readout = True,
 		                style = {'description_width': 'initial'},
 		                orientation='horizontal',
-		                disabled = False),
+		                ),
+		           elev_axis =  widgets.Dropdown(
+               			options = ['x', 'y', 'z'],
+		                value = "z",
+		                description = 'Elevated axis',
+		                continuous_update = False,
+		                style = {'description_width': 'initial'}),
 		           )
 
 	
@@ -296,9 +303,9 @@ class Facets(object):
 		          ]
 
 		# Stores the theoretical angles between normals
-		self.angles = {}
+		self.theoretical_angles = {}
 		for n in normals:
-		    self.angles[str(n)] = np.rad2deg(
+		    self.theoretical_angles[str(n)] = np.rad2deg(
 									np.arccos(
 										np.dot(self.ref_normal, n/np.linalg.norm(n))
 												)
@@ -311,7 +318,7 @@ class Facets(object):
 
 			ax.set_title("Interplanar angles between [111] and other possible facets", fontsize = self.title_fontsize)
       
-			for norm, (norm_str, angle) in zip(normals, self.angles.items()):
+			for norm, (norm_str, angle) in zip(normals, self.theoretical_angles.items()):
 				# add colors ass a fct of multiplicity
 			    if [abs(x) for x in norm] == [1, 1, 1]:
 			        color = "#7fc97f"
@@ -433,7 +440,7 @@ class Facets(object):
 			return results
 
 
-	def view_particle(self, elev, azim, facet_id_range):
+	def view_particle(self, elev, azim, facet_id_range, elev_axis):
 		"""
 		'elev' stores the elevation angle in the z plane (in degrees).
 		'azim' stores the azimuth angle in the (x, y) plane (in degrees).
@@ -473,34 +480,75 @@ class Facets(object):
 			    results['z'][j] = self.vtk_data['z'][int(voxel_indices_new[j])]
 			    results['facet_id'][j] = facet_id
 
-			ax.scatter(
-			    results['x'],
-			    results['y'],
-			    results['z'],
-			    s = 50,
-			    c = results['facet_id'],
-			    cmap = self.particle_cmap,
-			    vmin = facet_id_range[0], 
-			    vmax = facet_id_range[1], 
-			    antialiased=True, 
-			    depthshade=True
-				)
+			# Plot all the voxels with the color of their facet
+			if elev_axis == "z":
+				ax.scatter(
+				    results['x'],
+				    results['y'],
+				    results['z'],
+				    s = 50,
+				    c = results['facet_id'],
+				    cmap = self.particle_cmap,
+				    vmin = facet_id_range[0], 
+				    vmax = facet_id_range[1], 
+				    antialiased=True, 
+				    depthshade=True
+					)
+
+			if elev_axis == "x":
+				ax.scatter(
+				    results['y'],
+				    results['z'],
+				    results['x'],
+				    s = 50,
+				    c = results['facet_id'],
+				    cmap = self.particle_cmap,
+				    vmin = facet_id_range[0], 
+				    vmax = facet_id_range[1], 
+				    antialiased=True, 
+				    depthshade=True
+					)
+
+			if elev_axis == "y":
+				ax.scatter(
+				    results['z'],
+				    results['x'],
+				    results['y'],
+				    s = 50,
+				    c = results['facet_id'],
+				    cmap = self.particle_cmap,
+				    vmin = facet_id_range[0], 
+				    vmax = facet_id_range[1], 
+				    antialiased=True, 
+				    depthshade=True
+					)
 
 			# Plot the normal to each facet at their center, do it after so that is it the top layer
 			row = self.field_data.loc[self.field_data["facet_id"] == facet_id]
 			if facet_id != 0:
-			    n0 = row.n0.values[0]
-			    n1 = row.n1.values[0]
-			    n2 = row.n2.values[0]
-			    n = np.array([n0, n1, n2])
+				if elev_axis == "z":
+					# Normal
+					n = np.array([row.n0.values[0], row.n1.values[0], row.n2.values[0]])
 
-			    c0 = row.c0.values[0]
-			    c1 = row.c1.values[0]
-			    c2 = row.c2.values[0]
-			    com = np.array([c0, c1, c2])
+					# Center of mass
+					com = np.array([row.c0.values[0], row.c1.values[0], row.c2.values[0]])
 
-			    n_str = str(facet_id) + str(n.round(2).tolist())
-			    ax.text(c0, c1, c2, n_str, color='red', fontsize = 20)
+				if elev_axis == "x":
+					# Normal
+					n = np.array([row.n1.values[0], row.n2.values[0], row.n0.values[0]])
+
+					# Center of mass
+					com = np.array([row.c1.values[0], row.c2.values[0], row.c0.values[0]])
+
+				if elev_axis == "y":
+					# Normal
+					n = np.array([row.n2.values[0], row.n0.values[0], row.n1.values[0]])
+
+					# Center of mass
+					com = np.array([row.c2.values[0], row.c0.values[0], row.c1.values[0]])
+
+				n_str = str(facet_id) + str(n.round(2).tolist())
+				ax.text(com[0], com[1], com[2], n_str, color='red', fontsize = 20)
 
 		for i in range(facet_id_range[0], facet_id_range[1]):
 		    plot_facet_id(i)
@@ -834,3 +882,82 @@ class Facets(object):
 
 		with open(prompt, 'rb') as f:
 		    return pickle.load(f)
+
+	def to_hdf5(self, filename):
+
+		# Save attributes
+		with h5py.File(filename, mode="a") as f:
+		    try:
+		        facets = f.create_group("/data/facets")
+		        
+		        facets.create_dataset("filename", data = self.filename)
+		        facets.create_dataset("u0", data = self.u0)
+		        facets.create_dataset("v0", data = self.v0)
+		        facets.create_dataset("w0", data = self.w0)
+		        facets.create_dataset("nb_facets", data = self.nb_facets)
+		        facets.create_dataset("comment", data = self.comment)
+		        facets.create_dataset("u", data = self.u)
+		        facets.create_dataset("v", data = self.v)
+		        facets.create_dataset("u1", data = self.u1)
+		        facets.create_dataset("v1", data = self.v1)
+		        facets.create_dataset("w1", data = self.w1)
+		        facets.create_dataset("tensor0", data = self.tensor0)
+		        facets.create_dataset("tensor1", data = self.tensor1)
+		        facets.create_dataset("inv_tensor1", data = self.inv_tensor1)
+		        facets.create_dataset("M_rot", data = self.M_rot)
+		        facets.create_dataset("hkl", data = self.hkl)
+		        facets.create_dataset("lattice", data = self.lattice)
+		        facets.create_dataset("planar_dist", data = self.planar_dist)
+		        facets.create_dataset("ref_normal", data = self.ref_normal)
+
+		    except ValueError:
+		        print("Data already exists, overwriting ...")
+
+		        f["/data/facets/filename"][...] = self.filename
+		        f["/data/facets/u0"][...] = self.u0
+		        f["/data/facets/v0"][...] = self.v0
+		        f["/data/facets/w0"][...] = self.w0
+		        f["/data/facets/nb_facets"][...] = self.nb_facets
+		        f["/data/facets/comment"][...] = self.comment
+		        f["/data/facets/u"][...] = self.u
+		        f["/data/facets/v"][...] = self.v
+		        f["/data/facets/u1"][...] = self.u1
+		        f["/data/facets/v1"][...] = self.v1
+		        f["/data/facets/w1"][...] = self.w1
+		        f["/data/facets/tensor0"][...] = self.tensor0
+		        f["/data/facets/tensor1"][...] = self.tensor1
+		        f["/data/facets/inv_tensor1"][...] = self.inv_tensor1
+		        f["/data/facets/M_rot"][...] = self.M_rot
+		        f["/data/facets/hkl"][...] = self.hkl
+		        f["/data/facets/lattice"][...] = self.lattice
+		        f["/data/facets/planar_dist"][...] = self.planar_dist
+		        f["/data/facets/ref_normal"][...] = self.ref_normal
+
+		# Save field data
+		try:
+			self.field_data.to_hdf(filename,
+									key='data/facets/tables/field_data', 
+									mode='a', 
+									append = True,
+									format = 'table',
+									data_columns=True,
+									)
+		except Exception as e:
+			raise e
+
+		# Save theoretical angles
+		try:
+			df = pd.DataFrame({
+					    "miller_indices" : list(self.theoretical_angles.keys()),
+					    "interplanar_angles" : list(self.theoretical_angles.values())
+					})
+			df.to_hdf(filename,
+						key='data/facets/tables/theoretical_angles', 
+						mode='a', 
+						append = True,
+						format = 'table',
+						data_columns=True,
+						)
+		except Exception as e:
+			raise e
+

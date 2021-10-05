@@ -79,6 +79,7 @@ class Dataset():
         Save all the parameters used in the data analysis with a specific architecture
         Alias for hdf5 file,
         Can be reloaded with the load_gwr() function 
+        Always overwrites for now
         """
 
         # Create file
@@ -87,7 +88,6 @@ class Dataset():
             # Init
             f.create_dataset("ObjectName", data = f"Dataset_{self.sample_name}{self.scans}")
             f.create_dataset("FileTimeStamp", data = time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())))
-
 
             # Parameters
             parameters = f.create_group("parameters")
@@ -171,9 +171,7 @@ class Dataset():
             ### Detector
             detector = preprocessing.create_group("detector")
             try:
-                detector.create_dataset("detector", data = self.detector) 
-                detector.create_dataset("x_bragg", data = self.x_bragg) 
-                detector.create_dataset("y_bragg", data = self.y_bragg) 
+                detector.create_dataset("detector", data = self.detector)
                 detector.create_dataset("photon_threshold", data = self.photon_threshold) 
                 detector.create_dataset("photon_filter", data = self.photon_filter) 
                 detector.create_dataset("background_file", data = str(self.background_file)) 
@@ -460,13 +458,14 @@ class Dataset():
             except:
                 print("Could not save reciprocal space data and mask")
 
-            reciprocal_space.create_dataset("q_final", data = self.q_final)
-            reciprocal_space["detector_distance"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/sdd")
-            reciprocal_space["pixel_size_detector"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/pixel_size_detector")
-            reciprocal_space["energy"] = h5py.SoftLink("/parameters/preprocessing/orthogonalisation/linearized_transformation_matrix/energy")
-            reciprocal_space.create_dataset("wavelength", data = self.wavelength)
-
-            ### Facets
+            try:
+                reciprocal_space.create_dataset("q_final", data = self.q_final)
+                reciprocal_space["detector_distance"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/sdd")
+                reciprocal_space["pixel_size_detector"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/pixel_size_detector")
+                reciprocal_space["energy"] = h5py.SoftLink("/parameters/preprocessing/orthogonalisation/linearized_transformation_matrix/energy")
+                reciprocal_space.create_dataset("wavelength", data = self.wavelength)
+            except:
+                print("Could not save reciprocal space ")
 
             ## Real space
             real_space = data.create_group("real_space")
@@ -528,7 +527,7 @@ class Dataset():
         """
 
         # Create file
-        with h5py.File(f"{self.scan_folder}{self.sample_name}{self.scans}.h5", mode="w") as f:
+        with h5py.File(f"{self.scan_folder}{self.sample_name}{self.scans}.h5", mode="r") as f:
 
             # Init
             f.create_dataset("ObjectName", data = f"Dataset_{self.sample_name}{self.scans}")
@@ -617,9 +616,7 @@ class Dataset():
             ### Detector
             detector = preprocessing.create_group("detector")
             try:
-                detector.create_dataset("detector", data = self.detector) 
-                detector.create_dataset("x_bragg", data = self.x_bragg) 
-                detector.create_dataset("y_bragg", data = self.y_bragg) 
+                detector.create_dataset("detector", data = self.detector)
                 detector.create_dataset("photon_threshold", data = self.photon_threshold) 
                 detector.create_dataset("photon_filter", data = self.photon_filter) 
                 detector.create_dataset("background_file", data = str(self.background_file)) 
@@ -906,11 +903,14 @@ class Dataset():
             except:
                 print("Could not save reciprocal space data and mask")
 
-            reciprocal_space.create_dataset("q_final", data = self.q_final)
-            reciprocal_space["detector_distance"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/sdd")
-            reciprocal_space["pixel_size_detector"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/pixel_size_detector")
-            reciprocal_space["energy"] = h5py.SoftLink("/parameters/preprocessing/orthogonalisation/linearized_transformation_matrix/energy")
-            reciprocal_space.create_dataset("wavelength", data = self.wavelength)
+            try:
+                reciprocal_space.create_dataset("q_final", data = self.q_final)
+                reciprocal_space["detector_distance"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/sdd")
+                reciprocal_space["pixel_size_detector"] = h5py.SoftLink("/parameters/phase_retrieval/instrument/pixel_size_detector")
+                reciprocal_space["energy"] = h5py.SoftLink("/parameters/preprocessing/orthogonalisation/linearized_transformation_matrix/energy")
+                reciprocal_space.create_dataset("wavelength", data = self.wavelength)
+            except:
+                print("Could not save reciprocal space ")
 
             ### Facets
 
