@@ -1134,7 +1134,7 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
 
             isosurface_strain = widgets.FloatText(
-                value = 0.5,
+                value = 0.3,
                 step = 0.01,
                 max = 1,
                 min = 0,
@@ -2271,19 +2271,19 @@ class Interface(object):
             #     pass
 
             # Move notebooks
-            # try:
-            #     shutil.copy(f"{self.path_package}bcdi/PhasingNotebook.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
-            #     print(f"Copied PhasingNotebook.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
-            # except FileExistsError:
-            #     print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw/PhasingNotebook.ipynb exists")
-            #     pass
+            try:
+                shutil.copy(f"{self.path_package}bcdi/PhasingNotebook.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
+                print(f"Copied PhasingNotebook.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
+            except FileExistsError:
+                print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw/PhasingNotebook.ipynb exists")
+                pass
 
-            # try:
-            #     shutil.copy(f"{self.path_package}bcdi/CompareFacetsEvolution.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
-            #     print(f"Copied CompareFacetsEvolution.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
-            # except FileExistsError:
-            #     print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/CompareFacetsEvolution.ipynb exists")
-            #     pass
+            try:
+                shutil.copy(f"{self.path_package}bcdi/CompareFacetsEvolution.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
+                print(f"Copied CompareFacetsEvolution.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
+            except FileExistsError:
+                print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/CompareFacetsEvolution.ipynb exists")
+                pass
 
             self._list_widgets_pynx.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
             self.folder_pynx_handler(change = self._list_widgets_pynx.children[1].value)
@@ -3793,7 +3793,7 @@ class Interface(object):
             pathdir = self.Dataset.facet_filename.replace(fn, "")
 
             try:
-                self.Facets = read_vtk.Facets(pathdir = pathdir, filename = fn)
+                self.Facets = read_vtk.Facets(filename = fn, pathdir = pathdir)
                 print("Facets object saved as self.Facets, call help(self.Facets) for more details.")
             except:
                 return "Wrong file."

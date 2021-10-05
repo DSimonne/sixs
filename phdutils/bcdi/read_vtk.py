@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib
 import vtk
 import matplotlib.pyplot as plt
 import os
@@ -7,33 +6,40 @@ import glob
 import pandas as pd
 import pickle
 
-################
-# open vtk file#
-################
-#http://forrestbao.blogspot.com/2011/12/reading-vtk-files-in-python-via-python.html
+import ipywidgets as widgets
+from ipywidgets import interact, Button, Layout, interactive, fixed
+from IPython.display import display, Markdown, Latex, clear_output
+
+#######################
+# how to open vtk file#
+#######################
+# http://forrestbao.blogspot.com/2011/12/reading-vtk-files-in-python-via-python.html
 
 
-# Extract strain at facets
-# Need a vtk file extracted from the FacetAnalyser plugin of ParaView (information: point data, cell data and field data)
-# mrichard@esrf.fr & maxime.dupraz@esrf.fr
+
 
 class Facets(object):
 	"""
-		Import and stores data output of facet analyzer plugin for further analysis
+	Import and stores data output of facet analyzer plugin for further analysis.
+	Extract strain and displacements at facets, and retrieves the correct facet normals based on a user input.
+	Needs a vtk file extracted from the FacetAnalyser plugin of ParaView (see phdutils.bcdi repository for further info)
+	acknowledgements: mrichard@esrf.fr & maxime.dupraz@esrf.fr
+	original tutorial: http://forrestbao.blogspot.com/2011/12/reading-vtk-files-in-python-via-python.html
 
-		Since the datasets are not that big, we still handle them with pandas, otherwise we should probably keep them on disk in a hdf5
+	vtk file should have been saved in in Sxxxx/postprocessing
+	Analysis output in Sxxxx/postprocessing/facet_analysis
 
-		vtk file in Sxxxx/postprocessing
-
-		Analysis output in Sxxxx/postprocessing/facet_analysis
+	Several plotting options are attributes of this class, feel free to change them (cmap, strain_range, disp_range_avg, disp_range, strain_range_avg, comment, title_fontsize, axes_fontsize, legend_fontsize, ticks_fontsize)
 	"""
 
-	def __init__(self, pathdir, filename):
+	def __init__(self, filename, pathdir = "./", lattice = 3.912,):
 		super(Facets, self).__init__()
 		self.pathsave = pathdir + "facets_analysis/"
 		self.filename = pathdir + filename
 
-		self.lattice = 3.912
+		self.lattice = lattice
+
+		# Plotting options
 		self.strain_range = 0.001
 		self.disp_range_avg = 0.2
 		self.disp_range = 0.35
@@ -46,14 +52,56 @@ class Facets(object):
 		self.ticks_fontsize = 14
 
 		self.cmap = "viridis"
+		self.particle_cmap = "gist_ncar"
 
 		# Load the data
 		self.load_vtk()
 
+		# Create widget for particle viewing
+		self.window = interactive(self.view_particle,
+		           elev = widgets.IntSlider(
+		                value = 90,
+		                step = 1,
+		                min = 0,
+		                max = 360,
+		                continuous_update = False,
+		                description = 'Elevation angle in the z plane:',
+		                layout = Layout(width='45%'),
+		                readout = True,
+		                style = {'description_width': 'initial'},
+		                orientation='horizontal',
+		                disabled = False),
+		           azim = widgets.IntSlider(
+		                value = 90,
+		                step = 1,
+		                min = 0,
+		                max = 360,
+		                continuous_update = False,
+		                description = 'Azimuth angle in the (x, y) plane:',
+		                layout = Layout(width='45%'),
+		                readout = True,
+		                style = {'description_width': 'initial'},
+		                orientation='horizontal',
+		                disabled = False),
+		           facet_id_range = widgets.IntRangeSlider(
+		                value = [0, self.nb_facets],
+		                step = 1,
+		                min = 0,
+		                max = self.nb_facets,
+		                continuous_update = False,
+		                description = "Facets ids to show:",
+		                layout = Layout(width='45%'),
+		                readout = True,
+		                style = {'description_width': 'initial'},
+		                orientation='horizontal',
+		                disabled = False),
+		           )
 
+	
 	def load_vtk(self):
-		"""Load VTK file
-			In paraview, the facets have an index that starts at 1, but here we start at 0 because it's python
+		"""
+		Load VTK file
+		In paraview, the facets have an index that starts at 1, the index 0 corresponds to the edges and corners of the facets
 		"""
 		if not os.path.exists(self.pathsave):
 		    os.makedirs(self.pathsave)
@@ -65,7 +113,6 @@ class Facets(object):
 		reader.ReadAllTensorsOn()
 		reader.Update()
 		vtkdata = reader.GetOutput()
-
 
 		# Get point data
 		try:
@@ -84,7 +131,6 @@ class Facets(object):
 		self.vtk_data['z'] = [vtkdata.GetPoint(i)[2] for i in range(vtkdata.GetNumberOfPoints())]
 		self.vtk_data['strain'] = [pointData.GetArray('strain').GetValue(i) for i in range(vtkdata.GetNumberOfPoints())]
 		self.vtk_data['disp'] = [pointData.GetArray('disp').GetValue(i) for i in range(vtkdata.GetNumberOfPoints())]
-
 
 		# Get cell data
 		cellData = vtkdata.GetCellData()
@@ -152,9 +198,11 @@ class Facets(object):
 
 
 	def set_rotation_matrix(self, u0, v0, w0, u, v):
-		"""Defining the rotation matrix
+		"""
+		Defining the rotation matrix
 		u and v should be the vectors perpendicular to two facets
-		the rotation matric is then used if the argument rotate_particle is set to true in the load_vtk method"""
+		the rotation matric is then used if the argument rotate_particle is set to true in the load_vtk method
+		"""
 		self.u0 = u0
 		self.v0 = v0
 		self.w0 = w0
@@ -176,8 +224,10 @@ class Facets(object):
 
 
 	def rotate_particle(self):
-		"""Rotate the particle so that the base of the normals to the facets is computed with the new 
-		rotation matrix"""
+		"""
+		Rotate the particle so that the base of the normals to the facets is computed with the new 
+		rotation matrix
+		"""
 
 		# Get normals, again to make sure that we have the good ones
 		normals = {f"facet_{row.facet_id}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
@@ -206,7 +256,9 @@ class Facets(object):
 
 
 	def fixed_reference(self, hkl = [1,1,1], plot = True):
-		"""Recompute the interplanar angles between each normal and a fixed reference vector"""
+		"""
+		Recompute the interplanar angles between each normal and a fixed reference vector
+		"""
 
 		self.hkl = hkl
 		self.hkls = ' '.join(str(e) for e in self.hkl)
@@ -289,36 +341,40 @@ class Facets(object):
 
 
 	def test_vector(self, vec):
-		"""`vec` needs to be an (1, 3) array, e.g. np.array([-0.833238, -0.418199, -0.300809])"""
+		"""
+		`vec` needs to be an (1, 3) array, e.g. np.array([-0.833238, -0.418199, -0.300809])
+		"""
 		try:
 			print(np.dot(self.M_rot, vec/np.linalg.norm(vec)))
 		except:
 			print("You need to define the rotation matrix before")
 
 
-	def extract_facet(self, facet_id, plot = False, view = [0, 90], output = True, save = True):
+	def extract_facet(self, facet_id, plot = False, view = [90, 90], output = True, save = True):
 		"""
 		Extract data from one facet, [x, y, z], strain, displacement and their means, also plots it
 		"""
 
-		ind_Facet = []
+		# Retrieve voxels that correspond to that facet index
+		voxel_indices = []
 		for i in range(len(self.vtk_data['facet_id'])):
 		    if (int(self.vtk_data['facet_id'][i]) == facet_id):
-		        ind_Facet.append(self.vtk_data['x0'][i])
-		        ind_Facet.append(self.vtk_data['y0'][i])
-		        ind_Facet.append(self.vtk_data['z0'][i])
+		        voxel_indices.append(self.vtk_data['x0'][i])
+		        voxel_indices.append(self.vtk_data['y0'][i])
+		        voxel_indices.append(self.vtk_data['z0'][i])
 
-		ind_Facet_new = list(set(ind_Facet))
+		# wtf here
+		voxel_indices_new = list(set(voxel_indices))
 		results = {}
-		results['x'], results['y'], results['z'] = np.zeros(len(ind_Facet_new)), np.zeros(len(ind_Facet_new)), np.zeros(len(ind_Facet_new))
-		results['strain'], results['disp'] = np.zeros(len(ind_Facet_new)), np.zeros(len(ind_Facet_new))
+		results['x'], results['y'], results['z'] = np.zeros(len(voxel_indices_new)), np.zeros(len(voxel_indices_new)), np.zeros(len(voxel_indices_new))
+		results['strain'], results['disp'] = np.zeros(len(voxel_indices_new)), np.zeros(len(voxel_indices_new))
 
-		for j in range(len(ind_Facet_new)):
-		    results['x'][j] = self.vtk_data['x'][int(ind_Facet_new[j])]
-		    results['y'][j] = self.vtk_data['y'][int(ind_Facet_new[j])]
-		    results['z'][j] = self.vtk_data['z'][int(ind_Facet_new[j])]
-		    results['strain'][j] = self.vtk_data['strain'][int(ind_Facet_new[j])]
-		    results['disp'][j] = self.vtk_data['disp'][int(ind_Facet_new[j])]
+		for j in range(len(voxel_indices_new)):
+		    results['x'][j] = self.vtk_data['x'][int(voxel_indices_new[j])]
+		    results['y'][j] = self.vtk_data['y'][int(voxel_indices_new[j])]
+		    results['z'][j] = self.vtk_data['z'][int(voxel_indices_new[j])]
+		    results['strain'][j] = self.vtk_data['strain'][int(voxel_indices_new[j])]
+		    results['disp'][j] = self.vtk_data['disp'][int(voxel_indices_new[j])]
 		results['strain_mean'] = np.mean(results['strain'])
 		results['strain_std'] = np.std(results['strain'])
 		results['disp_mean'] = np.mean(results['disp'])
@@ -360,19 +416,100 @@ class Facets(object):
 			plt.close()
 
 			try:
-				mask = self.field_data.loc[self.field_data["facet_id"] == facet_id]
+				row = self.field_data.loc[self.field_data["facet_id"] == facet_id]
 
-				n0 = mask.n0.values[0]
-				n1 = mask.n1.values[0]
-				n2 = mask.n2.values[0]
+				n0 = row.n0.values[0]
+				n1 = row.n1.values[0]
+				n2 = row.n2.values[0]
 				n = np.array([n0, n1, n2])
-				print(f"Facet normal: [{np.round(n, 2)}].")
+				print(f"Facet normal: {np.round(n, 2)}")
+			except IndexError:
+				pass # we are on the corners and edges
 			except Exception as e:
 				raise e
 				# pass
 
 		if output:
 			return results
+
+
+	def view_particle(self, elev, azim, facet_id_range):
+		"""
+		'elev' stores the elevation angle in the z plane (in degrees).
+		'azim' stores the azimuth angle in the (x, y) plane (in degrees).
+		"""
+
+		plt.close()
+		fig = plt.figure(figsize = (15, 15))
+		ax = fig.add_subplot(projection='3d')
+
+		ax.view_init(elev, azim)
+		ax.set_xlabel('X axis', fontsize = self.axes_fontsize)
+		ax.set_ylabel('Y axis', fontsize = self.axes_fontsize)
+		ax.set_zlabel('Z axis', fontsize = self.axes_fontsize)
+
+		def plot_facet_id(facet_id):
+			"""
+			Plots the voxes belonging to a specific facet, ogether with the normal to that facet and it's id
+			"""
+
+			# Retrieve voxels for each facet
+			voxel_indices = []
+			for i in range(len(self.vtk_data['facet_id'])):
+			    if (int(self.vtk_data['facet_id'][i]) == facet_id):
+			        voxel_indices.append(self.vtk_data['x0'][i])
+			        voxel_indices.append(self.vtk_data['y0'][i])
+			        voxel_indices.append(self.vtk_data['z0'][i])
+
+			# Delete doubles
+			voxel_indices_new = list(set(voxel_indices))
+			results = {}
+			results['x'], results['y'], results['z'] = np.zeros(len(voxel_indices_new)), np.zeros(len(voxel_indices_new)), np.zeros(len(voxel_indices_new))
+			results['facet_id'] = np.zeros(len(voxel_indices_new))
+
+			for j in range(len(voxel_indices_new)):
+			    results['x'][j] = self.vtk_data['x'][int(voxel_indices_new[j])]
+			    results['y'][j] = self.vtk_data['y'][int(voxel_indices_new[j])]
+			    results['z'][j] = self.vtk_data['z'][int(voxel_indices_new[j])]
+			    results['facet_id'][j] = facet_id
+
+			ax.scatter(
+			    results['x'],
+			    results['y'],
+			    results['z'],
+			    s = 50,
+			    c = results['facet_id'],
+			    cmap = self.particle_cmap,
+			    vmin = facet_id_range[0], 
+			    vmax = facet_id_range[1], 
+			    antialiased=True, 
+			    depthshade=True
+				)
+
+			# Plot the normal to each facet at their center, do it after so that is it the top layer
+			row = self.field_data.loc[self.field_data["facet_id"] == facet_id]
+			if facet_id != 0:
+			    n0 = row.n0.values[0]
+			    n1 = row.n1.values[0]
+			    n2 = row.n2.values[0]
+			    n = np.array([n0, n1, n2])
+
+			    c0 = row.c0.values[0]
+			    c1 = row.c1.values[0]
+			    c2 = row.c2.values[0]
+			    com = np.array([c0, c1, c2])
+
+			    n_str = str(facet_id) + str(n.round(2).tolist())
+			    ax.text(c0, c1, c2, n_str, color='red', fontsize = 20)
+
+		for i in range(facet_id_range[0], facet_id_range[1]):
+		    plot_facet_id(i)
+		    
+		plt.tick_params(axis='both', which='major', labelsize = self.ticks_fontsize)
+		plt.tick_params(axis='both', which='minor', labelsize = self.ticks_fontsize)
+		ax.set_title(f"Particle voxels", fontsize = self.title_fontsize)
+		plt.tight_layout()
+		plt.show()
 
 
 	def plot_strain(self, figsize = (12, 10), view = [20, 60], save = True):
