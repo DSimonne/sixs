@@ -210,24 +210,27 @@ class Facets(object):
 		u and v should be the vectors perpendicular to two facets
 		the rotation matric is then used if the argument rotate_particle is set to true in the load_vtk method
 		"""
+
+		# Inpput theoretical values for three facets' normals
 		self.u0 = u0
 		self.v0 = v0
 		self.w0 = w0
 		print("Cross product of u0 and v0:", np.cross(self.u0, self.v0))
 
+		# Current values for the first two facets' normals, to compute the rotation matrix
 		self.u = u
 		self.v = v
 
-		self.u1 = self.u/np.linalg.norm(self.u)
-		self.v1 = self.v/np.linalg.norm(self.v)
-		self.w1 = np.cross(self.u1, self.v1)
-		print("Normalized cross product of u and v:", self.w1)
+		self.norm_u = self.u/np.linalg.norm(self.u)
+		self.norm_v = self.v/np.linalg.norm(self.v)
+		self.norm_w = np.cross(self.norm_u, self.norm_v)
+		print("Normalized cross product of u and v:", self.norm_w)
 
 		# Transformation matrix
-		self.tensor0 = np.array([self.u0, self.v0, self.w0])
-		self.tensor1 = np.array([self.u1, self.v1, self.w1])
-		self.inv_tensor1 = np.linalg.inv(self.tensor1)
-		self.M_rot = np.dot(np.transpose(self.tensor0), np.transpose(self.inv_tensor1))
+		tensor0 = np.array([self.u0, self.v0, self.w0])
+		tensor1 = np.array([self.norm_u, self.norm_v, self.norm_w])
+		inv_tensor1 = np.linalg.inv(tensor1)
+		self.rotation_matrix = np.dot(np.transpose(tensor0), np.transpose(inv_tensor1))
 
 
 	def rotate_particle(self):
@@ -241,13 +244,12 @@ class Facets(object):
 
 		try:
 		    for e in normals.keys():
-		        normals[e] = np.dot(self.M_rot, normals[e])
+		        normals[e] = np.dot(self.rotation_matrix, normals[e])
 		except:
 			print("""You need to define the rotation matrix first if you want to rotate the particle.
 				Please choose vectors from the normals in field data""")
 
 		# Save the new normals
-		v0, v1, v2 = [], [], []
 		for k, v in normals.items():
 			# we make sure that we use the same facets !!
 			mask = self.field_data["facet_id"] == int(k.split("facet_")[-1])
@@ -262,15 +264,15 @@ class Facets(object):
 		self.field_data["legend"] = legend
 
 
-	def fixed_reference(self, hkl = [1,1,1], plot = True):
+	def fixed_reference(self, hkl_reference = [1,1,1], plot = True):
 		"""
 		Recompute the interplanar angles between each normal and a fixed reference vector
 		"""
 
-		self.hkl = hkl
-		self.hkls = ' '.join(str(e) for e in self.hkl)
-		self.planar_dist = self.lattice/np.sqrt(self.hkl[0]**2+self.hkl[1]**2+self.hkl[2]**2)
-		self.ref_normal = self.hkl/np.linalg.norm(self.hkl)
+		self.hkl_reference = hkl_reference
+		self.hkls = ' '.join(str(e) for e in self.hkl_reference)
+		self.planar_dist = self.lattice/np.sqrt(self.hkl_reference[0]**2+self.hkl_reference[1]**2+self.hkl_reference[2]**2)
+		self.ref_normal = self.hkl_reference/np.linalg.norm(self.hkl_reference)
 
 		# Get normals, again to make sure that we have the good ones
 		normals = {f"facet_{row.facet_id}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
@@ -352,7 +354,7 @@ class Facets(object):
 		`vec` needs to be an (1, 3) array, e.g. np.array([-0.833238, -0.418199, -0.300809])
 		"""
 		try:
-			print(np.dot(self.M_rot, vec/np.linalg.norm(vec)))
+			print(np.dot(self.rotation_matrix, vec/np.linalg.norm(vec)))
 		except:
 			print("You need to define the rotation matrix before")
 
@@ -898,14 +900,11 @@ class Facets(object):
 		        facets.create_dataset("comment", data = self.comment)
 		        facets.create_dataset("u", data = self.u)
 		        facets.create_dataset("v", data = self.v)
-		        facets.create_dataset("u1", data = self.u1)
-		        facets.create_dataset("v1", data = self.v1)
-		        facets.create_dataset("w1", data = self.w1)
-		        facets.create_dataset("tensor0", data = self.tensor0)
-		        facets.create_dataset("tensor1", data = self.tensor1)
-		        facets.create_dataset("inv_tensor1", data = self.inv_tensor1)
-		        facets.create_dataset("M_rot", data = self.M_rot)
-		        facets.create_dataset("hkl", data = self.hkl)
+		        facets.create_dataset("norm_u", data = self.norm_u)
+		        facets.create_dataset("norm_v", data = self.norm_v)
+		        facets.create_dataset("norm_w", data = self.norm_w)
+		        facets.create_dataset("rotation_matrix", data = self.rotation_matrix)
+		        facets.create_dataset("hkl_reference", data = self.hkl_reference)
 		        facets.create_dataset("lattice", data = self.lattice)
 		        facets.create_dataset("planar_dist", data = self.planar_dist)
 		        facets.create_dataset("ref_normal", data = self.ref_normal)
@@ -921,14 +920,11 @@ class Facets(object):
 		        f["/data/facets/comment"][...] = self.comment
 		        f["/data/facets/u"][...] = self.u
 		        f["/data/facets/v"][...] = self.v
-		        f["/data/facets/u1"][...] = self.u1
-		        f["/data/facets/v1"][...] = self.v1
-		        f["/data/facets/w1"][...] = self.w1
-		        f["/data/facets/tensor0"][...] = self.tensor0
-		        f["/data/facets/tensor1"][...] = self.tensor1
-		        f["/data/facets/inv_tensor1"][...] = self.inv_tensor1
-		        f["/data/facets/M_rot"][...] = self.M_rot
-		        f["/data/facets/hkl"][...] = self.hkl
+		        f["/data/facets/norm_u"][...] = self.norm_u
+		        f["/data/facets/norm_v"][...] = self.norm_v
+		        f["/data/facets/norm_w"][...] = self.norm_w
+		        f["/data/facets/rotation_matrix"][...] = self.rotation_matrix
+		        f["/data/facets/hkl_reference"][...] = self.hkl_reference
 		        f["/data/facets/lattice"][...] = self.lattice
 		        f["/data/facets/planar_dist"][...] = self.planar_dist
 		        f["/data/facets/ref_normal"][...] = self.ref_normal

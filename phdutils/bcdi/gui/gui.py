@@ -3953,7 +3953,7 @@ class Interface(object):
 
                         display(Markdown("""# Computing interplanar angles from reference"""))
                         print(f"Used reference: {self.Facets.hkl_reference}")
-                        self.Facets.fixed_reference(hkl = self.Facets.hkl_reference)
+                        self.Facets.fixed_reference(hkl_reference = self.Facets.hkl_reference)
 
                         display(Markdown("""# Field data"""))
                         display(self.Facets.field_data)
