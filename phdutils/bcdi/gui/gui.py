@@ -972,14 +972,14 @@ class Interface(object):
                 step = 0.000001,
                 min = 0,
                 max = 100,
-                description = 'Reference spacing (A):',
+                description = 'Interplanar distance (A):',
                 layout = Layout(width='30%'),
                 readout = True,
                 style = {'description_width': 'initial'},
                 disabled = True),
 
             reference_temperature = widgets.FloatText(
-                value = 293.15,
+                value = 298.15,
                 step = 0.01,
                 min = 0,
                 max = 2000,
@@ -2195,7 +2195,7 @@ class Interface(object):
                         print("Omega scan") 
 
                 # If rotated before
-                self.Dataset.template_imagefile = self.Dataset.path_to_data.split("%05d"%self.Dataset.scans)[0]+"%05d_R.nxs" 
+                self.Dataset.template_imagefile = self.Dataset.path_to_data.split("%05d"%self.Dataset.scans)[0]+"%05d.nxs" 
                 print("File template:", self.Dataset.template_imagefile, end = "\n\n")
 
                 # Save file name
@@ -3065,12 +3065,17 @@ class Interface(object):
                         support = np.load(self.Dataset.support)["data"]
                         print("CXI input: loading support")
                     except:
-                        print("Could not load 'data' array from npz file")
+                        # print("Could not load 'data' array from npz file")
                         try:
                             support = np.load(self.Dataset.support)["support"]
                             print("CXI input: loading support")
                         except:
-                            print("Could not load 'support' array from npz file")
+                            # print("Could not load 'support' array from npz file")
+                            try:
+                                support = np.load(self.Dataset.support)["obj"]
+                                print("CXI input: loading support")
+                            except:
+                                print("Could not load support")
 
                 if self.Dataset.rebin != (1,1,1):
                     try:
@@ -3164,7 +3169,7 @@ class Interface(object):
                         self.Dataset.live_plot = False
 
 
-                    # Create cdi object with data and mask, laod the main parameters
+                    # Create cdi object with data and mask, load the main parameters
                     cdi = CDI(fftshift(iobs),
                               support = support,
                               obj = obj,
@@ -3174,6 +3179,7 @@ class Interface(object):
                               detector_distance = self.Dataset.sdd,
                              )
 
+                    # Save diffraction pattern
                     if i==0:
                         cdi.save_data_cxi(
                             filename = "{}{}{}/pynxraw/DiffractionData_binning_{}{}{}_shape_{}_{}_{}.cxi".format(
@@ -3210,22 +3216,26 @@ class Interface(object):
                     # Initialize the free pixels for LLK
                     # cdi = InitFreePixels() * cdi
 
-                    # Initialize the support with autocorrelation
-                    if isinstance(self.Dataset.live_plot, int):
-                        if i>5:
+                    # Initialize the support with autocorrelation, if not support given
+                    if not self.Dataset.support:
+                        sup_init = "autocorrelation"
+                        if isinstance(self.Dataset.live_plot, int):
+                            if i>5:
+                                cdi = ScaleObj() * AutoCorrelationSupport(
+                                    threshold = 0.1, # extra argument
+                                    verbose = True) * cdi
+
+                            else:
+                                cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
+                                    threshold = 0.1, # extra argument
+                                    verbose = True) * cdi
+
+                        else:
                             cdi = ScaleObj() * AutoCorrelationSupport(
                                 threshold = 0.1, # extra argument
                                 verbose = True) * cdi
-
-                        else:
-                            cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
-                                threshold = 0.1, # extra argument
-                                verbose = True) * cdi
-
                     else:
-                        cdi = ScaleObj() * AutoCorrelationSupport(
-                            threshold = 0.1, # extra argument
-                            verbose = True) * cdi
+                        sup_init = "support"
 
                     # Begin with HIO cycles without PSF and with support updates
                     try:
@@ -3300,7 +3310,7 @@ class Interface(object):
                                     )** er_power * cdi
 
 
-                        cdi.save_obj_cxi("{}/pynxraw/result_scan_{}_run_{}_LLK_{:.4}_support_{:.4}_shape_{}_{}_{}_autocorrelation.cxi".format(
+                        cdi.save_obj_cxi("{}/pynxraw/result_scan_{}_run_{}_LLK_{:.4}_support_threshold_{:.4}_shape_{}_{}_{}_{}.cxi".format(
                                                                                                         self.Dataset.scan_folder,
                                                                                                         self.Dataset.scans,
                                                                                                         i,
@@ -3309,10 +3319,11 @@ class Interface(object):
                                                                                                         iobs.shape[0],
                                                                                                         iobs.shape[1],
                                                                                                         iobs.shape[2],
+                                                                                                        sup_init,
                                                                                                         )
                                         )
 
-                        print("Saved as result_scan_{}_run_{}_LLK_{:.4}_support_{:.4}_shape_{}_{}_{}_autocorrelation.cxi".format(
+                        print("Saved as result_scan_{}_run_{}_LLK_{:.4}_support_threshold_{:.4}_shape_{}_{}_{}_{}.cxi".format(
                                                                                                         self.Dataset.scans,
                                                                                                         i,
                                                                                                         cdi.get_llk()[0],
@@ -3320,6 +3331,7 @@ class Interface(object):
                                                                                                         iobs.shape[0],
                                                                                                         iobs.shape[1],
                                                                                                         iobs.shape[2],
+                                                                                                        sup_init,
                                                                                                         )
                                         )
                     except SupportTooLarge:
@@ -3342,8 +3354,8 @@ class Interface(object):
         elif not self.run_phase_retrieval:
             clear_output(True)
 
-
-    def filter_reconstructions(self,
+    @staticmethod
+    def filter_reconstructions(
         folder, 
         nb_run, 
         nb_keep, 
@@ -3431,8 +3443,8 @@ class Interface(object):
         except KeyboardInterrupt:
             print("cxi files filtering stopped by user ...")
 
-
-    def run_modes_decomposition(self, 
+    @staticmethod
+    def run_modes_decomposition( 
         folder
         ):
         """
@@ -3976,7 +3988,17 @@ class Interface(object):
                         def action_button_save_facet_data(selfbutton):
                             """Save data ..."""
                             try:
+                                # Create subfolder
+                                try:
+                                    os.mkdir(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/facets_analysis/")
+                                    print(f"Created {self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/facets_analysis/")
+                                except FileExistsError:
+                                    print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/facets_analysis/ exists")
+                                    pass
+
+                                # Save data
                                 self.Facets.save_data(f"{self.Dataset.root_folder}{self.Dataset.sample_name}{self.Dataset.scans}/postprocessing/facets_analysis/field_data_{self.Dataset.scans}.csv")
+
                                 self.Facets.to_hdf5(f"{self.Dataset.scan_folder}{self.Dataset.sample_name}{self.Dataset.scans}.h5")
 
                             except AttributeError:
@@ -4006,6 +4028,18 @@ class Interface(object):
 
         if contents == "Preprocessing":
             clear_output(True)
+            display(Markdown("""
+                Prepare experimental data for Bragg CDI phasing: crop/pad, center, mask, normalize and
+                filter the data.
+                Beamlines currently supported: ESRF ID01, SOLEIL CRISTAL, SOLEIL SIXS, PETRAIII P10 and
+                APS 34ID-C.
+                Output: data and mask as numpy .npz or Matlab .mat 3D arrays for phasing
+                File structure should be (e.g. scan 1):
+                specfile, hotpixels file and flatfield file in:    /rootdir/
+                data in:                                           /rootdir/S1/data/
+                output files saved in:   /rootdir/S1/pynxraw/ or /rootdir/S1/pynx/ depending on the
+                'use_rawdata' option
+                """))
 
 
         if contents == "Phase retrieval":
@@ -4334,10 +4368,37 @@ class Interface(object):
 
         if contents == "Postprocessing":
             clear_output(True)
+            display(Markdown("""
+                Interpolate the output of the phase retrieval into an orthonormal frame,
+                and calculate the strain component along the direction of the experimental diffusion
+                vector q.
+                Input: complex amplitude array, output from a phase retrieval program.
+                Output: data in an orthonormal frame (laboratory or crystal frame), amp_disp_strain
+                array.The disp array should be divided by q to get the displacement (disp = -1*phase
+                here).
+                Laboratory frame: z downstream, y vertical, x outboard (CXI convention)
+                Crystal reciprocal frame: qx downstream, qz vertical, qy outboard
+                Detector convention: when out_of_plane angle=0   Y=-y , when in_plane angle=0   X=x
+                In arrays, when plotting the first parameter is the row (vertical axis), and the
+                second the column (horizontal axis). Therefore the data structure is data[qx, qz,
+                qy] for reciprocal space, or data[z, y, x] for real space
+                """))
 
 
         if contents == "Facet analysis":
             clear_output(True)
+            display(Markdown("""
+                Import and stores data output of facet analyzer plugin for further analysis.
+                Extract strain and displacements at facets, and retrieves the correct facet normals based on a user input.
+                Needs a vtk file extracted from the FacetAnalyser plugin of ParaView (see phdutils.bcdi repository for further info)
+                acknowledgements: mrichard@esrf.fr & maxime.dupraz@esrf.fr
+                original tutorial: http://forrestbao.blogspot.com/2011/12/reading-vtk-files-in-python-via-python.html
+
+                vtk file should have been saved in in Sxxxx/postprocessing
+                Analysis output in Sxxxx/postprocessing/facet_analysis
+
+                Several plotting options are attributes of this class, feel free to change them (cmap, strain_range, disp_range_avg, disp_range, strain_range_avg, comment, title_fontsize, axes_fontsize, legend_fontsize, ticks_fontsize)
+                """))
 
 
     def display_logs(self,
@@ -4354,6 +4415,12 @@ class Interface(object):
             self.tab_logs.children[1].disabled = True
             self.logs = pd.read_csv(self.csv_file)
             display(self.logs)
+            print("\n################################################################################################################\n")
+            print("For a more detailed analysis, please proceed as follows")
+            print("import pandas as pd")
+            print(f"df = pd.read_csv({self.csv_file})\n")
+            print("You can then work on the `df` dataframe as you please.")
+            print("\n################################################################################################################\n")
 
         else:
             self.tab_logs.children[1].disabled = False
