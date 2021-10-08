@@ -57,8 +57,10 @@ try:
     print("Importing pynx ...")
     from pynx.cdi import *
     from pynx.utils.math import smaller_primes
+    pynx_import = True
 except:
-    print("Could not load PyNX")
+    pynx_import = False
+    print("Could not load PyNX, the phase retrieval tab will be disabled")
 
 
 class Interface(object):
@@ -2145,33 +2147,63 @@ class Interface(object):
                                     style = {'description_width': 'initial'}))
 
         # Create the final window
-        self.window = widgets.Tab(
-                        children=[
-                            self.tab_init,
-                            self.tab_detector,
-                            self.tab_ortho, 
-                            self.tab_preprocess,
-                            self.tab_correct, 
-                            self.tab_logs,
-                            self.tab_pynx,
-                            self.tab_strain,
-                            self.tab_data,
-                            self.tab_facet,
-                            self.tab_readme,
-                        ])
-        self.window.set_title(0, 'Scan detail')
-        self.window.set_title(1, 'Detector')
-        self.window.set_title(2, 'Setup')
-        self.window.set_title(3, "Preprocess")
-        self.window.set_title(4, 'Correct')
-        self.window.set_title(5, 'Logs')
-        self.window.set_title(6, 'PyNX')
-        self.window.set_title(7, 'Strain')
-        self.window.set_title(8, 'Plot data')
-        self.window.set_title(9, 'Facets')
-        self.window.set_title(10, 'Readme')
+        if pynx_import:
+            self.window = widgets.Tab(
+                            children=[
+                                self.tab_init,
+                                self.tab_detector,
+                                self.tab_ortho, 
+                                self.tab_preprocess,
+                                self.tab_correct, 
+                                self.tab_logs,
+                                self.tab_pynx,
+                                self.tab_strain,
+                                self.tab_data,
+                                self.tab_facet,
+                                self.tab_readme,
+                            ])
+            self.window.set_title(0, 'Scan detail')
+            self.window.set_title(1, 'Detector')
+            self.window.set_title(2, 'Setup')
+            self.window.set_title(3, "Preprocess")
+            self.window.set_title(4, 'Correct')
+            self.window.set_title(5, 'Logs')
+            self.window.set_title(6, 'PyNX')
+            self.window.set_title(7, 'Strain')
+            self.window.set_title(8, 'Plot data')
+            self.window.set_title(9, 'Facets')
+            self.window.set_title(10, 'Readme')
 
-        display(self.window)
+            display(self.window)
+
+        elif not pynx_import:
+            self.window = widgets.Tab(
+                            children=[
+                                self.tab_init,
+                                self.tab_detector,
+                                self.tab_ortho, 
+                                self.tab_preprocess,
+                                self.tab_correct, 
+                                self.tab_logs,
+                                # self.tab_pynx,
+                                self.tab_strain,
+                                self.tab_data,
+                                self.tab_facet,
+                                self.tab_readme,
+                            ])
+            self.window.set_title(0, 'Scan detail')
+            self.window.set_title(1, 'Detector')
+            self.window.set_title(2, 'Setup')
+            self.window.set_title(3, "Preprocess")
+            self.window.set_title(4, 'Correct')
+            self.window.set_title(5, 'Logs')
+            # self.window.set_title(6, 'PyNX')
+            self.window.set_title(6, 'Strain')
+            self.window.set_title(7, 'Plot data')
+            self.window.set_title(8, 'Facets')
+            self.window.set_title(9, 'Readme')
+
+            display(self.window)
 
     # Widgets interactive functions
     def initialize_directories(self,
