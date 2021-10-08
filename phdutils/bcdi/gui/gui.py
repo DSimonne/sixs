@@ -2018,7 +2018,12 @@ class Interface(object):
                         layout = Layout(width='90%', height = "35px")),
 
                     run_phase_retrieval = widgets.ToggleButtons(
-                        options = [('No phase retrieval', False), ('Run batch job', "batch"), ("Run script locally", "local_script"), ("Use operators", "operators")],
+                        options = [
+                        ('No phase retrieval', False), 
+                        ('Run batch job', "batch"), 
+                        ("Run script locally", "local_script"), 
+                        ("Use operators", "operators"),
+                        ],
                         value = False,
                         tooltips = [
                             "Click to be able to change parameters",
@@ -2032,12 +2037,38 @@ class Interface(object):
                         button_style = '', # 'success', 'info', 'warning', 'danger' or ''
                         layout = Layout(width='100%', height = "50px"),
                         style = {'description_width': 'initial'},
+                        icon = 'fast-forward'),
+
+                    label_run_pynx_tools = widgets.HTML(
+                        description="<p style='font-weight: bold;font-size:1.2em'>Click below to use a phase retrieval tool</p>", # 
+                        style = {'description_width': 'initial'},
+                        layout = Layout(width='90%', height = "35px")),
+
+                    run_pynx_tools = widgets.ToggleButtons(
+                        options = [
+                        ('No tool running', False),
+                        ("Modes decomposition","modes"), 
+                        ("Filter reconstructions","filter")
+                        ],
+                        value = False,
+                        tooltips = [
+                            "Click to be able to change parameters",
+                            "Run modes decomposition in data folder, selects *LLK*.cxi files",
+                            "Filter reconstructions"
+                            ],
+                        description = 'Run phase retrieval ...',
+                        disabled = False,
+                        continuous_update = False,
+                        button_style = '', # 'success', 'info', 'warning', 'danger' or ''
+                        layout = Layout(width='100%', height = "50px"),
+                        style = {'description_width': 'initial'},
                         icon = 'fast-forward')
                    )
         self._list_widgets_pynx.children[1].observe(self.folder_pynx_handler, names = "value")
         self._list_widgets_pynx.children[15].observe(self.pynx_psf_handler, names = "value")
         self._list_widgets_pynx.children[16].observe(self.pynx_peak_shape_handler, names = "value")
         self._list_widgets_pynx.children[21].observe(self.pynx_operator_handler, names = "value")
+        self._list_widgets_pynx.children[-4].observe(self.run_pynx_handler, names = "value")
         self._list_widgets_pynx.children[-2].observe(self.run_pynx_handler, names = "value")
         self.tab_pynx = widgets.VBox([
             widgets.VBox(self._list_widgets_pynx.children[:6]),
@@ -2052,11 +2083,13 @@ class Interface(object):
             widgets.HBox(self._list_widgets_pynx.children[21:23]),
             widgets.HBox(self._list_widgets_pynx.children[23:27]),
             self._list_widgets_pynx.children[27],
-            self._list_widgets_pynx.children[28],
-            widgets.HBox(self._list_widgets_pynx.children[29:31]),
             self._list_widgets_pynx.children[31],
             widgets.HBox(self._list_widgets_pynx.children[32:36]),
             widgets.HBox(self._list_widgets_pynx.children[36:39]),
+            self._list_widgets_pynx.children[28],
+            widgets.HBox(self._list_widgets_pynx.children[29:31]),
+            self._list_widgets_pynx.children[-5],
+            self._list_widgets_pynx.children[-4],
             self._list_widgets_pynx.children[-3],
             self._list_widgets_pynx.children[-2],
             self._list_widgets_pynx.children[-1],
@@ -2272,14 +2305,14 @@ class Interface(object):
 
             # Move notebooks
             try:
-                shutil.copy(f"{self.path_package}bcdi/PhasingNotebook.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
+                shutil.copy(f"{self.path_package}bcdi/data_files/PhasingNotebook.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
                 print(f"Copied PhasingNotebook.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
             except FileExistsError:
                 print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw/PhasingNotebook.ipynb exists")
                 pass
 
             try:
-                shutil.copy(f"{self.path_package}bcdi/CompareFacetsEvolution.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
+                shutil.copy(f"{self.path_package}bcdi/data_files/CompareFacetsEvolution.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
                 print(f"Copied CompareFacetsEvolution.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
             except FileExistsError:
                 print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/CompareFacetsEvolution.ipynb exists")
@@ -2310,6 +2343,7 @@ class Interface(object):
             @button_save_as_gwr.on_click
             def action_button_save_as_gwr(selfbutton):
                 clear_output(True)
+                print("Saving data, takes some time ...")
                 display(button_save_as_gwr)
                 self.Dataset.to_gwr()
 
@@ -2831,6 +2865,8 @@ class Interface(object):
         pixel_size_detector,
         label_phase_retrieval,
         run_phase_retrieval,
+        label_run_pynx_tools,
+        run_pynx_tools,
         ):
         """
         Get parameters from widgets and run phase retrieval
@@ -2872,6 +2908,7 @@ class Interface(object):
         self.Dataset.verbose = verbose
         self.Dataset.pixel_size_detector = np.round(pixel_size_detector*1e-6, 6)
         self.run_phase_retrieval = run_phase_retrieval
+        self.run_pynx_tools = run_pynx_tools
 
         # Extract dict, list and tuple from strings
         self.Dataset.support_threshold = literal_eval(self.Dataset.support_threshold)
@@ -2914,445 +2951,456 @@ class Interface(object):
         self.Dataset.pynx_parameter_gui_file = self.Dataset.scan_folder + '/pynxraw/pynx_run_gui.txt'
         self.Dataset.pynx_parameter_cli_file = self.Dataset.scan_folder + '/pynxraw/pynx_run.txt'
 
-        if self.run_phase_retrieval == "batch" or self.run_phase_retrieval == "local_script":
-            self.text_file = []
-            self.Dataset.live_plot = False
-            
-            # Load files
-            self.text_file.append("# Parameters\n")
-            for file, parameter in [(self.Dataset.iobs, "data"), (self.Dataset.mask, "mask"), (self.Dataset.obj, "object")]:
-                if file:
-                    self.text_file.append(f"{parameter} = \"{file}\"\n")
+        # Phase retrieval
+        if self.run_phase_retrieval and not self.run_pynx_tools:
+            if self.run_phase_retrieval == "batch" or self.run_phase_retrieval == "local_script":
+                self.text_file = []
+                self.Dataset.live_plot = False
+                
+                # Load files
+                self.text_file.append("# Parameters\n")
+                for file, parameter in [(self.Dataset.iobs, "data"), (self.Dataset.mask, "mask"), (self.Dataset.obj, "object")]:
+                    if file:
+                        self.text_file.append(f"{parameter} = \"{file}\"\n")
+                        
+                if not support:
+                    self.text_file += [
+                        f'support_threshold = {str(self.Dataset.support_threshold).replace("(", "").replace(")", "").replace(" ", "")}\n',
+                        f'support_only_shrink = {self.Dataset.support_only_shrink}\n',
+                        f'support_update_period = {self.Dataset.support_update_period}\n',
+                        f'support_smooth_width_begin = {self.Dataset.support_smooth_width[0]}\n',
+                        f'support_smooth_width_end = {self.Dataset.support_smooth_width[1]}\n',
+                        f'support_post_expand = {self.Dataset.support_post_expand}\n'
+                        '\n',
+                    ]
+                else:
+                    self.text_file += [f"support = \"{self.Dataset.support}\"\n"]
                     
-            if not support:
+                # PSF
+                if self.Dataset.psf:
+                    if self.Dataset.psf_model != "pseudo-voigt":
+                        self.text_file.append(f"psf = \"{self.Dataset.psf_model},{self.Dataset.fwhm}\"\n")
+                        
+                    if self.Dataset.psf_model == "pseudo-voigt":
+                        self.text_file.append(f"psf = \"{self.Dataset.psf_model},{self.Dataset.fwhm},{self.Dataset.eta}\"\n")
+                # no PSF, just don't write anything
+
+                # Filtering the reconstructions
+                if self.Dataset.filter_criteria == "LLK":
+                    nb_keep_LLK = self.Dataset.nb_run_keep
+                    nb_keep_std = False
+
+                elif self.Dataset.filter_criteria == "std":
+                    nb_keep_LLK = self.Dataset.nb_run
+                    nb_keep_std = self.Dataset.nb_run_keep
+
+                elif self.Dataset.filter_criteria == "LLK_standard_deviation":
+                    nb_keep_LLK = self.Dataset.nb_run_keep + (self.Dataset.nb_run - self.Dataset.nb_run_keep) // 2
+                    nb_keep_std = self.Dataset.nb_run_keep
+          
+                # Other parameters
                 self.text_file += [
-                    f'support_threshold = {str(self.Dataset.support_threshold).replace("(", "").replace(")", "").replace(" ", "")}\n',
-                    f'support_only_shrink = {self.Dataset.support_only_shrink}\n',
-                    f'support_update_period = {self.Dataset.support_update_period}\n',
-                    f'support_smooth_width_begin = {self.Dataset.support_smooth_width[0]}\n',
-                    f'support_smooth_width_end = {self.Dataset.support_smooth_width[1]}\n',
-                    f'support_post_expand = {self.Dataset.support_post_expand}\n'
+                    'data2cxi = True\n',
+                    f'auto_center_resize = {self.Dataset.auto_center_resize}\n',
                     '\n',
+                    f'nb_raar = {self.Dataset.nb_raar}\n',
+                    f'nb_hio = {self.Dataset.nb_hio}\n',
+                    f'nb_er = {self.Dataset.nb_er}\n',
+                    f'nb_ml = {self.Dataset.nb_ml}\n',
+                    '\n',
+                    f'nb_run = {self.Dataset.nb_run}\n',
+                    f'nb_run_keep = {nb_keep_LLK}\n',
+                    '\n',
+                    f'# max_size = {self.Dataset.max_size}\n',
+                    'zero_mask = auto # masked pixels will start from imposed 0 and then let free\n',
+                    'crop_output= 0 # set to 0 to avoid cropping the output in the .cxi\n',
+                    "mask_interp=8,2\n"
+                    "confidence_interval_factor_mask=0.5,1.2\n"
+                    '\n',
+                    f'positivity = {self.Dataset.positivity}\n',
+                    f'beta = {self.Dataset.beta}\n',
+                    f'detwin = {self.Dataset.detwin}\n',
+                    f'rebin = {str(self.Dataset.rebin).replace("(", "").replace(")", "").replace(" ", "")}\n',
+                    '\n',
+                    '# Generic parameters\n',
+                    f'detector_distance = {self.Dataset.sdd}\n',
+                    f'pixel_size_detector = {self.Dataset.pixel_size_detector}\n',
+                    f'wavelength = {self.Dataset.wavelength}\n',
+                    f'verbose = {self.Dataset.verbose}\n',
+                    "output_format= 'cxi'\n",
+                    f'live_plot = {self.Dataset.live_plot}\n',
+                    "mpi=run\n",
                 ]
-            else:
-                self.text_file += [f"support = \"{self.Dataset.support}\"\n"]
                 
-            # PSF
-            if self.Dataset.psf_model != "pseudo-voigt":
-                self.text_file.append(f"psf = \"{self.Dataset.psf_model},{self.Dataset.fwhm}\"\n")
+                with open(self.Dataset.pynx_parameter_gui_file, "w") as v:
+                    for line in self.text_file:
+                        v.write(line)
+                        
+                print(f"Saved parameters in {self.Dataset.pynx_parameter_gui_file}")
                 
-            if self.Dataset.psf_model == "pseudo-voigt":
-                self.text_file.append(f"psf = \"{self.Dataset.psf_model},{self.Dataset.fwhm},{self.Dataset.eta}\"\n")
-
-            # Filtering the reconstructions
-            if self.Dataset.filter_criteria == "LLK":
-                nb_keep_LLK = self.Dataset.nb_run_keep
-                nb_keep_std = False
-
-            elif self.Dataset.filter_criteria == "std":
-                nb_keep_LLK = self.Dataset.nb_run
-                nb_keep_std = self.Dataset.nb_run_keep
-
-            elif self.Dataset.filter_criteria == "LLK_standard_deviation":
-                nb_keep_LLK = self.Dataset.nb_run_keep + (self.Dataset.nb_run - self.Dataset.nb_run_keep) // 2
-                nb_keep_std = self.Dataset.nb_run_keep
-      
-            # Other parameters
-            self.text_file += [
-                'data2cxi = True\n',
-                f'auto_center_resize = {self.Dataset.auto_center_resize}\n',
-                '\n',
-                f'nb_raar = {self.Dataset.nb_raar}\n',
-                f'nb_hio = {self.Dataset.nb_hio}\n',
-                f'nb_er = {self.Dataset.nb_er}\n',
-                f'nb_ml = {self.Dataset.nb_ml}\n',
-                '\n',
-                f'nb_run = {self.Dataset.nb_run}\n',
-                f'nb_run_keep = {nb_keep_LLK}\n',
-                '\n',
-                f'# max_size = {self.Dataset.max_size}\n',
-                'zero_mask = auto # masked pixels will start from imposed 0 and then let free\n',
-                'crop_output= 0 # set to 0 to avoid cropping the output in the .cxi\n',
-                "mask_interp=8,2\n"
-                "confidence_interval_factor_mask=0.5,1.2\n"
-                '\n',
-                f'positivity = {self.Dataset.positivity}\n',
-                f'beta = {self.Dataset.beta}\n',
-                f'detwin = {self.Dataset.detwin}\n',
-                f'rebin = {str(self.Dataset.rebin).replace("(", "").replace(")", "").replace(" ", "")}\n',
-                '\n',
-                '# Generic parameters\n',
-                f'detector_distance = {self.Dataset.sdd}\n',
-                f'pixel_size_detector = {self.Dataset.pixel_size_detector}\n',
-                f'wavelength = {self.Dataset.wavelength}\n',
-                f'verbose = {self.Dataset.verbose}\n',
-                "output_format= 'cxi'\n",
-                f'live_plot = {self.Dataset.live_plot}\n',
-                "mpi=run\n",
-            ]
-            
-            with open(self.Dataset.pynx_parameter_gui_file, "w") as v:
-                for line in self.text_file:
-                    v.write(line)
-                    
-            print(f"Saved parameters in {self.Dataset.pynx_parameter_gui_file}")
-            
-            if self.run_phase_retrieval == "batch":
-                """
-                Runs modes directly and saves all data in an "all" subdir, filter based on LLK
-                seems that |& does not work for now ?
-                """
-                print(f"\nRunning /data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
-                os.system(f"/data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
-            
-            elif self.run_phase_retrieval == "local_script":
-                try:
-                    print(f"\nRunning /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt 2>&1 | tee README_pynx_local_script.md &", end="\n\n")
-                    os.system(f"cd {self.Dataset.scan_folder}pynxraw; /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt 2>&1 | tee README_pynx_local_script.md &")
-                except KeyboardInterrupt:
-                    print("Phase retrieval stopped by user ...")
-
-        elif self.run_phase_retrieval == "operators":
-            # Extract data
-            print("Log likelihood is updated every 50 iterations.")
-
-            self.Dataset.calc_llk = 50 # for now
-
-            if self.Dataset.iobs:
-                if self.Dataset.iobs.endswith(".npy"):
-                    iobs = np.load(self.Dataset.iobs)
-                    print("CXI input: loading data")
-                elif self.Dataset.iobs.endswith(".npz"):
+                if self.run_phase_retrieval == "batch":
+                    """
+                    Runs modes directly and saves all data in an "all" subdir, filter based on LLK
+                    """
+                    print(f"\nRunning /data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
+                    print("\nSolution filtering and modes decomposition are automatically applied at the end of the batch job.\n")
+                    os.system(f"/data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
+                
+                elif self.run_phase_retrieval == "local_script":
                     try:
-                        iobs = np.load(self.Dataset.iobs)["data"]
+                        print(f"\nRunning /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt 2>&1 | tee README_pynx_local_script.md &", end="\n\n")
+                        os.system(f"cd {self.Dataset.scan_folder}pynxraw; /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt 2>&1 | tee README_pynx_local_script.md &")
+                    except KeyboardInterrupt:
+                        print("Phase retrieval stopped by user ...")
+
+            elif self.run_phase_retrieval == "operators":
+                # Extract data
+                print("Log likelihood is updated every 50 iterations.")
+
+                self.Dataset.calc_llk = 50 # for now
+
+                if self.Dataset.iobs:
+                    if self.Dataset.iobs.endswith(".npy"):
+                        iobs = np.load(self.Dataset.iobs)
                         print("CXI input: loading data")
-                    except:
-                        print("Could not load 'data' array from npz file")
+                    elif self.Dataset.iobs.endswith(".npz"):
+                        try:
+                            iobs = np.load(self.Dataset.iobs)["data"]
+                            print("CXI input: loading data")
+                        except:
+                            print("Could not load 'data' array from npz file")
 
-                if self.Dataset.rebin != (1,1,1):
-                    try:
-                        iobs = bin_data(iobs, self.Dataset.rebin)
-                    except Exception as e:
-                        print("Could not bin data")
+                    if self.Dataset.rebin != (1,1,1):
+                        try:
+                            iobs = bin_data(iobs, self.Dataset.rebin)
+                        except Exception as e:
+                            print("Could not bin data")
 
 
-            if self.Dataset.mask:
-                if self.Dataset.mask.endswith(".npy"):
-                    mask = np.load(self.Dataset.mask).astype(np.int8)
-                    nb = mask.sum()
-                    print("CXI input: loading mask, with %d pixels masked (%6.3f%%)" % (nb, nb * 100 / mask.size))
-                elif self.Dataset.mask.endswith(".npz"):
-                    try:
-                        mask = np.load(self.Dataset.mask)["mask"].astype(np.int8)
+                if self.Dataset.mask:
+                    if self.Dataset.mask.endswith(".npy"):
+                        mask = np.load(self.Dataset.mask).astype(np.int8)
                         nb = mask.sum()
                         print("CXI input: loading mask, with %d pixels masked (%6.3f%%)" % (nb, nb * 100 / mask.size))
-                    except:
-                        print("Could not load 'mask' array from npz file")            
-
-                if self.Dataset.rebin != (1,1,1):
-                    try:
-                        mask = bin_data(mask, self.Dataset.rebin)
-                    except Exception as e:
-                        print("Could not bin data")
-
-
-            if self.Dataset.support:
-                if self.Dataset.support.endswith(".npy"):
-                    support = np.load(self.Dataset.support)
-                    print("CXI input: loading support")
-                elif self.Dataset.support.endswith(".npz"):
-                    try:
-                        support = np.load(self.Dataset.support)["data"]
-                        print("CXI input: loading support")
-                    except:
-                        # print("Could not load 'data' array from npz file")
+                    elif self.Dataset.mask.endswith(".npz"):
                         try:
-                            support = np.load(self.Dataset.support)["support"]
+                            mask = np.load(self.Dataset.mask)["mask"].astype(np.int8)
+                            nb = mask.sum()
+                            print("CXI input: loading mask, with %d pixels masked (%6.3f%%)" % (nb, nb * 100 / mask.size))
+                        except:
+                            print("Could not load 'mask' array from npz file")            
+
+                    if self.Dataset.rebin != (1,1,1):
+                        try:
+                            mask = bin_data(mask, self.Dataset.rebin)
+                        except Exception as e:
+                            print("Could not bin data")
+
+
+                if self.Dataset.support:
+                    if self.Dataset.support.endswith(".npy"):
+                        support = np.load(self.Dataset.support)
+                        print("CXI input: loading support")
+                    elif self.Dataset.support.endswith(".npz"):
+                        try:
+                            support = np.load(self.Dataset.support)["data"]
                             print("CXI input: loading support")
                         except:
-                            # print("Could not load 'support' array from npz file")
+                            # print("Could not load 'data' array from npz file")
                             try:
-                                support = np.load(self.Dataset.support)["obj"]
+                                support = np.load(self.Dataset.support)["support"]
                                 print("CXI input: loading support")
                             except:
-                                print("Could not load support")
+                                # print("Could not load 'support' array from npz file")
+                                try:
+                                    support = np.load(self.Dataset.support)["obj"]
+                                    print("CXI input: loading support")
+                                except:
+                                    print("Could not load support")
 
-                if self.Dataset.rebin != (1,1,1):
-                    try:
-                        support = bin_data(support, self.Dataset.rebin)
-                    except Exception as e:
-                        print("Could not bin data")
+                    if self.Dataset.rebin != (1,1,1):
+                        try:
+                            support = bin_data(support, self.Dataset.rebin)
+                        except Exception as e:
+                            print("Could not bin data")
 
 
-            if self.Dataset.obj:
-                if self.Dataset.obj.endswith(".npy"):
-                    obj = np.load(self.Dataset.obj)
-                    print("CXI input: loading object")
-                elif self.Dataset.obj.endswith(".npz"):
-                    try:
-                        obj = np.load(self.Dataset.obj)["data"]
+                if self.Dataset.obj:
+                    if self.Dataset.obj.endswith(".npy"):
+                        obj = np.load(self.Dataset.obj)
                         print("CXI input: loading object")
-                    except:
-                        print("Could not load 'data' array from npz file")
+                    elif self.Dataset.obj.endswith(".npz"):
+                        try:
+                            obj = np.load(self.Dataset.obj)["data"]
+                            print("CXI input: loading object")
+                        except:
+                            print("Could not load 'data' array from npz file")
 
-                if self.Dataset.rebin != (1,1,1):
-                    try:
-                        obj = bin_data(obj, self.Dataset.rebin)
-                    except Exception as e:
-                        print("Could not bin data")
+                    if self.Dataset.rebin != (1,1,1):
+                        try:
+                            obj = bin_data(obj, self.Dataset.rebin)
+                        except Exception as e:
+                            print("Could not bin data")
 
 
-            # Center and crop data
-            if self.Dataset.auto_center_resize:
-                if iobs.ndim == 3:
-                    nz0, ny0, nx0 = iobs.shape
+                # Center and crop data
+                if self.Dataset.auto_center_resize:
+                    if iobs.ndim == 3:
+                        nz0, ny0, nx0 = iobs.shape
 
-                    # Find center of mass
-                    z0, y0, x0 = center_of_mass(iobs)
-                    print("Center of mass at:", z0, y0, x0)
-                    iz0, iy0, ix0 = int(round(z0)), int(round(y0)), int(round(x0))
+                        # Find center of mass
+                        z0, y0, x0 = center_of_mass(iobs)
+                        print("Center of mass at:", z0, y0, x0)
+                        iz0, iy0, ix0 = int(round(z0)), int(round(y0)), int(round(x0))
 
-                    # Max symmetrical box around center of mass
-                    nx = 2 * min(ix0, nx0 - ix0)
-                    ny = 2 * min(iy0, ny0 - iy0)
-                    nz = 2 * min(iz0, nz0 - iz0)
+                        # Max symmetrical box around center of mass
+                        nx = 2 * min(ix0, nx0 - ix0)
+                        ny = 2 * min(iy0, ny0 - iy0)
+                        nz = 2 * min(iz0, nz0 - iz0)
 
-                    if self.Dataset.max_size is not None:
-                        nx = min(nx, self.Dataset.max_size)
-                        ny = min(ny, self.Dataset.max_size)
-                        nz = min(nz, self.Dataset.max_size)
+                        if self.Dataset.max_size is not None:
+                            nx = min(nx, self.Dataset.max_size)
+                            ny = min(ny, self.Dataset.max_size)
+                            nz = min(nz, self.Dataset.max_size)
 
-                    # Crop data to fulfill FFT size requirements
-                    nz1, ny1, nx1 = smaller_primes((nz, ny, nx), maxprime=7, required_dividers=(2,))
+                        # Crop data to fulfill FFT size requirements
+                        nz1, ny1, nx1 = smaller_primes((nz, ny, nx), maxprime=7, required_dividers=(2,))
 
-                    print("Centering & reshaping data: (%d, %d, %d) -> (%d, %d, %d)" % (nz0, ny0, nx0, nz1, ny1, nx1))
-                    iobs = iobs[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
-                                ix0 - nx1 // 2:ix0 + nx1 // 2]
-                    if mask is not None:
-                        mask = mask[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
+                        print("Centering & reshaping data: (%d, %d, %d) -> (%d, %d, %d)" % (nz0, ny0, nx0, nz1, ny1, nx1))
+                        iobs = iobs[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
                                     ix0 - nx1 // 2:ix0 + nx1 // 2]
-                        print("Centering & reshaping mask: (%d, %d, %d) -> (%d, %d, %d)" % (nz0, ny0, nx0, nz1, ny1, nx1))
+                        if mask is not None:
+                            mask = mask[iz0 - nz1 // 2:iz0 + nz1 // 2, iy0 - ny1 // 2:iy0 + ny1 // 2,
+                                        ix0 - nx1 // 2:ix0 + nx1 // 2]
+                            print("Centering & reshaping mask: (%d, %d, %d) -> (%d, %d, %d)" % (nz0, ny0, nx0, nz1, ny1, nx1))
 
-                else:
-                    ny0, nx0 = iobs.shape
+                    else:
+                        ny0, nx0 = iobs.shape
 
-                    # Find center of mass
-                    y0, x0 = center_of_mass(iobs)
-                    iy0, ix0 = int(round(y0)), int(round(x0))
-                    print("Center of mass (rounded) at:", iy0, ix0)
+                        # Find center of mass
+                        y0, x0 = center_of_mass(iobs)
+                        iy0, ix0 = int(round(y0)), int(round(x0))
+                        print("Center of mass (rounded) at:", iy0, ix0)
 
-                    # Max symmetrical box around center of mass
-                    nx = 2 * min(ix0, nx0 - ix0)
-                    ny = 2 * min(iy0, ny0 - iy0)
-                    if self.Dataset.max_size is not None:
-                        nx = min(nx, self.Dataset.max_size)
-                        ny = min(ny, self.Dataset.max_size)
-                        nz = min(nz, self.Dataset.max_size)
+                        # Max symmetrical box around center of mass
+                        nx = 2 * min(ix0, nx0 - ix0)
+                        ny = 2 * min(iy0, ny0 - iy0)
+                        if self.Dataset.max_size is not None:
+                            nx = min(nx, self.Dataset.max_size)
+                            ny = min(ny, self.Dataset.max_size)
+                            nz = min(nz, self.Dataset.max_size)
 
-                    # Crop data to fulfill FFT size requirements
-                    ny1, nx1 = smaller_primes((ny, nx), maxprime=7, required_dividers=(2,))
+                        # Crop data to fulfill FFT size requirements
+                        ny1, nx1 = smaller_primes((ny, nx), maxprime=7, required_dividers=(2,))
 
-                    print("Centering & reshaping data: (%d, %d) -> (%d, %d)" % (ny0, nx0, ny1, nx1))
-                    iobs = iobs[iy0 - ny1 // 2:iy0 + ny1 // 2, ix0 - nx1 // 2:ix0 + nx1 // 2]
+                        print("Centering & reshaping data: (%d, %d) -> (%d, %d)" % (ny0, nx0, ny1, nx1))
+                        iobs = iobs[iy0 - ny1 // 2:iy0 + ny1 // 2, ix0 - nx1 // 2:ix0 + nx1 // 2]
 
-                    if mask is not None:
-                        mask = mask[iy0 - ny1 // 2:iy0 + ny1 // 2, ix0 - nx1 // 2:ix0 + nx1 // 2]
-            
-            print("\n#############################################################################################################\n")    
-            
-            try:
-                # Run phase retrieval for nb_run
-                for i in range(self.Dataset.nb_run):
-                    print(f"Run {i}")
-                    if i>4:
-                        print("\nStopping liveplot to go faster\n")
-                        self.Dataset.live_plot = False
+                        if mask is not None:
+                            mask = mask[iy0 - ny1 // 2:iy0 + ny1 // 2, ix0 - nx1 // 2:ix0 + nx1 // 2]
+                
+                print("\n#############################################################################################################\n")    
+                
+                try:
+                    # Run phase retrieval for nb_run
+                    for i in range(self.Dataset.nb_run):
+                        print(f"Run {i}")
+                        if i>4:
+                            print("\nStopping liveplot to go faster\n")
+                            self.Dataset.live_plot = False
 
 
-                    # Create cdi object with data and mask, load the main parameters
-                    cdi = CDI(fftshift(iobs),
-                              support = support,
-                              obj = obj,
-                              mask = fftshift(mask),
-                              wavelength = self.Dataset.wavelength,
-                              pixel_size_detector = self.Dataset.pixel_size_detector,
-                              detector_distance = self.Dataset.sdd,
-                             )
+                        # Create cdi object with data and mask, load the main parameters
+                        cdi = CDI(fftshift(iobs),
+                                  support = support,
+                                  obj = obj,
+                                  mask = fftshift(mask),
+                                  wavelength = self.Dataset.wavelength,
+                                  pixel_size_detector = self.Dataset.pixel_size_detector,
+                                  detector_distance = self.Dataset.sdd,
+                                 )
 
-                    # Save diffraction pattern
-                    if i==0:
-                        cdi.save_data_cxi(
-                            filename = "{}{}{}/pynxraw/DiffractionData_binning_{}{}{}_shape_{}_{}_{}.cxi".format(
-                                self.Dataset.root_folder,
-                                self.Dataset.sample_name,
-                                self.Dataset.scans,
-                                self.Dataset.rebin[0],
-                                self.Dataset.rebin[1],
-                                self.Dataset.rebin[2],
-                                iobs.shape[0],
-                                iobs.shape[1],
-                                iobs.shape[2],
-                                ),
-                            sample_name = "",
-                            experiment_id = "",
-                            instrument = ""
+                        # Save diffraction pattern
+                        if i==0:
+                            cdi.save_data_cxi(
+                                filename = "{}{}{}/pynxraw/DiffractionData_binning_{}{}{}_shape_{}_{}_{}.cxi".format(
+                                    self.Dataset.root_folder,
+                                    self.Dataset.sample_name,
+                                    self.Dataset.scans,
+                                    self.Dataset.rebin[0],
+                                    self.Dataset.rebin[1],
+                                    self.Dataset.rebin[2],
+                                    iobs.shape[0],
+                                    iobs.shape[1],
+                                    iobs.shape[2],
+                                    ),
+                                sample_name = "",
+                                experiment_id = "",
+                                instrument = ""
+                                )
+
+                        # Change support threshold for supports update
+                        if isinstance(self.Dataset.support_threshold, float):
+                            self.Dataset.threshold_relative = self.Dataset.support_threshold
+                        elif isinstance(self.Dataset.support_threshold, tuple):
+                            self.Dataset.threshold_relative = np.random.uniform(self.Dataset.support_threshold[0], self.Dataset.support_threshold[1])
+                        print(f"Threshold: {self.Dataset.threshold_relative}")
+
+                        sup = SupportUpdate(
+                            threshold_relative = self.Dataset.threshold_relative,
+                            smooth_width = self.Dataset.support_smooth_width, 
+                            force_shrink = self.Dataset.support_only_shrink,
+                            method='rms', 
+                            post_expand = self.Dataset.support_post_expand,
                             )
 
-                    # Change support threshold for supports update
-                    if isinstance(self.Dataset.support_threshold, float):
-                        self.Dataset.threshold_relative = self.Dataset.support_threshold
-                    elif isinstance(self.Dataset.support_threshold, tuple):
-                        self.Dataset.threshold_relative = np.random.uniform(self.Dataset.support_threshold[0], self.Dataset.support_threshold[1])
-                    print(f"Threshold: {self.Dataset.threshold_relative}")
+                        # Initialize the free pixels for LLK
+                        # cdi = InitFreePixels() * cdi
 
-                    sup = SupportUpdate(
-                        threshold_relative = self.Dataset.threshold_relative,
-                        smooth_width = self.Dataset.support_smooth_width, 
-                        force_shrink = self.Dataset.support_only_shrink,
-                        method='rms', 
-                        post_expand = self.Dataset.support_post_expand,
-                        )
+                        # Initialize the support with autocorrelation, if not support given
+                        if not self.Dataset.support:
+                            sup_init = "autocorrelation"
+                            if isinstance(self.Dataset.live_plot, int):
+                                if i>5:
+                                    cdi = ScaleObj() * AutoCorrelationSupport(
+                                        threshold = 0.1, # extra argument
+                                        verbose = True) * cdi
 
-                    # Initialize the free pixels for LLK
-                    # cdi = InitFreePixels() * cdi
+                                else:
+                                    cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
+                                        threshold = 0.1, # extra argument
+                                        verbose = True) * cdi
 
-                    # Initialize the support with autocorrelation, if not support given
-                    if not self.Dataset.support:
-                        sup_init = "autocorrelation"
-                        if isinstance(self.Dataset.live_plot, int):
-                            if i>5:
+                            else:
                                 cdi = ScaleObj() * AutoCorrelationSupport(
                                     threshold = 0.1, # extra argument
                                     verbose = True) * cdi
-
-                            else:
-                                cdi = ShowCDI() * ScaleObj() * AutoCorrelationSupport(
-                                    threshold = 0.1, # extra argument
-                                    verbose = True) * cdi
-
                         else:
-                            cdi = ScaleObj() * AutoCorrelationSupport(
-                                threshold = 0.1, # extra argument
-                                verbose = True) * cdi
-                    else:
-                        sup_init = "support"
+                            sup_init = "support"
 
-                    # Begin with HIO cycles without PSF and with support updates
-                    try:
-                        # update_psf = 0 probably enough but not sure
-                        if self.Dataset.psf:
-                            hio_power = self.Dataset.nb_hio//self.Dataset.support_update_period
-                            raar_power = (self.Dataset.nb_raar//2)//self.Dataset.support_update_period
-                            er_power = self.Dataset.nb_er//self.Dataset.support_update_period
+                        # Begin with HIO cycles without PSF and with support updates
+                        try:
+                            # update_psf = 0 probably enough but not sure
+                            if self.Dataset.psf:
+                                hio_power = self.Dataset.nb_hio//self.Dataset.support_update_period
+                                raar_power = (self.Dataset.nb_raar//2)//self.Dataset.support_update_period
+                                er_power = self.Dataset.nb_er//self.Dataset.support_update_period
 
-                            cdi = (sup * HIO(
-                                            beta = self.Dataset.beta, 
-                                            calc_llk = self.Dataset.calc_llk, 
-                                            show_cdi = self.Dataset.live_plot
-                                            )**self.Dataset.support_update_period
-                                    )** hio_power * cdi
-                            cdi = (sup * RAAR(
-                                            beta = self.Dataset.beta, 
-                                            calc_llk = self.Dataset.calc_llk, 
-                                            show_cdi = self.Dataset.live_plot
-                                            )**self.Dataset.support_update_period
-                                    )** raar_power * cdi
+                                cdi = (sup * HIO(
+                                                beta = self.Dataset.beta, 
+                                                calc_llk = self.Dataset.calc_llk, 
+                                                show_cdi = self.Dataset.live_plot
+                                                )**self.Dataset.support_update_period
+                                        )** hio_power * cdi
+                                cdi = (sup * RAAR(
+                                                beta = self.Dataset.beta, 
+                                                calc_llk = self.Dataset.calc_llk, 
+                                                show_cdi = self.Dataset.live_plot
+                                                )**self.Dataset.support_update_period
+                                        )** raar_power * cdi
 
-                            # PSF is introduced at 66% of HIO and RAAR so from cycle n°924
-                            if psf_model != "pseudo-voigt":
-                                cdi = InitPSF(
-                                        model = self.Dataset.psf_model,
-                                        fwhm = self.Dataset.fwhm,
-                                        ) * cdi
-                                
-                            elif psf_model == "pseudo-voigt":
-                                cdi = InitPSF(
-                                        model = self.Dataset.psf_model,
-                                        fwhm = self.Dataset.fwhm,
-                                        eta = self.Dataset.eta,
-                                        ) * cdi
-                                
-                            cdi = (sup * RAAR(
-                                            beta = self.Dataset.beta, 
-                                            calc_llk = self.Dataset.calc_llk, 
-                                            show_cdi = self.Dataset.live_plot, 
-                                            update_psf = self.Dataset.update_psf
-                                            )**self.Dataset.support_update_period
-                                    )** raar_power * cdi
-                            cdi = (sup * ER(
-                                            calc_llk = self.Dataset.calc_llk, 
-                                            show_cdi = self.Dataset.live_plot,
-                                            update_psf = self.Dataset.update_psf
-                                            )**self.Dataset.support_update_period
-                                    )** er_power * cdi
+                                # PSF is introduced at 66% of HIO and RAAR so from cycle n°924
+                                if psf_model != "pseudo-voigt":
+                                    cdi = InitPSF(
+                                            model = self.Dataset.psf_model,
+                                            fwhm = self.Dataset.fwhm,
+                                            ) * cdi
+                                    
+                                elif psf_model == "pseudo-voigt":
+                                    cdi = InitPSF(
+                                            model = self.Dataset.psf_model,
+                                            fwhm = self.Dataset.fwhm,
+                                            eta = self.Dataset.eta,
+                                            ) * cdi
+                                    
+                                cdi = (sup * RAAR(
+                                                beta = self.Dataset.beta, 
+                                                calc_llk = self.Dataset.calc_llk, 
+                                                show_cdi = self.Dataset.live_plot, 
+                                                update_psf = self.Dataset.update_psf
+                                                )**self.Dataset.support_update_period
+                                        )** raar_power * cdi
+                                cdi = (sup * ER(
+                                                calc_llk = self.Dataset.calc_llk, 
+                                                show_cdi = self.Dataset.live_plot,
+                                                update_psf = self.Dataset.update_psf
+                                                )**self.Dataset.support_update_period
+                                        )** er_power * cdi
 
-                        if not self.Dataset.psf:
-                            hio_power = self.Dataset.nb_hio//self.Dataset.support_update_period
-                            raar_power = self.Dataset.nb_raar//self.Dataset.support_update_period
-                            er_power = self.Dataset.nb_er//self.Dataset.support_update_period
+                            if not self.Dataset.psf:
+                                hio_power = self.Dataset.nb_hio//self.Dataset.support_update_period
+                                raar_power = self.Dataset.nb_raar//self.Dataset.support_update_period
+                                er_power = self.Dataset.nb_er//self.Dataset.support_update_period
 
-                            cdi = (sup * HIO(
-                                            beta = self.Dataset.beta, 
-                                            calc_llk = self.Dataset.calc_llk, 
-                                            show_cdi = self.Dataset.live_plot
-                                            )**self.Dataset.support_update_period
-                                    )** hio_power * cdi
-                            cdi = (sup * RAAR(
-                                            beta = self.Dataset.beta, 
-                                            calc_llk = self.Dataset.calc_llk, 
-                                            show_cdi = self.Dataset.live_plot
-                                            )**self.Dataset.support_update_period
-                                    )** raar_power * cdi
-                            cdi = (sup * ER(
-                                            calc_llk = self.Dataset.calc_llk, 
-                                            show_cdi = self.Dataset.live_plot
-                                            )**self.Dataset.support_update_period
-                                    )** er_power * cdi
+                                cdi = (sup * HIO(
+                                                beta = self.Dataset.beta, 
+                                                calc_llk = self.Dataset.calc_llk, 
+                                                show_cdi = self.Dataset.live_plot
+                                                )**self.Dataset.support_update_period
+                                        )** hio_power * cdi
+                                cdi = (sup * RAAR(
+                                                beta = self.Dataset.beta, 
+                                                calc_llk = self.Dataset.calc_llk, 
+                                                show_cdi = self.Dataset.live_plot
+                                                )**self.Dataset.support_update_period
+                                        )** raar_power * cdi
+                                cdi = (sup * ER(
+                                                calc_llk = self.Dataset.calc_llk, 
+                                                show_cdi = self.Dataset.live_plot
+                                                )**self.Dataset.support_update_period
+                                        )** er_power * cdi
 
 
-                        cdi.save_obj_cxi("{}/pynxraw/result_scan_{}_run_{}_LLK_{:.4}_support_threshold_{:.4}_shape_{}_{}_{}_{}.cxi".format(
-                                                                                                        self.Dataset.scan_folder,
-                                                                                                        self.Dataset.scans,
-                                                                                                        i,
-                                                                                                        cdi.get_llk()[0],
-                                                                                                        self.Dataset.threshold_relative,
-                                                                                                        iobs.shape[0],
-                                                                                                        iobs.shape[1],
-                                                                                                        iobs.shape[2],
-                                                                                                        sup_init,
-                                                                                                        )
-                                        )
+                            cdi.save_obj_cxi("{}/result_scan_{}_run_{}_LLK_{:.4}_support_threshold_{:.4}_shape_{}_{}_{}_{}.cxi".format(
+                                                                                                            self.Dataset.folder,
+                                                                                                            self.Dataset.scans,
+                                                                                                            i,
+                                                                                                            cdi.get_llk()[0],
+                                                                                                            self.Dataset.threshold_relative,
+                                                                                                            iobs.shape[0],
+                                                                                                            iobs.shape[1],
+                                                                                                            iobs.shape[2],
+                                                                                                            sup_init,
+                                                                                                            )
+                                            )
 
-                        print("Saved as result_scan_{}_run_{}_LLK_{:.4}_support_threshold_{:.4}_shape_{}_{}_{}_{}.cxi".format(
-                                                                                                        self.Dataset.scans,
-                                                                                                        i,
-                                                                                                        cdi.get_llk()[0],
-                                                                                                        self.Dataset.threshold_relative,
-                                                                                                        iobs.shape[0],
-                                                                                                        iobs.shape[1],
-                                                                                                        iobs.shape[2],
-                                                                                                        sup_init,
-                                                                                                        )
-                                        )
-                    except SupportTooLarge:
-                        print("Threshold value probably too low, support too large too continue")
-                        pass
+                            print("Saved as result_scan_{}_run_{}_LLK_{:.4}_support_threshold_{:.4}_shape_{}_{}_{}_{}.cxi".format(
+                                                                                                            self.Dataset.scans,
+                                                                                                            i,
+                                                                                                            cdi.get_llk()[0],
+                                                                                                            self.Dataset.threshold_relative,
+                                                                                                            iobs.shape[0],
+                                                                                                            iobs.shape[1],
+                                                                                                            iobs.shape[2],
+                                                                                                            sup_init,
+                                                                                                            )
+                                            )
+                        except SupportTooLarge:
+                            print("Threshold value probably too low, support too large too continue")
+                            pass
 
-                    print("\n#############################################################################################################\n")    
-            
-                # If filter, filter data
-                if self.Dataset.filter_criteria:
-                    self.filter_reconstructions(self.Dataset.scan_folder+"pynxraw", self.Dataset.nb_run, self.Dataset.nb_run_keep, self.Dataset.filter_criteria)
+                        print("\n#############################################################################################################\n")    
+                
+                    # If filter, filter data
+                    if self.Dataset.filter_criteria:
+                        self.filter_reconstructions(self.Dataset.folder, self.Dataset.nb_run, self.Dataset.nb_run_keep, self.Dataset.filter_criteria)
 
-                # Run modes decomposition, no widget yet
-                self.run_modes_decomposition(self.Dataset.scan_folder+"pynxraw")
+                except KeyboardInterrupt:
+                    clear_output(True)
+                    print("Phase retrieval stopped by user ...")
 
-            except KeyboardInterrupt:
-                clear_output(True)
-                print("Phase retrieval stopped by user ...")
+        # Tools
+        if self.run_pynx_tools and not self.run_phase_retrieval:
+            if self.run_pynx_tools == "modes":
+                self.run_modes_decomposition(self.Dataset.folder)
 
-        elif not self.run_phase_retrieval:
+            elif self.run_pynx_tools == "filter":
+                self.filter_reconstructions(self.Dataset.folder, self.Dataset.nb_run, self.Dataset.nb_run_keep, self.Dataset.filter_criteria)
+
+        # Clean output
+        if not self.run_phase_retrieval and not self.run_pynx_tools:
             clear_output(True)
+
 
     @staticmethod
     def filter_reconstructions(
@@ -3452,10 +3500,10 @@ class Interface(object):
         """
         try:
             print("Using /data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py (py38-env environment)")
-            print(f"Using {folder}/result_scan*LLK* files.")
-            print("Running pynx-cdi-analysis.py result_scan*LLK* modes=1")
+            print(f"Using {folder}/*LLK* files.")
+            print("Running pynx-cdi-analysis.py *LLK* modes=1")
             print(f"Output in {folder}/modes_gui.h5")
-            os.system(f"/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py {folder}/result_scan*LLK* modes=1 modes_output={folder}/modes_gui.h5")
+            os.system(f"/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py {folder}/*LLK* modes=1 modes_output={folder}/modes_gui.h5")
         except KeyboardInterrupt:
             print("Decomposition into modes stopped by user...")
 
@@ -5001,6 +5049,7 @@ class Interface(object):
         if change.new:
             for w in self._list_widgets_pynx.children[:-2]:
                 w.disabled = True
+            self._list_widgets_pynx.children[-4].disabled = False
 
         elif not change.new:
             for w in self._list_widgets_pynx.children[:-2]:

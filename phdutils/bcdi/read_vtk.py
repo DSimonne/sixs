@@ -84,10 +84,17 @@ class Facets(object):
 		                style = {'description_width': 'initial'},
 		                orientation='horizontal',
 		                ),
+		           elev_axis =  widgets.Dropdown(
+               	        options = ['x', 'y', 'z'],
+		                value = "z",
+		                description = 'Elevated axis',
+		                continuous_update = False,
+		                style = {'description_width': 'initial'},
+		                ),
 		           facet_id_range = widgets.IntRangeSlider(
-		                value = [0, self.nb_facets],
+		                value = [1, self.nb_facets],
 		                step = 1,
-		                min = 0,
+		                min = 1,
 		                max = self.nb_facets,
 		                continuous_update = False,
 		                description = "Facets ids to show:",
@@ -96,12 +103,12 @@ class Facets(object):
 		                style = {'description_width': 'initial'},
 		                orientation='horizontal',
 		                ),
-		           elev_axis =  widgets.Dropdown(
-               			options = ['x', 'y', 'z'],
-		                value = "z",
-		                description = 'Elevated axis',
-		                continuous_update = False,
-		                style = {'description_width': 'initial'}),
+		            show_edges_corners = widgets.Checkbox(
+		                value = False,
+		                description = 'Show edges and corners',
+		                layout = Layout(width='40%'),
+		                style = {'description_width': 'initial'}
+		                ),
 		           )
 
 	
@@ -204,7 +211,13 @@ class Facets(object):
 		self.field_data["legend"] = legend
 
 
-	def set_rotation_matrix(self, u0, v0, w0, u, v):
+	def set_rotation_matrix(self,
+		u0, 
+		v0, 
+		w0, 
+		u, 
+		v,
+		):
 		"""
 		Defining the rotation matrix
 		u and v should be the vectors perpendicular to two facets
@@ -264,7 +277,10 @@ class Facets(object):
 		self.field_data["legend"] = legend
 
 
-	def fixed_reference(self, hkl_reference = [1,1,1], plot = True):
+	def fixed_reference(self, 
+		hkl_reference = [1,1,1],
+		plot = True,
+		):
 		"""
 		Recompute the interplanar angles between each normal and a fixed reference vector
 		"""
@@ -349,7 +365,9 @@ class Facets(object):
 			ax.grid(which='major', alpha=0.5)
 
 
-	def test_vector(self, vec):
+	def test_vector(self,
+		vec
+		):
 		"""
 		`vec` needs to be an (1, 3) array, e.g. np.array([-0.833238, -0.418199, -0.300809])
 		"""
@@ -359,7 +377,13 @@ class Facets(object):
 			print("You need to define the rotation matrix before")
 
 
-	def extract_facet(self, facet_id, plot = False, view = [90, 90], output = True, save = True):
+	def extract_facet(self, 
+		facet_id, 
+		plot = False, 
+		view = [90, 90], 
+		output = True, 
+		save = True
+		):
 		"""
 		Extract data from one facet, [x, y, z], strain, displacement and their means, also plots it
 		"""
@@ -442,7 +466,13 @@ class Facets(object):
 			return results
 
 
-	def view_particle(self, elev, azim, facet_id_range, elev_axis):
+	def view_particle(self,
+		elev,
+		azim,
+		facet_id_range, 
+		elev_axis,
+		show_edges_corners,
+		):
 		"""
 		'elev' stores the elevation angle in the z plane (in degrees).
 		'azim' stores the azimuth angle in the (x, y) plane (in degrees).
@@ -554,6 +584,9 @@ class Facets(object):
 
 		for i in range(facet_id_range[0], facet_id_range[1]):
 		    plot_facet_id(i)
+
+		if show_edges_corners:
+			plot_facet_id(0)
 		    
 		plt.tick_params(axis='both', which='major', labelsize = self.ticks_fontsize)
 		plt.tick_params(axis='both', which='minor', labelsize = self.ticks_fontsize)
