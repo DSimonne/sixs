@@ -1,14 +1,5 @@
 # BCDI and ipywidgets
 
-## To do
-* use handlers to disable widgets that are for example useless with SIXS data
-* automate the architecture specified in `https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/`
-* automate the rotation for SIXS data
-* try to merge the notebooks of phase retrieval (`https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/
-PhasingNotebook.ipynb `) and facet analysis (`https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/CompareFacetsEvolution.ipynb`) with the GUI
-* merge the solutions for data visualisation in jupyter notebook(`https://github.com/DSimonne/phdutils/tree/master/phdutils/bcdi/plot.py`)
-* Create a Dataset object that would used as iterable for the gui class, its attribute would then be all the parameters used for preprocessing, phase retrieval, facet retrieval, so that an external scientist could easily visualize the parameters used in the workflow
-
 ## How to use
 * Connect to slurm, make sure that you do not need passwords when connecting for the batch scripts (see `http://www.linuxproblem.org/art_9.html`)
 * Add this environemnet to your jupyter kernels: `source /data/id01/inhouse/david/py38-env/bin/activate`
@@ -20,39 +11,8 @@ PhasingNotebook.ipynb `) and facet analysis (`https://github.com/DSimonne/phduti
 ## Guidelines for widgets
 * Always press enter after editing a widget
 * If somehow widgets are disabled when they should not be, please rerun the Interface cell and raise an issue with the details of each step that was undertaken, so that I can correct the bog
-* You can also assign widgets values outside the interface, it will automaticcally update the widget, to do so, check the following code example:
 
-```
-specfile = "BCDI_2021_09_06_093352"
-# specfile = "BCDI_2021_09_05_144113"
-# specfile = "BCDI_2021_09_02_145714"
-# specfile = "BCDI_2021_09_02_203654"
-# 
-Test._list_widgets_init.children[2].value = 242
-Test._list_widgets_init.children[3].value = f"/data/visitor/hc4534/id01/B8_S1_P2/{specfile}/"
-Test._list_widgets_init.children[4].value = "/data/id01/inhouse/david/ID01_September_2021/450/CO2/III_C17/"
-
-
-Test._list_widgets_preprocessing.children[36].value = "Maxipix"
-Test._list_widgets_preprocessing.children[42].value = ""
-Test._list_widgets_preprocessing.children[44].value = f"/data/visitor/hc4534/id01/B8_S1_P2/{specfile}/mpx/data_mpx4_%05d.edf"
-
-Test._list_widgets_preprocessing.children[1].value = "ID01"
-Test._list_widgets_preprocessing.children[7].value = f"spec/{specfile}"
-Test._list_widgets_preprocessing.children[8].value = "outofplane"
-
-Test._list_widgets_preprocessing.children[52].value = "(-0.0011553664, 0, 0)"
-Test._list_widgets_preprocessing.children[53].value = "0.60"
-Test._list_widgets_preprocessing.children[54].value = "12994"
-```
-
-The widgets number might change with the evolution code, you can try to find the good one by playing with the different _list_widgets attributes, (should rename to list_widgets only)
-
-### Dev
-* images non sauvegardee pour preprocess, vient de bcdi.gu
-* multiple plot comparison for rocking curves
-* add inplane outofplane widget in correct and strain (link)
-* load gwr
+The widgets number might change with the evolution code, you can try to find the good one by playing with the different *_list_widgets* (use tqb to complete)
 
 Some screenshots of the work so far:
 ![Tab1](https://user-images.githubusercontent.com/51970962/130641516-ffe670b1-7b72-4b86-bef4-3b8bf4b7a797.png)
