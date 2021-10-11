@@ -5,10 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import glob
-import errno
 import os
 import shutil
-import math
 from ast import literal_eval
 import operator as operator_lib
 import getpass
@@ -33,23 +31,25 @@ from IPython.display import display, Markdown, Latex, clear_output
 from datetime import datetime
 import pickle
 import inspect
-import warnings
+# import warnings
 
 import tables as tb
 
-# Import preprocess_bcdi modified for gui and usable as a function
+# phdutils package
 from phdutils.bcdi import read_vtk
 from phdutils import plot
 from phdutils.sixs import ReadNxs4 as rd
 from phdutils.bcdi.runner import preprocess, correct_angles, strain
 from phdutils.bcdi.gui import gui_iterable
 from phdutils.bcdi.support import SupportTools
-# For PyNX
+
+# PyNX package
 import h5py
 from numpy.fft import fftshift
 from scipy.ndimage.measurements import center_of_mass
 from scipy.ndimage import gaussian_filter
 
+# bcdi package
 from bcdi.utils.utilities import bin_data
 
 try:

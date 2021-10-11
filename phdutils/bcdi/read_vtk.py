@@ -313,11 +313,13 @@ class Facets(object):
 		self.field_data['interplanar_angles'] = new_angles
 
 		# Save angles for indexation, using facets that we should see or usually see on Pt nanoparticles (WK form)
-		normals = [[1, 1, 0], [-1, 1, 0], [-1, -1, 0],
-		           [1, 0, 0], [-1, 0, 0],
-		           [2, 1, 0],
-		           [1, 1, 3], [1, -1, 3], [1, -1, -3], [-1, -1, 3], [1, 1, -3], [-1, -1, -3],
-		           [1, -1, 1], [-1, 1, -1]
+		normals = [
+				[1, 0, 0], [-1, 0, 0],
+				[1, 1, 0], [-1, 1, 0], [-1, -1, 0],
+				[1, -1, 1], [-1, 1, -1],
+				[2, 1, 0],
+				[1, 1, 3], [1, -1, 3], [1, -1, -3], [-1, -1, 3], [1, 1, -3], [-1, -1, -3],
+				[1, 1, 5], [1, -1, 5], [1, -1, -5], [-1, -1, 5], [1, 1, -5], [-1, -1, -5],
 		          ]
 
 		# Stores the theoretical angles between normals
@@ -348,7 +350,9 @@ class Facets(object):
 			        color = "#f0027f"
 			    if [abs(x) for x in norm] == [1, 1, 3]:
 			        color = "#386cb0"
-			        
+			    if [abs(x) for x in norm] == [1, 1, 5]:
+			        color = "k"
+
 			    ax.scatter(angle, norm_str, color = color)
 
 			# Major ticks every 20, minor ticks every 5
@@ -558,13 +562,6 @@ class Facets(object):
 			# Plot the normal to each facet at their center, do it after so that is it the top layer
 			row = self.field_data.loc[self.field_data["facet_id"] == facet_id]
 			if facet_id != 0:
-				if elev_axis == "z":
-					# Normal
-					n = np.array([row.n0.values[0], row.n1.values[0], row.n2.values[0]])
-
-					# Center of mass
-					com = np.array([row.c0.values[0], row.c1.values[0], row.c2.values[0]])
-
 				if elev_axis == "x":
 					# Normal
 					n = np.array([row.n1.values[0], row.n2.values[0], row.n0.values[0]])
@@ -578,6 +575,13 @@ class Facets(object):
 
 					# Center of mass
 					com = np.array([row.c2.values[0], row.c0.values[0], row.c1.values[0]])
+
+				if elev_axis == "z":
+					# Normal
+					n = np.array([row.n0.values[0], row.n1.values[0], row.n2.values[0]])
+
+					# Center of mass
+					com = np.array([row.c0.values[0], row.c1.values[0], row.c2.values[0]])
 
 				n_str = str(facet_id) + str(n.round(2).tolist())
 				ax.text(com[0], com[1], com[2], n_str, color='red', fontsize = 20)
