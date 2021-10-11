@@ -81,6 +81,7 @@ class Interface(object):
 
         self.work_dir = os.getcwd()
         self.path_package = inspect.getfile(phdutils).split("__")[0]
+        self.path_scripts = self.path_package.split("/lib/python")[0]+"/bin"
 
         # Get user name
         try:
@@ -1632,7 +1633,7 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
 
             file_list = widgets.Dropdown(
-                options = sorted(glob.glob(os.getcwd() + "/*.npz") + glob.glob(os.getcwd() + "/*.cxi")) + [""],
+                options = sorted(glob.glob(os.getcwd() + "/*.npz") + glob.glob(os.getcwd() + "/*.cxi")) + glob.glob(os.getcwd() + "/*.h5")) + [""],
                 description = 'Compatible file list',
                 disabled = False,
                 layout = Layout(width='90%'),
@@ -1641,7 +1642,7 @@ class Interface(object):
             data_use = widgets.ToggleButtons(
                 options = [
                     ("Clear output", False),
-                    ('Plot data', "plot"),
+                    ('2D plotting', "two_d_plot"),
                     ("Create support", "create_support"),
                     ("Extract support", "extract_support"),
                     ("Smooth support", "smooth_support"),
@@ -1864,6 +1865,7 @@ class Interface(object):
                         step = 10,
                         continuous_update = False,
                         description = 'Nb of RAAR:',
+                        layout = Layout(height = "35px", width = "20%"),
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
@@ -1875,6 +1877,7 @@ class Interface(object):
                         step = 10,
                         continuous_update = False,
                         description = 'Nb of HIO:',
+                        layout = Layout(height = "35px", width = "20%"),
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
@@ -1886,6 +1889,7 @@ class Interface(object):
                         step = 10,
                         continuous_update = False,
                         description = 'Nb of ER:',
+                        layout = Layout(height = "35px", width = "20%"),
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
@@ -1897,6 +1901,7 @@ class Interface(object):
                         step = 10,
                         continuous_update = False,
                         description = 'Nb of ML:',
+                        layout = Layout(height = "35px", width = "20%"),
                         readout = True,
                         style = {'description_width': 'initial'},
                         disabled = False),
@@ -2060,7 +2065,7 @@ class Interface(object):
                             "Run modes decomposition in data folder, selects *LLK*.cxi files",
                             "Filter reconstructions"
                             ],
-                        description = 'Run phase retrieval ...',
+                        description = "Choose analysis:",
                         disabled = False,
                         continuous_update = False,
                         button_style = '', # 'success', 'info', 'warning', 'danger' or ''
@@ -3076,14 +3081,14 @@ class Interface(object):
                     """
                     Runs modes directly and saves all data in an "all" subdir, filter based on LLK
                     """
-                    print(f"\nRunning /data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
+                    print(f"\nRunning {self.path_scripts}/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
                     print("\nSolution filtering and modes decomposition are automatically applied at the end of the batch job.\n")
-                    os.system(f"/data/id01/inhouse/david/py38-env/bin/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
+                    os.system(f"{self.path_scripts}/run_slurm_job.sh --reconstruct gui --username {self.user_name} --path {self.Dataset.scan_folder}pynxraw --filtering {nb_keep_std} --modes true")
                 
                 elif self.run_phase_retrieval == "local_script":
                     try:
-                        print(f"\nRunning /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt 2>&1 | tee README_pynx_local_script.md &", end="\n\n")
-                        os.system(f"cd {self.Dataset.scan_folder}pynxraw; /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt 2>&1 | tee README_pynx_local_script.md &")
+                        print(f"\nRunning {self.path_scripts}/pynx-id01cdi.py pynx_run_gui.txt 2>&1 | tee README_pynx_local_script.md &", end="\n\n")
+                        os.system(f"cd {self.Dataset.scan_folder}pynxraw; {self.path_scripts}/pynx-id01cdi.py pynx_run_gui.txt 2>&1 | tee README_pynx_local_script.md &")
                     except KeyboardInterrupt:
                         print("Phase retrieval stopped by user ...")
 
@@ -3533,11 +3538,11 @@ class Interface(object):
         Run a decomposition into modes of the phase retrieval solutions, saves only the first mode
         """
         try:
-            print("Using /data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py (py38-env environment)")
+            print(f"Using {self.path_scripts}/pynx-cdi-analysis.py (py38-stable environment)")
             print(f"Using {folder}/*LLK* files.")
             print("Running pynx-cdi-analysis.py *LLK* modes=1")
             print(f"Output in {folder}/modes_gui.h5")
-            os.system(f"/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py {folder}/*LLK* modes=1 modes_output={folder}/modes_gui.h5")
+            os.system(f"{self.path_scripts}/pynx-cdi-analysis.py {folder}/*LLK* modes=1 modes_output={folder}/modes_gui.h5")
         except KeyboardInterrupt:
             print("Decomposition into modes stopped by user...")
 
@@ -4519,7 +4524,7 @@ class Interface(object):
         Allows the user to plot an array (1D, 2D or 3D) from npz, npy or .cxi files.
         """
 
-        if data_use == "plot":
+        if data_use == "two_d_plot":
             # Disable widgets 
            for w in self.tab_data.children[:-2]:
                 w.disabled = True
