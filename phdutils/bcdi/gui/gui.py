@@ -56,6 +56,7 @@ try:
     # This imports all necessary operators. GPU will be auto-selected
     print("Importing pynx ...")
     from pynx.cdi import *
+    from pynx.cdi.widgets import CDIViewer
     from pynx.utils.math import smaller_primes
     pynx_import = True
 except:
@@ -1644,6 +1645,7 @@ class Interface(object):
                     ("Create support", "create_support"),
                     ("Extract support", "extract_support"),
                     ("Smooth support", "smooth_support"),
+                    ("3D plotting", "three_d_plot")
                     ],
                 value = False,
                 description = 'Load data',
@@ -4511,7 +4513,7 @@ class Interface(object):
         label_plot,
         folder,
         file_list,
-        data_use
+        data_use,
         ):
         """
         Allows the user to plot an array (1D, 2D or 3D) from npz, npy or .cxi files.
@@ -4632,11 +4634,16 @@ class Interface(object):
 
             display(window_support)
 
-        elif data_use == "plot_vtk":
-            # Disable widgets 
+        # elif data_use == "plot_vtk":
+        #     # Disable widgets 
+        #     for w in self.tab_data.children[:-2]:
+        #         w.disabled = True
+                
+        elif data_use == "three_d_plot":
             for w in self.tab_data.children[:-2]:
                 w.disabled = True
-                
+            w = CDIViewer(file_list)
+            display(w)
 
         elif data_use == False:
             for w in self.tab_data.children[:-2]:
