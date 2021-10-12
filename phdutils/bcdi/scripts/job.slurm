@@ -30,8 +30,8 @@ scontrol --details show jobs \$SLURM_JOBID |grep RES
 # Moving to pynxraw directory
 cd $path
 echo "Moved to " $path
-source /data/id01/inhouse/david/py38-env/bin/activate
-echo "Working with /data/id01/inhouse/david/py38-env/ environment"
+source /data/id01/inhouse/david/py38-stable/bin/activate
+echo "Working with /data/id01/inhouse/david/py38-stable/ environment"
 
 # Running phase retrieval
 echo 
@@ -44,8 +44,8 @@ echo
 if [[ $reconstruct = "gui" ]]; then
     echo "################################################################################################################"
     echo "Loading pynx_run_gui.txt arguments..."
-    echo "/data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt |& tee README_pynx_gui.md"
-    mpiexec -n $SLURM_NTASKS /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run_gui.txt |& tee README_pynx_gui.md
+    echo "/data/id01/inhouse/david/py38-stable/bin/pynx-id01cdi.py pynx_run_gui.txt |& tee README_pynx_gui.md"
+    mpiexec -n $SLURM_NTASKS /data/id01/inhouse/david/py38-stable/bin/pynx-id01cdi.py pynx_run_gui.txt |& tee README_pynx_gui.md
 
     # Moving the results in gui_run/ sub-directory
     echo "Creating a subdirector gui_run/ and moving all the .cxi files there..."
@@ -60,8 +60,8 @@ if [[ $reconstruct = "gui" ]]; then
 elif [[ $reconstruct = "terminal" ]]; then
     echo "################################################################################################################"
     echo "Loading pynx_run.txt arguments..."
-    echo "/data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run.txt |& tee README_pynx_terminal.md"
-    mpiexec -n $SLURM_NTASKS /data/id01/inhouse/david/py38-env/bin/pynx-id01cdi.py pynx_run.txt |& tee README_pynx_terminal.md
+    echo "/data/id01/inhouse/david/py38-stable/bin/pynx-id01cdi.py pynx_run.txt |& tee README_pynx_terminal.md"
+    mpiexec -n $SLURM_NTASKS /data/id01/inhouse/david/py38-stable/bin/pynx-id01cdi.py pynx_run.txt |& tee README_pynx_terminal.md
 
     # Moving the results in terminal_run/ sub-directory
     echo "Creating a subdirector terminal_run/ and moving all the .cxi files there..."
@@ -82,9 +82,9 @@ fi
 if [[ $modes = true ]]; then
     echo "################################################################################################################"
     echo "Running modes decomposition ..."
-    echo "/data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes.h5 |& tee README_modes.md"
-    # mpiexec -n $SLURM_NTASKS /data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes.h5 |& tee README_modes.md
-    /data/id01/inhouse/david/py38-env/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes.h5 |& tee README_modes.md
+    echo "/data/id01/inhouse/david/py38-stable/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes.h5 |& tee README_modes.md"
+    # mpiexec -n $SLURM_NTASKS /data/id01/inhouse/david/py38-stable/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes.h5 |& tee README_modes.md
+    /data/id01/inhouse/david/py38-stable/bin/pynx-cdi-analysis.py *LLK* modes=1 modes_output=modes.h5 |& tee README_modes.md
     echo "################################################################################################################"
     echo
 

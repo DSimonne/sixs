@@ -117,8 +117,8 @@ modes=${modes/#=/}
 filtering=${filtering/#=/}
 
 ssh $username@slurm-nice-devel << EOF
-    # echo "Running "sbatch /data/id01/inhouse/david/py38-env/bin/job.slurm $reconstruct $username $path $modes $filtering
-    sbatch /data/id01/inhouse/david/py38-env/bin/job.slurm $reconstruct $username $path $modes $filtering
+    # echo "Running "sbatch /data/id01/inhouse/david/py38-stable/bin/job.slurm $reconstruct $username $path $modes $filtering
+    sbatch /data/id01/inhouse/david/py38-stable/bin/job.slurm $reconstruct $username $path $modes $filtering
 
     echo "You may follow the evolution of the job by typing: 'tail -f job.slurm-XXXXX.out', replace XXXXX by the previous job number, the job file should be in your home directory."
 
