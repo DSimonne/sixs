@@ -3251,8 +3251,8 @@ class Interface(object):
 
                         # Create cdi object with data and mask, load the main parameters
                         cdi = CDI(fftshift(iobs),
-                                  support = support,
-                                  obj = obj,
+                                  support = fftshift(support),
+                                  obj = fftshift(obj),
                                   mask = fftshift(mask),
                                   wavelength = self.Dataset.wavelength,
                                   pixel_size_detector = self.Dataset.pixel_size_detector,
