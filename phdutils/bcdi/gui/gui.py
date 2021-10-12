@@ -1633,7 +1633,7 @@ class Interface(object):
                 style = {'description_width': 'initial'}),
 
             file_list = widgets.Dropdown(
-                options = sorted(glob.glob(os.getcwd() + "/*.npz") + glob.glob(os.getcwd() + "/*.cxi")) + glob.glob(os.getcwd() + "/*.h5")) + [""],
+                options = sorted(glob.glob(os.getcwd() + "/*.npz") + glob.glob(os.getcwd() + "/*.cxi") + glob.glob(os.getcwd() + "/*.h5")) + [""],
                 description = 'Compatible file list',
                 disabled = False,
                 layout = Layout(width='90%'),
@@ -3300,7 +3300,7 @@ class Interface(object):
                         if not self.Dataset.support:
                             sup_init = "autocorrelation"
                             if isinstance(self.Dataset.live_plot, int):
-                                if i>5:
+                                if i>4:
                                     cdi = ScaleObj() * AutoCorrelationSupport(
                                         threshold = 0.1, # extra argument
                                         verbose = True) * cdi
@@ -3530,8 +3530,7 @@ class Interface(object):
         except KeyboardInterrupt:
             print("cxi files filtering stopped by user ...")
 
-    @staticmethod
-    def run_modes_decomposition( 
+    def run_modes_decomposition(self,
         folder
         ):
         """
@@ -5057,6 +5056,9 @@ class Interface(object):
                 for w in self._list_widgets_pynx.children[16:20]:
                     w.disabled = True
 
+        self.pynx_peak_shape_handler(change = self._list_widgets_pynx.children[16].value)
+        self.pynx_operator_handler(change = self._list_widgets_pynx.children[21].value)
+
     def pynx_peak_shape_handler(self, change):
         "Handles changes related to psf the peak shape"
         try:
@@ -5100,8 +5102,6 @@ class Interface(object):
                 w.disabled = False
 
             self.pynx_psf_handler(change = self._list_widgets_pynx.children[15].value)
-            self.pynx_peak_shape_handler(change = self._list_widgets_pynx.children[16].value)
-            self.pynx_operator_handler(change = self._list_widgets_pynx.children[21].value)
 
     def folder_strain_handler(self, change):
         """Handles changes on the widget used to load a data file"""
@@ -5113,10 +5113,10 @@ class Interface(object):
     def folder_plot_handler(self, change):
         """Handles changes on the widget used to load a data file"""
         try:
-            self.tab_data.children[2].options = sorted(glob.glob(change.new + "/*.npz") + glob.glob(change.new + "/*.cxi")) + [""]
+            self.tab_data.children[2].options = sorted(glob.glob(change.new + "/*.npz") + glob.glob(change.new + "/*.cxi") + glob.glob(change.new + "/*.h5")) + [""]
 
         except AttributeError:
-            self.tab_data.children[2].options = sorted(glob.glob(change + "/*.npz") + glob.glob(change + "/*.cxi")) + [""]
+            self.tab_data.children[2].options = sorted(glob.glob(change + "/*.npz") + glob.glob(change + "/*.cxi") + glob.glob(change + "/*.h5")) + [""]
 
     def folder_facet_handler(self, change):
         """Handles changes on the widget used to load a data file"""
