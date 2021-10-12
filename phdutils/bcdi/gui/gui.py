@@ -3115,6 +3115,8 @@ class Interface(object):
                         except Exception as e:
                             print("Could not bin data")
 
+                    # fft shift
+                    iobs = fftshift(iobs)
 
                 if self.Dataset.mask:
                     if self.Dataset.mask.endswith(".npy"):
@@ -3135,6 +3137,8 @@ class Interface(object):
                         except Exception as e:
                             print("Could not bin data")
 
+                    # fft shift
+                    mask = fftshift(mask)
 
                 if self.Dataset.support:
                     if self.Dataset.support.endswith(".npy"):
@@ -3163,6 +3167,8 @@ class Interface(object):
                         except Exception as e:
                             print("Could not bin data")
 
+                    # fft shift
+                    support = fftshift(support)
 
                 if self.Dataset.obj:
                     if self.Dataset.obj.endswith(".npy"):
@@ -3181,6 +3187,8 @@ class Interface(object):
                         except Exception as e:
                             print("Could not bin data")
 
+                    # fft shift
+                    obj = fftshift(obj)
 
                 # Center and crop data
                 if self.Dataset.auto_center_resize:
@@ -3248,12 +3256,11 @@ class Interface(object):
                             print("\nStopping liveplot to go faster\n")
                             self.Dataset.live_plot = False
 
-
                         # Create cdi object with data and mask, load the main parameters
-                        cdi = CDI(fftshift(iobs),
-                                  support = fftshift(support),
-                                  obj = fftshift(obj),
-                                  mask = fftshift(mask),
+                        cdi = CDI(iobs,
+                                  support = support,
+                                  obj = obj,
+                                  mask = mask,
                                   wavelength = self.Dataset.wavelength,
                                   pixel_size_detector = self.Dataset.pixel_size_detector,
                                   detector_distance = self.Dataset.sdd,
