@@ -996,10 +996,10 @@ class Facets(object):
 			raise e
 
 
-    def __repr__(self):
-        return "Facets {}.\n".format(
-                    self.filename, 
-                    )
-    
-    def __str__(self):        
-        return repr(self)
+	def __repr__(self):
+		return "Facets {}.\n".format(
+		            self.filename, 
+		            )
+
+	def __str__(self):        
+	    return repr(self)
