@@ -93,7 +93,6 @@ class Plotter(object):
 				raise NameError("Wrong path")
 
 
-
 	def plot_data(self):
 	    """
 	    """
@@ -207,7 +206,6 @@ class Plotter(object):
 
 	                # Show image
 	                if PlottingOptions == "2D":
-	                    plt.close()
 	                    fig, ax = plt.subplots(figsize = (15, 15))
 	                    img = ax.imshow(dt,
 	                                norm= {"linear" : None, "logarithmic" : LogNorm()}[scale],
@@ -218,9 +216,10 @@ class Plotter(object):
 	                    cax = divider.append_axes('right', size='5%', pad=0.05)
 
 	                    fig.colorbar(img, cax=cax, orientation='vertical')
+	                    plt.show()
+	                    plt.close()
 
 	                elif PlottingOptions == "2DC" :
-	                    plt.close()
 	                    # Show contour plot instead
 	                    try:
 	                        fig, ax = plt.subplots(figsize = (15,15))
@@ -235,6 +234,8 @@ class Plotter(object):
 	                        cax = divider.append_axes('right', size='5%', pad=0.05)
 
 	                        fig.colorbar(img, cax=cax, orientation='vertical')
+	                        plt.show()
+	                        plt.close()
 
 	                    except IndexError:
 	                        plt.close()

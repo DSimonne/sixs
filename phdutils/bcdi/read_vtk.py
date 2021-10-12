@@ -36,7 +36,8 @@ class Facets(object):
 	def __init__(self, filename, pathdir = "./", lattice = 3.912,):
 		super(Facets, self).__init__()
 		self.pathsave = pathdir + "facets_analysis/"
-		self.filename = pathdir + filename
+		self.path_to_data = pathdir + filename
+		self.filename = filename
 
 		self.lattice = lattice
 
@@ -121,7 +122,7 @@ class Facets(object):
 		    os.makedirs(self.pathsave)
 
 		reader = vtk.vtkGenericDataObjectReader()
-		reader.SetFileName(self.filename)
+		reader.SetFileName(self.path_to_data)
 		reader.ReadAllScalarsOn()
 		reader.ReadAllVectorsOn()
 		reader.ReadAllTensorsOn()
@@ -899,15 +900,15 @@ class Facets(object):
 		plt.savefig(self.pathsave + fig_name + '.png', bbox_inches = 'tight')
 
 
-	def save_data(self, filename):
+	def save_data(self, path_to_data):
 		# Save field data
-		self.field_data.to_csv(filename)
+		self.field_data.to_csv(path_to_data)
 
 
-	def pickle(self, filename):
+	def pickle(self, path_to_data):
 		# Use the pickle module to save the classes
 		try:
-		    with open(filename, 'wb') as f:
+		    with open(path_to_data, 'wb') as f:
 		        pickle.dump(self, f, pickle.HIGHEST_PROTOCOL)
 		except PermissionError:
 		    print("""Permission denied, You cannot save this file because you are not its creator. The changes are updated for this session and you can still plot figures but once you exit the program, all changes will be erased.""")
@@ -922,14 +923,14 @@ class Facets(object):
 		with open(prompt, 'rb') as f:
 		    return pickle.load(f)
 
-	def to_hdf5(self, filename):
+	def to_hdf5(self, path_to_data):
 
 		# Save attributes
-		with h5py.File(filename, mode="a") as f:
+		with h5py.File(path_to_data, mode="a") as f:
 		    try:
 		        facets = f.create_group("/data/facets")
 		        
-		        facets.create_dataset("filename", data = self.filename)
+		        facets.create_dataset("path_to_data", data = self.path_to_data)
 		        facets.create_dataset("u0", data = self.u0)
 		        facets.create_dataset("v0", data = self.v0)
 		        facets.create_dataset("w0", data = self.w0)
@@ -949,7 +950,7 @@ class Facets(object):
 		    except ValueError:
 		        print("Data already exists, overwriting ...")
 
-		        f["/data/facets/filename"][...] = self.filename
+		        f["/data/facets/path_to_data"][...] = self.path_to_data
 		        f["/data/facets/u0"][...] = self.u0
 		        f["/data/facets/v0"][...] = self.v0
 		        f["/data/facets/w0"][...] = self.w0
@@ -968,7 +969,7 @@ class Facets(object):
 
 		# Save field data
 		try:
-			self.field_data.to_hdf(filename,
+			self.field_data.to_hdf(path_to_data,
 									key='data/facets/tables/field_data', 
 									mode='a', 
 									append = True,
@@ -984,7 +985,7 @@ class Facets(object):
 					    "miller_indices" : list(self.theoretical_angles.keys()),
 					    "interplanar_angles" : list(self.theoretical_angles.values())
 					})
-			df.to_hdf(filename,
+			df.to_hdf(path_to_data,
 						key='data/facets/tables/theoretical_angles', 
 						mode='a', 
 						append = True,
@@ -994,3 +995,11 @@ class Facets(object):
 		except Exception as e:
 			raise e
 
+
+    def __repr__(self):
+        return "Facets {}.\n".format(
+                    self.filename, 
+                    )
+    
+    def __str__(self):        
+        return repr(self)
