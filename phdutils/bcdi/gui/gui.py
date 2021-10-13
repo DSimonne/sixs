@@ -2381,8 +2381,8 @@ class Interface(object):
             @button_save_as_gwr.on_click
             def action_button_save_as_gwr(selfbutton):
                 clear_output(True)
-                print("Saving data, takes some time ...")
                 display(button_save_as_gwr)
+                print("Saving data, takes some time ...")
                 self.Dataset.to_gwr()
 
         elif reload_previous_data:
@@ -4116,6 +4116,9 @@ class Interface(object):
                         print(f"Used reference: {self.Facets.hkl_reference}")
                         self.Facets.fixed_reference(hkl_reference = self.Facets.hkl_reference)
 
+                        # Also save edges and corners data
+                        self.save_edges_corners_data()
+                        
                         display(Markdown("""# Field data"""))
                         display(self.Facets.field_data)
 
@@ -4147,9 +4150,10 @@ class Interface(object):
 
                                 # Save data
                                 self.Facets.save_data(f"{self.Dataset.root_folder}{self.Dataset.sample_name}{self.Dataset.scans}/postprocessing/facets_analysis/field_data_{self.Dataset.scans}.csv")
+                                print(f"Saved field data as {self.Dataset.root_folder}{self.Dataset.sample_name}{self.Dataset.scans}/postprocessing/facets_analysis/field_data_{self.Dataset.scans}.csv")
 
                                 self.Facets.to_hdf5(f"{self.Dataset.scan_folder}{self.Dataset.sample_name}{self.Dataset.scans}.h5")
-
+                                print(f"Saved Facets class attributes in {self.Dataset.scan_folder}{self.Dataset.sample_name}{self.Dataset.scans}.h5")
                             except AttributeError:
                                 print("Initialize the directories first to save the figures and data ...")
 

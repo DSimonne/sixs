@@ -33,7 +33,12 @@ class Facets(object):
 	Several plotting options are attributes of this class, feel free to change them (cmap, strain_range, disp_range_avg, disp_range, strain_range_avg, comment, title_fontsize, axes_fontsize, legend_fontsize, ticks_fontsize)
 	"""
 
-	def __init__(self, filename, pathdir = "./", lattice = 3.912,):
+	def __init__(
+		self, 
+		filename, 
+		pathdir = "./", 
+		lattice = 3.912,
+		):
 		super(Facets, self).__init__()
 		self.pathsave = pathdir + "facets_analysis/"
 		self.path_to_data = pathdir + filename
@@ -113,7 +118,9 @@ class Facets(object):
 		           )
 
 	
-	def load_vtk(self):
+	def load_vtk(
+		self
+		):
 		"""
 		Load VTK file
 		In paraview, the facets have an index that starts at 1, the index 0 corresponds to the edges and corners of the facets
@@ -600,7 +607,11 @@ class Facets(object):
 		plt.show()
 
 
-	def plot_strain(self, figsize = (12, 10), view = [20, 60], save = True):
+	def plot_strain(self, 
+		figsize = (12, 10), 
+		view = [20, 60], 
+		save = True
+		):
 
 		# 3D strain
 		fig_name = 'strain_3D_' + self.hkls + self.comment + '_' + str(self.strain_range)
@@ -667,7 +678,12 @@ class Facets(object):
 		plt.show()
 
 
-	def plot_displacement(self, figsize = (12,10), view = [20, 60], save = True):
+	def plot_displacement(
+		self, 
+		figsize = (12,10), 
+		view = [20, 60], 
+		save = True
+		):
 
 		# 3D displacement
 		fig_name = 'disp_3D_' + self.hkls + self.comment + '_' + str(self.disp_range)
@@ -735,7 +751,10 @@ class Facets(object):
 		plt.show()
 
 
-	def evolution_curves(self, ncol = 1):
+	def evolution_curves(
+		self, 
+		ncol = 1
+		):
 
 		# 1D plot: average displacement vs facet index
 		fig_name = 'avg_disp_vs_facet_id_' + self.hkls + self.comment
@@ -900,12 +919,50 @@ class Facets(object):
 		plt.savefig(self.pathsave + fig_name + '.png', bbox_inches = 'tight')
 
 
-	def save_data(self, path_to_data):
+	def save_edges_corners_data(
+		self
+		):
+		if not 0 in self.field_data.facet_id.values:
+			result = self.extract_facet(0)
+
+			edges_cornes_df = pd.DataFrame({
+			    'facet_id' : [0],
+			    'strain_mean' : result["strain_mean"],
+			    'strain_std' : result["strain_std"],
+			    'disp_mean' : result["disp_mean"],
+			    'disp_std' : result["disp_std"],
+			    'n0' : None,
+			    'n1' : None,
+			    'n2' : None,
+			    'c0' : None,
+			    'c1' : None,
+			    'c2' : None,
+			    'interplanar_angles' : None,
+			    'abs_facet_size' : None,
+			    'rel_facet_size' : None,
+			    'legend' : None,
+			})
+
+			self.field_data = self.field_data.append(edges_cornes_df, ignore_index = True)
+			self.field_data = self.field_data.sort_values(by = "facet_id")
+			self.field_data = self.field_data.reset_index(drop = True)
+
+
+	def save_data(
+		self,
+		path_to_data
+		):
+		# Add edges and corners data if not there already
+		self.save_edges_corners_data()
+
 		# Save field data
 		self.field_data.to_csv(path_to_data)
 
 
-	def pickle(self, path_to_data):
+	def pickle(
+		self,
+		path_to_data
+		):
 		# Use the pickle module to save the classes
 		try:
 		    with open(path_to_data, 'wb') as f:
@@ -916,14 +973,22 @@ class Facets(object):
 
 
 	@staticmethod
-	def unpickle(prompt):
+	def unpickle(
+		prompt
+		):
 		"""Use the pickle module to load the classes
 		"""
 
 		with open(prompt, 'rb') as f:
 		    return pickle.load(f)
 
-	def to_hdf5(self, path_to_data):
+	def to_hdf5(
+		self, 
+		path_to_data
+		):
+
+		# Add edges and corners data if not there already
+		self.save_edges_corners_data()
 
 		# Save attributes
 		with h5py.File(path_to_data, mode="a") as f:
@@ -967,6 +1032,9 @@ class Facets(object):
 		        f["/data/facets/planar_dist"][...] = self.planar_dist
 		        f["/data/facets/ref_normal"][...] = self.ref_normal
 
+		    except AttributeError:
+		        print("Particle not rotated, some attributes could not be saved ...")
+
 		# Save field data
 		try:
 			self.field_data.to_hdf(path_to_data,
@@ -997,7 +1065,7 @@ class Facets(object):
 
 
 	def __repr__(self):
-		return "Facets {}.\n".format(
+		return "Facets {}\n".format(
 		            self.filename, 
 		            )
 
