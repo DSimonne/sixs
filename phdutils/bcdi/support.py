@@ -88,10 +88,15 @@ class SupportTools(object):
 		"""
 
 		if compute:
-		
 			with tb.open_file(self.path_to_data, "r") as f:
 			    # Since .cxi files follow a specific architecture, we know where our data is
-			    electronic_density = f.root.entry_1.data_1.data[:]
+			    if self.path_to_data,endswith(".cxi"):
+			    	electronic_density = f.root.entry_1.data_1.data[:]
+
+			    elif self.path_to_data,endswith(".h5"):
+			    	# Take first mode
+			    	electronic_density = f.root.entry_1.data_1.data[:][0]
+
 			    print(f"Shape of real space complex electronic density array {np.shape(electronic_density)}")
 
 			    # Find max value in image, we work with the module
