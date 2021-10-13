@@ -37,7 +37,7 @@ import time
 import tables as tb
 
 # phdutils package
-from phdutils.bcdi import read_vtk
+from phdutils.bcdi import facet_analysis
 from phdutils import plot
 from phdutils.sixs import ReadNxs4 as rd
 from phdutils.bcdi.runner import preprocess, correct_angles, strain
@@ -3953,7 +3953,7 @@ class Interface(object):
             pathdir = self.Dataset.facet_filename.replace(fn, "")
 
             try:
-                self.Facets = read_vtk.Facets(filename = fn, pathdir = pathdir)
+                self.Facets = facet_analysis.Facets(filename = fn, pathdir = pathdir)
                 print("Facets object saved as self.Facets, call help(self.Facets) for more details.")
             except:
                 return "Wrong file."
