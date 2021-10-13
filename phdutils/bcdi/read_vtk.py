@@ -64,6 +64,9 @@ class Facets(object):
 		# Load the data
 		self.load_vtk()
 
+		# Add edges and corners data if not there already
+		self.save_edges_corners_data()
+
 		# Create widget for particle viewing
 		self.window = interactive(self.view_particle,
 		           elev = widgets.IntSlider(
@@ -261,7 +264,7 @@ class Facets(object):
 		"""
 
 		# Get normals, again to make sure that we have the good ones
-		normals = {f"facet_{row.facet_id}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
+		normals = {f"facet_{row.facet_id}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows() if row.facet_id != 0}
 
 		try:
 		    for e in normals.keys():
@@ -278,11 +281,8 @@ class Facets(object):
 			self.field_data.loc[mask, 'n1'] = v[1]
 			self.field_data.loc[mask, 'n2'] = v[2]
 
-		# Update legend
-		legend = []
-		for e in normals.keys():
-		    legend = legend + [' '.join(str('{:.2f}'.format(e)) for e in normals[e])]
-		self.field_data["legend"] = legend
+			# Update legend
+			self.field_data.loc[mask, 'legend'] = ' '.join(['{:.2f}'.format(e) for e in v])
 
 
 	def fixed_reference(self, 
@@ -299,10 +299,10 @@ class Facets(object):
 		self.ref_normal = self.hkl_reference/np.linalg.norm(self.hkl_reference)
 
 		# Get normals, again to make sure that we have the good ones
-		normals = {f"facet_{row.facet_id}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows()}
+		normals = {f"facet_{row.facet_id}":  np.array([row['n0'], row['n1'], row['n2']]) for j, row in self.field_data.iterrows() if row.facet_id != 0}
 
 		# Interplanar angle recomputed from a fixed reference plane, between the experimental facets
-		new_angles = []
+		new_angles = [np.nan]
 		for e in normals.keys():
 			value = np.rad2deg(
 						np.arccos(
@@ -375,6 +375,7 @@ class Facets(object):
 			# Or if you want different settings for the grids:
 			ax.grid(which='minor', alpha=0.2)
 			ax.grid(which='major', alpha=0.5)
+			plt.show()
 
 
 	def test_vector(self,
@@ -790,7 +791,7 @@ class Facets(object):
 		ax.grid(which='major', alpha=0.5)
 
 		plt.savefig(self.pathsave + fig_name + '.png', bbox_inches = 'tight')
-
+		plt.show()
 
 		# 1D plot: average strain vs facet index
 		fig_name = 'avg_strain_vs_facet_id_' + self.hkls + self.comment
@@ -823,6 +824,7 @@ class Facets(object):
 		ax.grid(which='major', alpha=0.5)
 
 		plt.savefig(self.pathsave + fig_name +'.png', bbox_inches = 'tight')
+		plt.show()
 
 
 		# disp, strain & size vs angle planes, change line style as a fct of the planes indices
@@ -847,16 +849,19 @@ class Facets(object):
 		ax0.set_yticks(minor_y_ticks, minor=True)
 
 		for j, row in self.field_data.iterrows():
-		    lx, ly, lz = float(row.legend.split()[0]),float(row.legend.split()[1]),float(row.legend.split()[2])
-		    if (lx>=0 and ly>=0):
-		        fmt='o'
-		    if (lx>=0 and ly<=0):
-		        fmt='d'
-		    if (lx<=0 and ly>=0):
-		        fmt='s'
-		    if (lx<=0 and ly<=0):
-		        fmt = '+'
-		    ax0.errorbar(row['interplanar_angles'], row['disp_mean'], row['disp_std'], fmt=fmt,capsize=2, label = row["legend"])
+			try:
+				lx, ly, lz = float(row.legend.split()[0]),float(row.legend.split()[1]),float(row.legend.split()[2])
+				if (lx>=0 and ly>=0):
+				    fmt='o'
+				if (lx>=0 and ly<=0):
+				    fmt='d'
+				if (lx<=0 and ly>=0):
+				    fmt='s'
+				if (lx<=0 and ly<=0):
+				    fmt = '+'
+			except:
+				fmt = '+'
+			ax0.errorbar(row['interplanar_angles'], row['disp_mean'], row['disp_std'], fmt=fmt,capsize=2, label = row["legend"])
 		ax0.set_ylabel('Retrieved <disp> (A)', fontsize = self.axes_fontsize)
 		ax0.legend(loc='upper left', bbox_to_anchor=(1, 1), ncol=1, fancybox=True, shadow=True, fontsize = self.legend_fontsize+3)
 		ax0.grid(which='minor', alpha=0.2)
@@ -875,16 +880,19 @@ class Facets(object):
 		ax1.set_yticks(minor_y_ticks, minor=True)
 
 		for j, row in self.field_data.iterrows():
-		    lx, ly, lz = float(row.legend.split()[0]),float(row.legend.split()[1]),float(row.legend.split()[2])
-		    if (lx>=0 and ly>=0):
-		        fmt='o'
-		    if (lx>=0 and ly<=0):
-		        fmt='d'
-		    if (lx<=0 and ly>=0):
-		        fmt='s'
-		    if (lx<=0 and ly<=0):
-		        fmt = '+'
-		    ax1.errorbar(row['interplanar_angles'], row['strain_mean'], row['strain_std'], fmt=fmt,capsize=2, label = row["legend"])
+			try:
+				lx, ly, lz = float(row.legend.split()[0]),float(row.legend.split()[1]),float(row.legend.split()[2])
+				if (lx>=0 and ly>=0):
+				    fmt='o'
+				if (lx>=0 and ly<=0):
+				    fmt='d'
+				if (lx<=0 and ly>=0):
+				    fmt='s'
+				if (lx<=0 and ly<=0):
+				    fmt = '+'
+			except:
+				fmt = '+'
+			ax1.errorbar(row['interplanar_angles'], row['strain_mean'], row['strain_std'], fmt=fmt,capsize=2, label = row["legend"])
 		ax1.set_ylabel('Retrieved <strain>', fontsize = self.axes_fontsize)
 		ax1.grid(which='minor', alpha=0.2)
 		ax1.grid(which='major', alpha=0.5)
@@ -901,22 +909,26 @@ class Facets(object):
 		ax2.set_yticks(minor_y_ticks, minor=True)
 
 		for j, row in self.field_data.iterrows():
-		    lx, ly, lz = float(row.legend.split()[0]),float(row.legend.split()[1]),float(row.legend.split()[2])
-		    if (lx>=0 and ly>=0):
-		        fmt='o'
-		    if (lx>=0 and ly<=0):
-		        fmt='d'
-		    if (lx<=0 and ly>=0):
-		        fmt='s'
-		    if (lx<=0 and ly<=0):
-		        fmt = '+'
-		    ax2.plot(row['interplanar_angles'], row['rel_facet_size'],'o', label = row["legend"])
+			try:
+				lx, ly, lz = float(row.legend.split()[0]),float(row.legend.split()[1]),float(row.legend.split()[2])
+				if (lx>=0 and ly>=0):
+				    fmt='o'
+				if (lx>=0 and ly<=0):
+				    fmt='d'
+				if (lx<=0 and ly>=0):
+				    fmt='s'
+				if (lx<=0 and ly<=0):
+				    fmt = '+'
+			except:
+				fmt = '+'
+			ax2.plot(row['interplanar_angles'], row['rel_facet_size'],'o', label = row["legend"])
 		ax2.set_xlabel('Angle (deg.)', fontsize = self.axes_fontsize)
 		ax2.set_ylabel('Relative facet size', fontsize = self.axes_fontsize)
 		ax2.grid(which='minor', alpha=0.2)
 		ax2.grid(which='major', alpha=0.5)
 
 		plt.savefig(self.pathsave + fig_name + '.png', bbox_inches = 'tight')
+		plt.show()
 
 
 	def save_edges_corners_data(
@@ -952,8 +964,6 @@ class Facets(object):
 		self,
 		path_to_data
 		):
-		# Add edges and corners data if not there already
-		self.save_edges_corners_data()
 
 		# Save field data
 		self.field_data.to_csv(path_to_data)
@@ -982,13 +992,11 @@ class Facets(object):
 		with open(prompt, 'rb') as f:
 		    return pickle.load(f)
 
+
 	def to_hdf5(
 		self, 
 		path_to_data
 		):
-
-		# Add edges and corners data if not there already
-		self.save_edges_corners_data()
 
 		# Save attributes
 		with h5py.File(path_to_data, mode="a") as f:
@@ -1082,6 +1090,7 @@ class Facets(object):
 		return "Facets {}\n".format(
 		            self.filename, 
 		            )
+
 
 	def __str__(self):        
 	    return repr(self)

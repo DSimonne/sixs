@@ -31,6 +31,7 @@ from IPython.display import display, Markdown, Latex, clear_output
 from datetime import datetime
 import pickle
 import inspect
+import time
 # import warnings
 
 import tables as tb
@@ -2342,19 +2343,17 @@ class Interface(object):
             #     pass
 
             # Move notebooks
-            try:
+            if not os.path.exists(f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw/PhasingNotebook.ipynb"):
                 shutil.copy(f"{self.path_package}bcdi/data_files/PhasingNotebook.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
                 print(f"Copied PhasingNotebook.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw")
-            except FileExistsError:
+            else:
                 print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/pynxraw/PhasingNotebook.ipynb exists")
-                pass
 
-            try:
+            if not os.path.exists(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/CompareFacetsEvolution.ipynb"):
                 shutil.copy(f"{self.path_package}bcdi/data_files/CompareFacetsEvolution.ipynb", f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
                 print(f"Copied CompareFacetsEvolution.ipynb to {self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing")
-            except FileExistsError:
+            else:
                 print(f"{self.Dataset.root_folder}S{self.Dataset.scans}/postprocessing/CompareFacetsEvolution.ipynb exists")
-                pass
 
             self._list_widgets_pynx.children[1].value = self.Dataset.scan_folder + f"pynxraw/"
             self.folder_pynx_handler(change = self._list_widgets_pynx.children[1].value)
@@ -4006,7 +4005,7 @@ class Interface(object):
                     u0 = widgets.Text(
                         value = "[1, 1, 1]",
                         placeholder = "[1, 1, 1]",
-                        description = 'Vector parallel to facet a:',
+                        description = 'Vector perpendicular to facet a:',
                         disabled = False,
                         continuous_update = False,
                         # layout = Layout(width='20%'),
@@ -4014,7 +4013,7 @@ class Interface(object):
                     v0 = widgets.Text(
                         value = "[1, -1, 0]",
                         placeholder = "[1, -1, 0]",
-                        description = 'Vector parallel to facet b:',
+                        description = 'Vector perpendicular to facet b:',
                         disabled = False,
                         continuous_update = False,
                         # layout = Layout(width='20%'),
@@ -4098,9 +4097,9 @@ class Interface(object):
 
                         display(Markdown("""# Computing the rotation matrix"""))
 
-                        # Take those facets' vectors (perp to surface)
-                        u = np.array([self.Facets.field_data.n0[self.Facets.facet_a_id-1], self.Facets.field_data.n1[self.Facets.facet_a_id-1], self.Facets.field_data.n2[self.Facets.facet_a_id-1]])
-                        v = np.array([self.Facets.field_data.n0[self.Facets.facet_b_id-1], self.Facets.field_data.n1[self.Facets.facet_b_id-1], self.Facets.field_data.n2[self.Facets.facet_b_id-1]])
+                        # Take those facets' vectors
+                        u = np.array([self.Facets.field_data.n0[self.Facets.facet_a_id], self.Facets.field_data.n1[self.Facets.facet_a_id], self.Facets.field_data.n2[self.Facets.facet_a_id]])
+                        v = np.array([self.Facets.field_data.n0[self.Facets.facet_b_id], self.Facets.field_data.n1[self.Facets.facet_b_id], self.Facets.field_data.n2[self.Facets.facet_b_id]])
 
                         self.Facets.set_rotation_matrix(
                             u0 = self.Facets.u0 / np.linalg.norm(self.Facets.u0),
@@ -4116,12 +4115,6 @@ class Interface(object):
                         print(f"Used reference: {self.Facets.hkl_reference}")
                         self.Facets.fixed_reference(hkl_reference = self.Facets.hkl_reference)
 
-                        # Also save edges and corners data
-                        self.save_edges_corners_data()
-                        
-                        display(Markdown("""# Field data"""))
-                        display(self.Facets.field_data)
-
                         display(Markdown("""# Strain values for each surface voxel and averaged per facet"""))
                         self.Facets.plot_strain(view = self.Facets.view)
 
@@ -4130,6 +4123,12 @@ class Interface(object):
 
                         display(Markdown("""# Evolution curves"""))
                         self.Facets.evolution_curves()
+
+                        # Also save edges and corners data
+                        self.Facets.save_edges_corners_data()
+
+                        display(Markdown("""# Field data"""))
+                        display(self.Facets.field_data)
 
                         button_save_facet_data = Button(
                             description = "Save data",
