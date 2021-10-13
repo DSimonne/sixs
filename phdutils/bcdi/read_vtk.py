@@ -996,11 +996,12 @@ class Facets(object):
 		        facets = f.create_group("/data/facets")
 		        
 		        facets.create_dataset("path_to_data", data = self.path_to_data)
+		        facets.create_dataset("nb_facets", data = self.nb_facets)
+		        facets.create_dataset("comment", data = self.comment)
+		        facets.create_dataset("lattice", data = self.lattice)
 		        facets.create_dataset("u0", data = self.u0)
 		        facets.create_dataset("v0", data = self.v0)
 		        facets.create_dataset("w0", data = self.w0)
-		        facets.create_dataset("nb_facets", data = self.nb_facets)
-		        facets.create_dataset("comment", data = self.comment)
 		        facets.create_dataset("u", data = self.u)
 		        facets.create_dataset("v", data = self.v)
 		        facets.create_dataset("norm_u", data = self.norm_u)
@@ -1008,7 +1009,6 @@ class Facets(object):
 		        facets.create_dataset("norm_w", data = self.norm_w)
 		        facets.create_dataset("rotation_matrix", data = self.rotation_matrix)
 		        facets.create_dataset("hkl_reference", data = self.hkl_reference)
-		        facets.create_dataset("lattice", data = self.lattice)
 		        facets.create_dataset("planar_dist", data = self.planar_dist)
 		        facets.create_dataset("ref_normal", data = self.ref_normal)
 
@@ -1016,11 +1016,12 @@ class Facets(object):
 		        print("Data already exists, overwriting ...")
 
 		        f["/data/facets/path_to_data"][...] = self.path_to_data
+		        f["/data/facets/nb_facets"][...] = self.nb_facets
+		        f["/data/facets/comment"][...] = self.comment
+		        f["/data/facets/lattice"][...] = self.lattice
 		        f["/data/facets/u0"][...] = self.u0
 		        f["/data/facets/v0"][...] = self.v0
 		        f["/data/facets/w0"][...] = self.w0
-		        f["/data/facets/nb_facets"][...] = self.nb_facets
-		        f["/data/facets/comment"][...] = self.comment
 		        f["/data/facets/u"][...] = self.u
 		        f["/data/facets/v"][...] = self.v
 		        f["/data/facets/norm_u"][...] = self.norm_u
@@ -1028,12 +1029,23 @@ class Facets(object):
 		        f["/data/facets/norm_w"][...] = self.norm_w
 		        f["/data/facets/rotation_matrix"][...] = self.rotation_matrix
 		        f["/data/facets/hkl_reference"][...] = self.hkl_reference
-		        f["/data/facets/lattice"][...] = self.lattice
 		        f["/data/facets/planar_dist"][...] = self.planar_dist
 		        f["/data/facets/ref_normal"][...] = self.ref_normal
 
 		    except AttributeError:
 		        print("Particle not rotated, some attributes could not be saved ...")
+		        facets.create_dataset("u0", data = "")
+		        facets.create_dataset("v0", data = "")
+		        facets.create_dataset("w0", data = "")
+		        facets.create_dataset("u", data = "")
+		        facets.create_dataset("v", data = "")
+		        facets.create_dataset("norm_u", data = "")
+		        facets.create_dataset("norm_v", data = "")
+		        facets.create_dataset("norm_w", data = "")
+		        facets.create_dataset("rotation_matrix", data = "")
+		        facets.create_dataset("hkl_reference", data ="")
+		        facets.create_dataset("planar_dist", data = "")
+		        facets.create_dataset("ref_normal", data = "")
 
 		# Save field data
 		try:
@@ -1060,6 +1072,8 @@ class Facets(object):
 						format = 'table',
 						data_columns=True,
 						)
+		except AttributeError:
+			print('Facets has no attribute theoretical_angles yet')
 		except Exception as e:
 			raise e
 
