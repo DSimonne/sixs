@@ -1014,7 +1014,6 @@ class Interface(object):
             self._list_widgets_correct.children[-1],
             ])
 
-
         # Widgets for strain
         self._list_widgets_strain = interactive(self.strain_gui,
             label_averaging = widgets.HTML(
@@ -5089,16 +5088,58 @@ class Interface(object):
     def folder_pynx_handler(self, change):
         """Handles changes on the widget used to load a data file"""
         try:
-            self._list_widgets_pynx.children[2].options = sorted(glob.glob(change.new + "/*.npz")) + [""]
-            self._list_widgets_pynx.children[3].options = sorted(glob.glob(change.new + "/*.npz")) + [""]
-            self._list_widgets_pynx.children[4].options = [""] + sorted(glob.glob(change.new + "/*.npz"))
-            self._list_widgets_pynx.children[5].options = [""] + sorted(glob.glob(change.new + "/*.npz"))
+            list_all_npz = sorted(glob.glob(change.new + "/*.npz"))
+            list_probable_iobs_files = sorted(glob.glob(change.new + "/*_pynx_align*.npz"))
+            list_probable_mask_files = sorted(glob.glob(change.new + "/*maskpynx*.npz"))
+
+            for f in list_probable_iobs_files:
+                try:
+                    list_all_npz.remove(f)
+                except ValueError:
+                    # not in list
+                    pass
+            sorted_iobs_list = list_probable_iobs_files + list_all_npz + [""]
+
+            list_all_npz = sorted(glob.glob(change.new + "/*.npz"))
+            for f in list_probable_mask_files:
+                try:
+                    list_all_npz.remove(f)
+                except ValueError:
+                    # not in list
+                    pass
+            sorted_mask_list = list_probable_mask_files + list_all_npz + [""]
+
+            self._list_widgets_pynx.children[2].options = sorted_iobs_list # iobs list
+            self._list_widgets_pynx.children[3].options = sorted_mask_list # mask list
+            self._list_widgets_pynx.children[4].options = [""] + sorted(glob.glob(change.new + "/*.npz")) # support list
+            self._list_widgets_pynx.children[5].options = [""] + sorted(glob.glob(change.new + "/*.npz")) # obj list
 
         except AttributeError:
-            self._list_widgets_pynx.children[2].options = sorted(glob.glob(change + "/*.npz")) + [""]
-            self._list_widgets_pynx.children[3].options = sorted(glob.glob(change + "/*.npz")) + [""]
-            self._list_widgets_pynx.children[4].options = [""] + sorted(glob.glob(change + "/*.npz"))
-            self._list_widgets_pynx.children[5].options = [""] + sorted(glob.glob(change + "/*.npz"))
+            list_all_npz = sorted(glob.glob(change + "/*.npz"))
+            list_probable_iobs_files = sorted(glob.glob(change + "/*_pynx_align*.npz"))
+            list_probable_mask_files = sorted(glob.glob(change + "/*maskpynx*.npz"))
+
+            for f in list_probable_iobs_files:
+                try:
+                    list_all_npz.remove(f)
+                except ValueError:
+                    # not in list
+                    pass
+            sorted_iobs_list = list_probable_iobs_files + list_all_npz + [""]
+
+            list_all_npz = sorted(glob.glob(change + "/*.npz"))
+            for f in list_probable_mask_files:
+                try:
+                    list_all_npz.remove(f)
+                except ValueError:
+                    # not in list
+                    pass
+            sorted_mask_list = list_probable_mask_files + list_all_npz + [""]
+
+            self._list_widgets_pynx.children[2].options = sorted_iobs_list # iobs list
+            self._list_widgets_pynx.children[3].options = sorted_mask_list # mask list
+            self._list_widgets_pynx.children[4].options = [""] + sorted(glob.glob(change + "/*.npz")) # support list
+            self._list_widgets_pynx.children[5].options = [""] + sorted(glob.glob(change + "/*.npz")) # obj list
 
     def pynx_psf_handler(self, change):
         "Handles changes related to the psf"
