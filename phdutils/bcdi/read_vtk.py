@@ -1034,18 +1034,18 @@ class Facets(object):
 
 		    except AttributeError:
 		        print("Particle not rotated, some attributes could not be saved ...")
-		        facets.create_dataset("u0", data = "")
-		        facets.create_dataset("v0", data = "")
-		        facets.create_dataset("w0", data = "")
-		        facets.create_dataset("u", data = "")
-		        facets.create_dataset("v", data = "")
-		        facets.create_dataset("norm_u", data = "")
-		        facets.create_dataset("norm_v", data = "")
-		        facets.create_dataset("norm_w", data = "")
-		        facets.create_dataset("rotation_matrix", data = "")
-		        facets.create_dataset("hkl_reference", data ="")
+		        facets.create_dataset("u0", data = np.zeros(3))
+		        facets.create_dataset("v0", data = np.zeros(3))
+		        facets.create_dataset("w0", data = np.zeros(3))
+		        facets.create_dataset("u", data = np.zeros(3))
+		        facets.create_dataset("v", data = np.zeros(3))
+		        facets.create_dataset("norm_u", data = np.zeros(3))
+		        facets.create_dataset("norm_v", data = np.zeros(3))
+		        facets.create_dataset("norm_w", data = np.zeros(3))
+		        facets.create_dataset("rotation_matrix", data = np.zeros((3,3)))
+		        facets.create_dataset("hkl_reference", data = [])
 		        facets.create_dataset("planar_dist", data = "")
-		        facets.create_dataset("ref_normal", data = "")
+		        facets.create_dataset("ref_normal", data = np.zeros(3))
 
 		# Save field data
 		try:
