@@ -3002,19 +3002,23 @@ class Interface(object):
                     if file:
                         self.text_file.append(f"{parameter} = \"{file}\"\n")
                         
-                if not support:
+                if support:
                     self.text_file += [
-                        f'support_threshold = {str(self.Dataset.support_threshold).replace("(", "").replace(")", "").replace(" ", "")}\n',
-                        f'support_only_shrink = {self.Dataset.support_only_shrink}\n',
-                        f'support_update_period = {self.Dataset.support_update_period}\n',
-                        f'support_smooth_width_begin = {self.Dataset.support_smooth_width[0]}\n',
-                        f'support_smooth_width_end = {self.Dataset.support_smooth_width[1]}\n',
-                        f'support_post_expand = {self.Dataset.support_post_expand}\n'
-                        '\n',
+                    f"support = \"{self.Dataset.support}\"\n",
+                    '\n']
+                # else no support, just don't write it
+
+                # Other support parameters
+                self.text_file += [
+                    f'support_threshold = {str(self.Dataset.support_threshold).replace("(", "").replace(")", "").replace(" ", "")}\n',
+                    f'support_only_shrink = {self.Dataset.support_only_shrink}\n',
+                    f'support_update_period = {self.Dataset.support_update_period}\n',
+                    f'support_smooth_width_begin = {self.Dataset.support_smooth_width[0]}\n',
+                    f'support_smooth_width_end = {self.Dataset.support_smooth_width[1]}\n',
+                    f'support_post_expand = {self.Dataset.support_post_expand}\n'
+                    '\n',
                     ]
-                else:
-                    self.text_file += [f"support = \"{self.Dataset.support}\"\n"]
-                    
+
                 # PSF
                 if self.Dataset.psf:
                     if self.Dataset.psf_model != "pseudo-voigt":
@@ -3269,16 +3273,11 @@ class Interface(object):
                         # Save diffraction pattern
                         if i==0:
                             cdi.save_data_cxi(
-                                filename = "{}{}{}/pynxraw/DiffractionData_binning_{}{}{}_shape_{}_{}_{}.cxi".format(
+                                filename = "{}{}{}/pynxraw/{}.cxi".format(
                                     self.Dataset.root_folder,
                                     self.Dataset.sample_name,
                                     self.Dataset.scans,
-                                    self.Dataset.rebin[0],
-                                    self.Dataset.rebin[1],
-                                    self.Dataset.rebin[2],
-                                    iobs.shape[0],
-                                    iobs.shape[1],
-                                    iobs.shape[2],
+                                    self.Dataset.iobs.split("/")[-1].split(".")[0],
                                     ),
                                 sample_name = "",
                                 experiment_id = "",
@@ -3292,6 +3291,7 @@ class Interface(object):
                             self.Dataset.threshold_relative = np.random.uniform(self.Dataset.support_threshold[0], self.Dataset.support_threshold[1])
                         print(f"Threshold: {self.Dataset.threshold_relative}")
 
+                        # Create support object
                         sup = SupportUpdate(
                             threshold_relative = self.Dataset.threshold_relative,
                             smooth_width = self.Dataset.support_smooth_width, 
@@ -3303,7 +3303,7 @@ class Interface(object):
                         # Initialize the free pixels for LLK
                         # cdi = InitFreePixels() * cdi
 
-                        # Initialize the support with autocorrelation, if not support given
+                        # Initialize the support with autocorrelation, if no support given
                         if not self.Dataset.support:
                             sup_init = "autocorrelation"
                             if isinstance(self.Dataset.live_plot, int):
@@ -3328,73 +3328,130 @@ class Interface(object):
                         try:
                             # update_psf = 0 probably enough but not sure
                             if self.Dataset.psf:
-                                hio_power = self.Dataset.nb_hio//self.Dataset.support_update_period
-                                raar_power = (self.Dataset.nb_raar//2)//self.Dataset.support_update_period
-                                er_power = self.Dataset.nb_er//self.Dataset.support_update_period
+                                if self.Dataset.support_update_period == 0:
+                                    cdi = HIO(
+                                            beta = self.Dataset.beta, 
+                                            calc_llk = self.Dataset.calc_llk, 
+                                            show_cdi = self.Dataset.live_plot
+                                            )** self.Dataset.nb_hio * cdi
+                                    cdi = RAAR(
+                                            beta = self.Dataset.beta, 
+                                            calc_llk = self.Dataset.calc_llk, 
+                                            show_cdi = self.Dataset.live_plot
+                                            )** (self.Dataset.nb_raar//2) * cdi
 
-                                cdi = (sup * HIO(
-                                                beta = self.Dataset.beta, 
-                                                calc_llk = self.Dataset.calc_llk, 
-                                                show_cdi = self.Dataset.live_plot
-                                                )**self.Dataset.support_update_period
-                                        )** hio_power * cdi
-                                cdi = (sup * RAAR(
-                                                beta = self.Dataset.beta, 
-                                                calc_llk = self.Dataset.calc_llk, 
-                                                show_cdi = self.Dataset.live_plot
-                                                )**self.Dataset.support_update_period
-                                        )** raar_power * cdi
+                                    # PSF is introduced at 66% of HIO and RAAR
+                                    if psf_model != "pseudo-voigt":
+                                        cdi = InitPSF(
+                                                model = self.Dataset.psf_model,
+                                                fwhm = self.Dataset.fwhm,
+                                                ) * cdi
+                                        
+                                    elif psf_model == "pseudo-voigt":
+                                        cdi = InitPSF(
+                                                model = self.Dataset.psf_model,
+                                                fwhm = self.Dataset.fwhm,
+                                                eta = self.Dataset.eta,
+                                                ) * cdi
+                                        
+                                    cdi = RAAR(
+                                            beta = self.Dataset.beta, 
+                                            calc_llk = self.Dataset.calc_llk, 
+                                            show_cdi = self.Dataset.live_plot, 
+                                            update_psf = self.Dataset.update_psf
+                                            )** (self.Dataset.nb_raar//2) * cdi
+                                    cdi = ER(
+                                            calc_llk = self.Dataset.calc_llk, 
+                                            show_cdi = self.Dataset.live_plot,
+                                            update_psf = self.Dataset.update_psf
+                                            )** self.Dataset.nb_er * cdi
 
-                                # PSF is introduced at 66% of HIO and RAAR so from cycle n°924
-                                if psf_model != "pseudo-voigt":
-                                    cdi = InitPSF(
-                                            model = self.Dataset.psf_model,
-                                            fwhm = self.Dataset.fwhm,
-                                            ) * cdi
-                                    
-                                elif psf_model == "pseudo-voigt":
-                                    cdi = InitPSF(
-                                            model = self.Dataset.psf_model,
-                                            fwhm = self.Dataset.fwhm,
-                                            eta = self.Dataset.eta,
-                                            ) * cdi
-                                    
-                                cdi = (sup * RAAR(
-                                                beta = self.Dataset.beta, 
-                                                calc_llk = self.Dataset.calc_llk, 
-                                                show_cdi = self.Dataset.live_plot, 
-                                                update_psf = self.Dataset.update_psf
-                                                )**self.Dataset.support_update_period
-                                        )** raar_power * cdi
-                                cdi = (sup * ER(
-                                                calc_llk = self.Dataset.calc_llk, 
-                                                show_cdi = self.Dataset.live_plot,
-                                                update_psf = self.Dataset.update_psf
-                                                )**self.Dataset.support_update_period
-                                        )** er_power * cdi
+                                else:
+                                    hio_power = self.Dataset.nb_hio//self.Dataset.support_update_period
+                                    raar_power = (self.Dataset.nb_raar//2)//self.Dataset.support_update_period
+                                    er_power = self.Dataset.nb_er//self.Dataset.support_update_period
+
+                                    cdi = (sup * HIO(
+                                                    beta = self.Dataset.beta, 
+                                                    calc_llk = self.Dataset.calc_llk, 
+                                                    show_cdi = self.Dataset.live_plot
+                                                    )**self.Dataset.support_update_period
+                                            )** hio_power * cdi
+                                    cdi = (sup * RAAR(
+                                                    beta = self.Dataset.beta, 
+                                                    calc_llk = self.Dataset.calc_llk, 
+                                                    show_cdi = self.Dataset.live_plot
+                                                    )**self.Dataset.support_update_period
+                                            )** raar_power * cdi
+
+                                    # PSF is introduced at 66% of HIO and RAAR so from cycle n°924
+                                    if psf_model != "pseudo-voigt":
+                                        cdi = InitPSF(
+                                                model = self.Dataset.psf_model,
+                                                fwhm = self.Dataset.fwhm,
+                                                ) * cdi
+                                        
+                                    elif psf_model == "pseudo-voigt":
+                                        cdi = InitPSF(
+                                                model = self.Dataset.psf_model,
+                                                fwhm = self.Dataset.fwhm,
+                                                eta = self.Dataset.eta,
+                                                ) * cdi
+                                        
+                                    cdi = (sup * RAAR(
+                                                    beta = self.Dataset.beta, 
+                                                    calc_llk = self.Dataset.calc_llk, 
+                                                    show_cdi = self.Dataset.live_plot, 
+                                                    update_psf = self.Dataset.update_psf
+                                                    )**self.Dataset.support_update_period
+                                            )** raar_power * cdi
+                                    cdi = (sup * ER(
+                                                    calc_llk = self.Dataset.calc_llk, 
+                                                    show_cdi = self.Dataset.live_plot,
+                                                    update_psf = self.Dataset.update_psf
+                                                    )**self.Dataset.support_update_period
+                                            )** er_power * cdi
 
                             if not self.Dataset.psf:
-                                hio_power = self.Dataset.nb_hio//self.Dataset.support_update_period
-                                raar_power = self.Dataset.nb_raar//self.Dataset.support_update_period
-                                er_power = self.Dataset.nb_er//self.Dataset.support_update_period
+                                if self.Dataset.support_update_period == 0:
 
-                                cdi = (sup * HIO(
-                                                beta = self.Dataset.beta, 
-                                                calc_llk = self.Dataset.calc_llk, 
-                                                show_cdi = self.Dataset.live_plot
-                                                )**self.Dataset.support_update_period
-                                        )** hio_power * cdi
-                                cdi = (sup * RAAR(
-                                                beta = self.Dataset.beta, 
-                                                calc_llk = self.Dataset.calc_llk, 
-                                                show_cdi = self.Dataset.live_plot
-                                                )**self.Dataset.support_update_period
-                                        )** raar_power * cdi
-                                cdi = (sup * ER(
-                                                calc_llk = self.Dataset.calc_llk, 
-                                                show_cdi = self.Dataset.live_plot
-                                                )**self.Dataset.support_update_period
-                                        )** er_power * cdi
+                                    cdi = HIO(
+                                            beta = self.Dataset.beta, 
+                                            calc_llk = self.Dataset.calc_llk, 
+                                            show_cdi = self.Dataset.live_plot
+                                            )** self.Dataset.nb_hio * cdi
+                                    cdi = RAAR(
+                                            beta = self.Dataset.beta, 
+                                            calc_llk = self.Dataset.calc_llk, 
+                                            show_cdi = self.Dataset.live_plot
+                                            )** self.Dataset.nb_raar * cdi
+                                    cdi = ER(
+                                            calc_llk = self.Dataset.calc_llk, 
+                                            show_cdi = self.Dataset.live_plot
+                                            )** self.Dataset.nb_er * cdi
+
+                                else:
+                                    hio_power = self.Dataset.nb_hio//self.Dataset.support_update_period
+                                    raar_power = self.Dataset.nb_raar//self.Dataset.support_update_period
+                                    er_power = self.Dataset.nb_er//self.Dataset.support_update_period
+
+                                    cdi = (sup * HIO(
+                                                    beta = self.Dataset.beta, 
+                                                    calc_llk = self.Dataset.calc_llk, 
+                                                    show_cdi = self.Dataset.live_plot
+                                                    )**self.Dataset.support_update_period
+                                            )** hio_power * cdi
+                                    cdi = (sup * RAAR(
+                                                    beta = self.Dataset.beta, 
+                                                    calc_llk = self.Dataset.calc_llk, 
+                                                    show_cdi = self.Dataset.live_plot
+                                                    )**self.Dataset.support_update_period
+                                            )** raar_power * cdi
+                                    cdi = (sup * ER(
+                                                    calc_llk = self.Dataset.calc_llk, 
+                                                    show_cdi = self.Dataset.live_plot
+                                                    )**self.Dataset.support_update_period
+                                            )** er_power * cdi
 
 
                             cdi.save_obj_cxi("{}/result_scan_{}_run_{}_LLK_{:.4}_support_threshold_{:.4}_shape_{}_{}_{}_{}.cxi".format(
