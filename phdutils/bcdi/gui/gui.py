@@ -3270,17 +3270,19 @@ class Interface(object):
 
                         # Save diffraction pattern
                         if i==0:
-                            cdi.save_data_cxi(
-                                filename = "{}{}{}/pynxraw/{}.cxi".format(
-                                    self.Dataset.root_folder,
-                                    self.Dataset.sample_name,
-                                    self.Dataset.scans,
-                                    self.Dataset.iobs.split("/")[-1].split(".")[0],
-                                    ),
-                                sample_name = "",
-                                experiment_id = "",
-                                instrument = ""
-                                )
+                            cxi_filename = "{}{}{}/pynxraw/{}.cxi".format(
+                                                                        self.Dataset.root_folder,
+                                                                        self.Dataset.sample_name,
+                                                                        self.Dataset.scans,
+                                                                        self.Dataset.iobs.split("/")[-1].split(".")[0]
+                                                                        )
+                            if not os.path.exists(cxi_filename):
+                                cdi.save_data_cxi(
+                                    filename = cxi_filename,
+                                    sample_name = "",
+                                    experiment_id = "",
+                                    instrument = ""
+                                    )
 
                         # Change support threshold for supports update
                         if isinstance(self.Dataset.support_threshold, float):

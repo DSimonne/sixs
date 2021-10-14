@@ -966,7 +966,7 @@ class Facets(object):
 		):
 
 		# Save field data
-		self.field_data.to_csv(path_to_data)
+		self.field_data.to_csv(path_to_data, index = False)
 
 
 	def pickle(
