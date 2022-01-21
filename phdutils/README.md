@@ -1,16 +1,13 @@
 # Submodules presentation
 
-## bcdi 
-Used for Bragg Coherent Diffraction Imaging
-
 ## binoculars
-Used for plotting and analysing binoculars data (CTRs, ...)
+Used to plot and analyse the output of `binoculars`
 
 ## sixs
-Used for handling sixs data
+Used to read SixS data
 
 ## xcat
-Used for mass spectrometer data analysis and plotting
+Used for mass spectrometer data analysis (specific to RGA used at SixS) and plotting
 
 ## analysis
-Used for ctr data analysis
+Used for Crystal Truncation Rods (CTR) analysis

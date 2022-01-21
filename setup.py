@@ -18,7 +18,7 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
-    keywords = "BCDI SXRD",
+    keywords = "SXRD",
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
