@@ -1,0 +1,93 @@
+ammonia_reaction_colors:
+    Argon: "#008fd5"
+    Ar: "#008fd5"
+    A: "#fc4f30"
+    B: "#e5ae38"
+    C: "#6d904f"
+    D: "#8b8b8b"
+    E: "#810f7c"
+    CondA: "#fc4f30"
+    CondB: "#e5ae38"
+    CondC: "#6d904f"
+    CondD: "#8b8b8b"
+    CondE: "#810f7c"
+    NH3: "#df65b0"
+    O2: "#fc4f30"
+    Oxygen: "#fc4f30"
+    H2O: "#e5ae38"
+    NO: "#6d904f"
+    N2O: "#8b8b8b"
+    N2: "#810f7c"
+
+ptot:
+    0.5
+
+diverging_colors_1:
+    Argon: "#8c510a"
+    Ar: "#8c510a"
+    A: "#d8b365"
+    B: "#f6e8c3"
+    C: "#c7eae5"
+    D: "#5ab4ac"
+    E: "#01665e"
+
+
+sequential_colors_brown:
+    Ar: "#fef0d9"
+    A: "#fdd49e"
+    B: "#fdbb84"
+    C: "#fc8d59"
+    D: "#e34a33"
+    E: "#b30000"
+
+diverging_colors_1:
+    Ar: "#8c510a"
+    A: "#d8b365"
+    B: "#f6e8c3"
+    C: "#c7eae5"
+    D: "#5ab4ac"
+    E: "#01665e"
+
+diverging_colors_2:
+    Ar: "#d73027"
+    A: "#fc8d59"
+    B: "#fee08b"
+    C: "#d9ef8b"
+    D: "#91cf60"
+    E: "#1a9850"
+
+qualitative_colors_1:
+    Ar: "#a6cee3"
+    A: "#1f78b4"
+    B: "#b2df8a"
+    C: "#33a02c"
+    D: "#fb9a99"
+    E: "#e31a1c"
+
+fivethirtyeight_colors:
+    Ar: "#008fd5"
+    A: "#fc4f30"
+    B: "#e5ae38"
+    C: "#6d904f"
+    D: "#8b8b8b"
+    E: "#810f7c"
+
+qualitative_colors_2:
+    RT: "#810f7c"
+    300: "#66c2a5"
+    500: "#fc8d62"
+    600: "#8da0cb"
+
+BP_colors:
+    Pt: "#e41a1c"
+    BN: "#377eb8"
+    Al2O3: "#006d2c"
+    300: "#66c2a5"
+    500: "#fc8d62"
+    600: "#8da0cb"
+    RT: "#df65b0"
+
+mass_flow__colors:
+    H2: "#008fd5"
+    O2: "#008fd5"
+    Ar: "#fc4f30"
