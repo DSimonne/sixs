@@ -15,7 +15,7 @@ ammonia_reaction_colors:
     O2: "#fc4f30"
     Oxygen: "#fc4f30"
     H2O: "#e5ae38"
-    NO: "#6d904f"
+    "NO": "#6d904f"
     N2O: "#8b8b8b"
     N2: "#810f7c"
 

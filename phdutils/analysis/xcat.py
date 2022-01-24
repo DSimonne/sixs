@@ -448,6 +448,43 @@ class XCAT():
         except Exception as e:
             raise e
 
+    def add_temperature_column(
+        self,
+        df,
+        heater_file,
+    ):
+        """Add a temperature column to the DataFrame from a csv file
+
+        :param df: DataFrame object to which we assign the new df,
+         usually rga_interpolated, must be created before the heater df
+        :param heater_file: path to heater data, in csv format, must contain
+         a time and a temperature column.
+        """
+
+        # Get heater df
+        self.heater_df = pd.read_csv(heater_file)
+
+        # Starting time
+        self.heater_starting_time = self.heater_df.time[0]
+
+        # Find delta in seconds between beginning of heater df and experiment
+        delta_s = self.heater_starting_time - self.time_stamp
+
+        # Reset time
+        self.heater_df.time = self.heater_df.time - self.heater_starting_time + delta_s
+
+        # Create temp column
+        df["temperature"] = [np.nan for i in range(len(df))]
+
+        # Find closest value and assign them
+        for j, row in self.heater_df.iterrows():
+            df.iloc[int(row.time), -1] = row.temperature
+
+        # Create mask for plots
+        mask = ~np.isnan(df.iloc[:, -1].values)
+
+        return df, mask
+
     #### plotting functions for mass flow controller ###
 
     def plot_mass_flow_entry(
@@ -790,6 +827,7 @@ class XCAT():
         cursor_colours=[None],
         y_pos_text_valve=None,
         hours=True,
+        heater_file=None,
         save=False,
         figsize=(16, 9),
         fontsize=15,
@@ -816,6 +854,8 @@ class XCAT():
          cursor_positions
          e.g. {"ar": [45, 3.45], "argon": [45, 3.45], "o2": [5, 2], "h2": [5, 2]},
         :param hours: True to show x scale in hours instead of seconds
+        :param heater_file: path to heater data, in csv format, must contain
+         a time and a temperature column.
         :param save: True to save the plot:
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title have +2.
@@ -848,15 +888,15 @@ class XCAT():
 
             # Get data
             try:
-                print("Using columns specified with ptot_names list.")
                 used_arr = used_df[[self.ptot_names]].values
                 used_columns = used_df[[self.ptot_names]].columns
+                print("Using columns specified with ptot_names list.")
 
             except (TypeError, AttributeError):
-                print("Using all the columns to compute the total pressure.\
-                    To change, create a ptot_names list in conf file")
                 used_arr = used_df.iloc[:, 1:].values
                 used_columns = used_df.iloc[:, 1:].columns
+                print("Using all the columns to compute the total pressure.\
+                    \nTo change, create a ptot_names list in conf file")
 
             # Normalize
             # Sum columns to have total pressure per second
@@ -890,14 +930,14 @@ class XCAT():
             x_label = "Time (s)"
 
         # Create figure
-        plt.figure(figsize=figsize)
-        plt.semilogy()
-        plt.title(f"Pressure for each element", fontsize=fontsize+5)
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        ax.semilogy()
+        ax.set_title(f"Pressure for each element", fontsize=fontsize+5)
 
         # If only plotting a subset of the masses
         try:
             for mass in mass_list:
-                plt.plot(
+                ax.plot(
                     used_df.Time.values,
                     used_df[mass].values,
                     linewidth=2,
@@ -909,7 +949,7 @@ class XCAT():
             print("Is there an entry on the color dict for each mass ?")
         except TypeError:
             for mass in used_df.columns[1:]:
-                plt.plot(
+                ax.plot(
                     used_df.Time.values,
                     used_df[mass].values,
                     linewidth=2,
@@ -917,13 +957,35 @@ class XCAT():
                     color=color_dict[mass]
                 )
 
+        # Temperature on second ax
+        try:
+            used_df, mask = self.add_temperature_column(
+                df=used_df,
+                heater_file=heater_file
+            )
+
+            twin_ax = ax.twinx()
+            twin_ax.plot(
+                used_df.Time[mask],
+                used_df.temperature[mask],
+                label="Temperature",
+                linestyle="--",
+                color="r"
+            )
+
+            twin_ax.legend(fontsize=fontsize)
+            twin_ax.set_ylabel('Temperature (°C)', fontsize=fontsize)
+
+        except (TypeError, ValueError):
+            pass
+
         # Plot cursors
         try:
             for cursor_pos, cursor_colour in zip(
                 cursor_positions,
                 cursor_colours
             ):
-                plt.axvline(
+                ax.axvline(
                     cursor_pos,
                     linestyle="--",
                     color=color_dict[cursor_colour],
@@ -935,28 +997,27 @@ class XCAT():
 
         # Zoom
         try:
-            plt.xlim(zoom[0], zoom[1])
-            plt.ylim(zoom[2], zoom[3])
+            ax.set_xlim(zoom[0], zoom[1])
+            ax.set_ylim(zoom[2], zoom[3])
         except TypeError:
             pass
 
         # Vertical span color to show conditions
         # dict for y positions of text depending on the valve
-
         try:
             for x1, x2, cursor_colour in zip(
                 cursor_positions[:-1],
                 cursor_positions[1:],
                 cursor_colours
             ):
-                plt.axvspan(
+                ax.axvspan(
                     x1,
                     x2,
                     alpha=0.2,
                     facecolor=color_dict[cursor_colour],
                 )
 
-                # plt.text(
+                # ax.text(
                 #     x1 + (x2-x1)/2,
                 #     y=y_pos_text_valve[entry.lower()][j],
                 #     s=cursor_colour,
@@ -965,19 +1026,19 @@ class XCAT():
         except Exception as e:
             raise e
 
-        plt.xlabel(x_label, fontsize=fontsize)
-        plt.ylabel(f'Pressure ({y_units})', fontsize=fontsize)
-        plt.legend(
+        ax.set_xlabel(x_label, fontsize=fontsize)
+        ax.set_ylabel(f'Pressure ({y_units})', fontsize=fontsize)
+        ax.legend(
             bbox_to_anchor=(0., -0.15, 1., .102),
             loc=3,
             ncol=5,
             mode="expand",
             borderaxespad=0.)
-        plt.grid(
+        ax.grid(
             b=True,
             which='major',
             linestyle='-')
-        plt.grid(
+        ax.grid(
             b=True,
             which='minor',
             linestyle='--')
