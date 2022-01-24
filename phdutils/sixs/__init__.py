@@ -6,7 +6,4 @@
 """
 Welcome to phdutils.sixs"""
 
-__all__ = ["ReadNxs4", "utilities3"]
-
-# from ReadNxs4 import *
-# from utilities3 import *
+__all__ = ["ReadNxs4"]

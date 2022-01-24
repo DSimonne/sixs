@@ -1,13 +1,16 @@
 # Submodules presentation
 
-## binoculars
-Used to plot and analyse the output of `binoculars`
-
 ## sixs
-Used to read SixS data
+Used to read SixS data and transform it into an object
 
-## xcat
-Used for mass spectrometer data analysis (specific to RGA used at SixS) and plotting
+Get beamline files from:
+	https://gitlab.com/AR_AR/sixs_nxsread/-/blob/master/ReadNxs4.py
+	https://gitlab.com/AR_AR/xcat
 
 ## analysis
-Used for Crystal Truncation Rods (CTR) analysis
+Used for the analysis of:
+* Crystal Truncation Rods (CTR) analysis
+* Mass spectrometer data analysis (specific to RGA used at SixS) and plotting
+
+## old
+Regroups older scripts

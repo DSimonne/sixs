@@ -53,25 +53,6 @@ class Map(object):
 
         self.title_fontsize = 26
 
-        # colors
-        self.sequential_colors_brown = {"Ar": "#fef0d9", "A": "#fdd49e", "B": "#fdbb84", "C": "#fc8d59",
-                                        "D": "#e34a33", "E": "#b30000"}
-
-        self.diverging_colors_1 = {"Ar": "#8c510a", "A": "#d8b365", "B": "#f6e8c3", "C": "#c7eae5",
-                                   "D": "#5ab4ac", "E": "#01665e"}
-
-        self.diverging_colors_2 = {"Ar": "#d73027", "A": "#fc8d59", "B": "#fee08b", "C": "#d9ef8b",
-                                   "D": "#91cf60", "E": "#1a9850"}
-
-        self.qualitative_colors_1 = {"Ar": "#a6cee3", "A": "#1f78b4", "B": "#b2df8a", "C": "#33a02c",
-                                     "D": "#fb9a99", "E": "#e31a1c"}
-
-        self.fivethirtyeight_colors = {"Ar": "#008fd5", "A": "#fc4f30", "B": "#e5ae38", "C": "#6d904f",
-                                       "D": "#8b8b8b", "E": "#810f7c"}
-
-        self.qualitative_colors_2 = {
-            "RT": "#810f7c", "300": "#66c2a5", "500": "#fc8d62", "600": "#8da0cb"}
-
     @classmethod
     def get_class_name(cls):
         print(cls.__name__)

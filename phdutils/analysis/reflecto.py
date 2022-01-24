@@ -31,12 +31,10 @@ plt.rc('text', usetex=True)
 np.seterr(divide='ignore')
 
 
-class DataSets(object):
-    """docstring for DataSets"""
+class reflecto(object):
+    """docstring for reflecto"""
 
     def __init__(self, folder, scan_indices, data_format, var="l"):
-        super(DataSets, self).__init__()
-
         # class arguments
         self.folder = folder
         self.scan_indices = [str(s) for s in scan_indices]
@@ -119,18 +117,6 @@ class DataSets(object):
 
         self.background_bottom = 0
 
-        # colors
-        self.ammonia_reaction_colors = {"Ar": "#008fd5", "Argon": "#008fd5", "NH3": "#df65b0", "O2": "#fc4f30",
-                                        "H2O": "#e5ae38", "NO": "#6d904f", "N2O": "#8b8b8b", "N2": "#810f7c"}
-
-        # colors
-        self.ammonia_conditions_colors = {"Ar": "#008fd5", "A": "#fc4f30", "B": "#e5ae38", "C": "#6d904f",
-                                          "D": "#8b8b8b", "E": "#810f7c", "NoGas": "#df65b0", "No Gas": "#df65b0",
-                                          "300°C": "#66c2a5", "500°C": "#fc8d62", "600°C": "#8da0cb", "RT": "#df65b0"}
-
-        self.BP_colors = {"Pt": "#e41a1c", "BN": "#377eb8", "Al2O3": "#006d2c",
-                          "300": "#66c2a5", "500": "#fc8d62", "600": "#8da0cb", "RT": "#df65b0"}
-
     def prep_nxs_data(self, roi=False):
         """The goal of this function is to change the integration roi to see if it has an impact on the data, then the data is intergrated on this roi.
         Many parameters are taken from the nxs file such as q, qpar, qper, mu, gamma, delta, omega, h, k and l
@@ -138,7 +124,7 @@ class DataSets(object):
 
         Each one of these parameters is defined FOR THE CENTRAL PIXEL of the detector !
 
-        The datasets may not have the same length, and/ or amount of points
+        The reflecto may not have the same length, and/ or amount of points
 
         We take the wavelength of the first dataset in the series"""
 
@@ -1045,7 +1031,7 @@ class DataSets(object):
 
     def compare_roi(self, index_range=1010, v_min_log=0.01, v_max_log=100, central_pixel_gamma=25, central_pixel_delta=285):
         """Define a widget function to be sure of the quality of the roi on the nxs file
-        Assumes that the same detector is used for all the datasets.
+        Assumes that the same detector is used for all the reflecto.
         """
 
         print("This uses a lot of RAM to facilitate the fluidity of the widget.")
@@ -1055,7 +1041,7 @@ class DataSets(object):
             self.delta_width
 
         except:
-            return("You need to run Datasets.prep_nxs_data() before!")
+            return("You need to run reflecto.prep_nxs_data() before!")
 
         def plot2D(a, b, c, d, reflecto, index):
             fig, ax = plt.subplots(2, 1, figsize=(16, 9))

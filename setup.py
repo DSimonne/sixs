@@ -7,18 +7,22 @@ setuptools.setup(
     name="phdutils",
     version="0.0.1",
     description="Python package for SXRD",
-    author="David Simonne",
+    author="David Simonne, Andrea Resta",
     author_email="david.simonne@synchrotron-soleil.fr",
     data_files=[('', ["licence.txt",
-                      "phdutils/sixs/alias_dict_2021.txt"
+                      "phdutils/sixs/alias_dict_2021.txt",
+                      "phdutils/experiments/ammonia.yml",
                      ])],
+    scripts=[
+          "phdutils/scripts/print_pos.py"
+    ],
     url="https://github.com/DSimonne/PhDUtils/tree/master",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
-    keywords = "SXRD",
+    keywords = ["SXRD", "XCAT", "RGA"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),

@@ -4,6 +4,6 @@
 # In[ ]:
 
 """
-Welcome to phdutils.binoculars"""
+Welcome to phdutils.analysis"""
 
-__all__ = ["ctr", "reflecto"]
+__all__ = ["ctr", "reflecto", "xcat"]
