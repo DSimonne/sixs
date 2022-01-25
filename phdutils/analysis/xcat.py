@@ -571,8 +571,10 @@ class XCAT():
                                 linewidth=1.5,
                                 label=cursor_label
                             )
-                        except (TypeError, KeyError):
-                            pass
+                        except Exception as E:
+                            raise E
+                        # except (TypeError, KeyError):
+                        #     pass
 
                 # Dict for y positions of text depending on the valve
                 for x1, x2, cursor_label in zip(
@@ -581,17 +583,6 @@ class XCAT():
                     cursor_labels
                 ):
                     for j, ax in enumerate(axes):
-                        try:
-                            ax.text(
-                                x1 + (x2-x1)/2,
-                                y=text_dict[cursor_label],
-                                s=cursor_label,
-                                fontsize=fontsize+5
-                            )
-                        except TypeError:
-                            pass
-                        except Exception as E:
-                            raise E
 
                         # Vertical span color to show conditions
                         try:
@@ -601,25 +592,23 @@ class XCAT():
                                 alpha=0.2,
                                 facecolor=color_dict[cursor_label],
                             )
-                        except TypeError:
-                            pass
                         except Exception as E:
                             raise E
 
-                    axes[0].set_ylabel("Flow", fontsize=fontsize+2)
-                    axes[0].set_xlabel(x_label, fontsize=fontsize+2)
-                    axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
-                    axes[1].set_xlabel(x_label, fontsize=fontsize+2)
+                axes[0].set_ylabel("Flow", fontsize=fontsize+2)
+                axes[0].set_xlabel(x_label, fontsize=fontsize+2)
+                axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
+                axes[1].set_xlabel(x_label, fontsize=fontsize+2)
 
-                    axes[0].legend(ncol=len(mass_list), fontsize=fontsize)
-                    axes[1].legend(ncol=len(mass_list), fontsize=fontsize)
+                axes[0].legend(ncol=len(mass_list), fontsize=fontsize)
+                axes[1].legend(ncol=len(mass_list), fontsize=fontsize)
 
-                    plt.tight_layout()
-                    if save:
-                        plt.savefig(f"{fig_name}_{entry}.png")
-                        print(f"Saved as {fig_name}_{entry} in png formats.")
+                plt.tight_layout()
+                if save:
+                    plt.savefig(f"{fig_name}_{entry}.png")
+                    print(f"Saved as {fig_name}_{entry} in png formats.")
 
-                    plt.show()
+                plt.show()
 
         except KeyError as e:
             raise KeyError("Plot valves with Valves.plot_valves")
