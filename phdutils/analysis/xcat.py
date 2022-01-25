@@ -448,84 +448,45 @@ class XCAT():
         except Exception as e:
             raise e
 
-    def add_temperature_column(
-        self,
-        df,
-        heater_file,
-    ):
-        """Add a temperature column to the DataFrame from a csv file
-
-        :param df: DataFrame object to which we assign the new df,
-         usually rga_interpolated, must be created before the heater df
-        :param heater_file: path to heater data, in csv format, must contain
-         a time and a temperature column.
-        """
-
-        # Get heater df
-        self.heater_df = pd.read_csv(heater_file)
-
-        # Starting time
-        self.heater_starting_time = self.heater_df.time[0]
-
-        # Find delta in seconds between beginning of heater df and experiment
-        delta_s = self.heater_starting_time - self.time_stamp
-
-        # Reset time
-        self.heater_df.time = self.heater_df.time - self.heater_starting_time + delta_s
-
-        # Create temp column
-        df["temperature"] = [np.nan for i in range(len(df))]
-
-        # Find closest value and assign them
-        for j, row in self.heater_df.iterrows():
-            df.iloc[int(row.time), -1] = row.temperature
-
-        # Create mask for plots
-        mask = ~np.isnan(df.iloc[:, -1].values)
-
-        return df, mask
-
-    #### plotting functions for mass flow controller ###
-
     def plot_mass_flow_entry(
         self,
         mass_list,
-        color_dict="ammonia_reaction_colors",
         df="interpolated",
-        fig_name="Mass flow data",
-        zoom1=None,
-        zoom2=None,
-        cursor_positions=[None],
-        cursor_colours=[None],
-        y_pos_text_valve=None,
-        hours=True,
-        save=False,
         figsize=(10, 6),
         fontsize=15,
+        zoom1=None,
+        zoom2=None,
+        color_dict="ammonia_reaction_colors",
+        cursor_positions=[None],
+        cursor_labels=[None],
+        text_dict=None,
+        hours=True,
+        save=False,
+        fig_name="mass_flow_entry",
     ):
         """Plot the evolution of the input of the reactor
         Each mass corresponds to one channel controlled by the mass flow
         controller.
 
         :param mass_list: list of mass to be plotted
-        :param color_dict: str, name of dict from the configuration file that
-         will be used for the colors.
         :param df: DataFrame from which the data will be plotted. Default is
          "interpolated" which corresponds to the data truncated on the mass
          spectrometer time range and in seconds.
-        :param fig_name: figure name
-        :param zoom1: list of 4 integers to zoom
-        :param zoom2: list of 4 integers to zoom
+        :param figsize: size of each figure, defaults to (16, 9)
+        :param fontsize: size of labels, defaults to 15, title has +2.
+        :param zoom1: list of 4 integers to zoom on ax1
+        :param zoom2: list of 4 integers to zoom on ax2
+        :param color_dict: str, name of dict from the configuration file that
+         will be used for the colors.
         :param cursor_positions: add cursors using these positions
-        :param cursor_colours: colour of the cursors, same length as
+        :param cursor_labels: colour of the cursors, same length as
          cursor_positions
-        :param y_pos_text_valve: Add text on plot, same length as
-         cursor_positions
-         e.g. {"ar": [45, 3.45], "argon": [45, 3.45], "o2": [5, 2], "h2": [5, 2]},
+        :param text_dict: Add text on plot, same length as
+         cursor_positions, e.g. {"ar": [45, 3.45], "argon": [45, 3.45],
+         "o2": [5, 2], "h2": [5, 2]}
         :param hours: True to show x scale in hours instead of seconds
         :param save: True to save the plot:
-        :param figsize: size of each figure, defaults to (16, 9)
-        :param fontsize: size of labels, defaults to 15, title have +2.
+        :param fig_name: figure name when saving
         """
 
         # Get coloring dictionnary
@@ -597,53 +558,54 @@ class XCAT():
                     pass
 
                 # Plot cursors
-                try:
-                    for cursor_pos, cursor_colour in zip(
-                        cursor_positions,
-                        cursor_colours
-                    ):
-                        axes[0].axvline(
-                            cursor_pos,
-                            linestyle="--",
-                            color=color_dict[cursor_colour],
-                            linewidth=1.5,
-                            label=cursor_colour
-                        )
-                        axes[1].axvline(
-                            cursor_pos,
-                            linestyle="--",
-                            color=color_dict[cursor_colour],
-                            linewidth=1.5,
-                            label=cursor_colour
-                        )
+                for cursor_pos, cursor_label in zip(
+                    cursor_positions,
+                    cursor_labels
+                ):
+                    for j, ax in enumerate(axes):
+                        try:
+                            ax.axvline(
+                                cursor_pos,
+                                linestyle="--",
+                                color=color_dict[cursor_label],
+                                linewidth=1.5,
+                                label=cursor_label
+                            )
+                        except (TypeError, KeyError):
+                            pass
 
-                except (TypeError, KeyError):
-                    pass
+                # Dict for y positions of text depending on the valve
+                for x1, x2, cursor_label in zip(
+                    cursor_positions[:-1],
+                    cursor_positions[1:],
+                    cursor_labels
+                ):
+                    for j, ax in enumerate(axes):
+                        try:
+                            ax.text(
+                                x1 + (x2-x1)/2,
+                                y=text_dict[cursor_label],
+                                s=cursor_label,
+                                fontsize=fontsize+5
+                            )
+                        except TypeError:
+                            pass
+                        except Exception as E:
+                            raise E
 
-                # Vertical span color to show conditions
-                # dict for y positions of text depending on the valve
-                try:
-                    for x1, x2, cursor_colour in zip(
-                        cursor_positions[:-1],
-                        cursor_positions[1:],
-                        cursor_colours
-                    ):
-                        for j, ax in enumerate(axes):
+                        # Vertical span color to show conditions
+                        try:
                             ax.axvspan(
                                 x1,
                                 x2,
                                 alpha=0.2,
-                                facecolor=color_dict[cursor_colour],
+                                facecolor=color_dict[cursor_label],
                             )
+                        except TypeError:
+                            pass
+                        except Exception as E:
+                            raise E
 
-                            # ax.text(
-                            #     x1 + (x2-x1)/2,
-                            #     y=y_pos_text_valve[entry.lower()][j],
-                            #     s=cursor_colour,
-                            #     fontsize=fontsize+5
-                            # )
-
-                finally:
                     axes[0].set_ylabel("Flow", fontsize=fontsize+2)
                     axes[0].set_xlabel(x_label, fontsize=fontsize+2)
                     axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
@@ -664,41 +626,42 @@ class XCAT():
 
     def plot_mass_flow_valves(
         self,
-        color_dict="ammonia_reaction_colors",
         df="interpolated",
-        fig_name="Mass flow valves",
-        zoom1=None,
-        zoom2=None,
-        cursor_positions=[None],
-        cursor_colours=[None],
-        y_pos_text_valve=None,
-        hours=True,
-        save=False,
         figsize=(10, 6),
         fontsize=15,
+        zoom1=None,
+        zoom2=None,
+        color_dict="ammonia_reaction_colors",
+        cursor_positions=[None],
+        cursor_labels=[None],
+        text_dict=None,
+        hours=True,
+        save=False,
+        fig_name="mass_flow_valves",
     ):
         """Plot the evolution of the input of the reactor, for both the MIX and
          the MRS valve. The gases besided Argon (carrier gas) are mixed
          depending on the position of the MIX valve. At the MRS is then added
          Argon.
 
-        :param color_dict: str, name of dict from the configuration file that
-         will be used for the colors.
         :param df: DataFrame from which the data will be plotted. Default is
          "interpolated" which corresponds to the data truncated on the mass
          spectrometer time range and in seconds.
-        :param fig_name: figure name
-        :param zoom1: list of 4 integers to zoom
-        :param cursor_positions: add cursors using these positions
-        :param cursor_colours: colour of the cursors, same length as
-         cursor_positions
-        :param y_pos_text_valve: Add text on plot, same length as
-         cursor_positions
-         e.g. {"ar": [45, 3.45], "argon": [45, 3.45], "o2": [5, 2], "h2": [5, 2]},
-        :param hours: True to show x scale in hours instead of seconds
-        :param save: True to save the plot:
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title have +2.
+        :param zoom1: list of 4 integers to zoom on ax1
+        :param zoom2: list of 4 integers to zoom on ax2
+        :param color_dict: str, name of dict from the configuration file that
+         will be used for the colors.
+        :param cursor_positions: add cursors using these positions
+        :param cursor_labels: colour of the cursors, same length as
+         cursor_positions
+        :param text_dict: Add text on plot, same length as
+         cursor_positions, e.g. {"ar": [45, 3.45], "argon": [45, 3.45],
+         "o2": [5, 2], "h2": [5, 2]}
+        :param hours: True to show x scale in hours instead of seconds
+        :param save: True to save the plot
+        :param fig_name: figure name when saving
         """
 
         try:
@@ -744,93 +707,88 @@ class XCAT():
                 pass
 
             # Plot cursors
-            try:
-                for cursor_pos, cursor_colour in zip(
-                    cursor_positions,
-                    cursor_colours
-                ):
-                    axes[0].axvline(
-                        cursor_pos,
-                        linestyle="--",
-                        color=color_dict[cursor_colour],
-                        linewidth=1.5,
-                        label=cursor_colour
-                    )
-                    axes[1].axvline(
-                        cursor_pos,
-                        linestyle="--",
-                        color=color_dict[cursor_colour],
-                        linewidth=1.5,
-                        label=cursor_colour
-                    )
+            for cursor_pos, cursor_label in zip(
+                cursor_positions,
+                cursor_labels
+            ):
+                for j, ax in enumerate(axes):
+                    try:
+                        ax.axvline(
+                            cursor_pos,
+                            linestyle="--",
+                            color=color_dict[cursor_label],
+                            linewidth=1.5,
+                            label=cursor_label
+                        )
+                    except (TypeError, KeyError):
+                        pass
 
-            except (TypeError, KeyError):
-                pass
+            # Dict for y positions of text depending on the valve
+            for x1, x2, cursor_label in zip(
+                cursor_positions[:-1],
+                cursor_positions[1:],
+                cursor_labels
+            ):
+                for j, ax in enumerate(axes):
+                    try:
+                        ax.text(
+                            x1 + (x2-x1)/2,
+                            y=text_dict[cursor_label],
+                            s=cursor_label,
+                            fontsize=fontsize+5
+                        )
+                    except TypeError:
+                        pass
+                    except Exception as E:
+                        raise E
 
-            # Vertical span color to show conditions
-            # dict for y positions of text depending on the valve
-            try:
-                for x1, x2, cursor_colour in zip(
-                    cursor_positions[:-1],
-                    cursor_positions[1:],
-                    cursor_colours
-                ):
-                    for j, ax in enumerate(axes):
+                    # Vertical span color to show conditions
+                    try:
                         ax.axvspan(
                             x1,
                             x2,
                             alpha=0.2,
-                            facecolor=color_dict[cursor_colour],
+                            facecolor=color_dict[cursor_label],
                         )
+                    except TypeError:
+                        pass
+                    except Exception as E:
+                        raise E
 
-                        # ax.text(
-                        #     x1 + (x2-x1)/2,
-                        #     y=y_pos_text_valve[entry.lower()][j],
-                        #     s=cursor_colour,
-                        #     fontsize=fontsize+5
-                        # )
+            axes[0].set_ylabel("Valve MRS position", fontsize=fontsize+2)
+            axes[0].set_xlabel(x_label, fontsize=fontsize+2)
+            axes[1].set_ylabel("Valve MIX position", fontsize=fontsize+2)
+            axes[1].set_xlabel(x_label, fontsize=fontsize+2)
 
-            finally:
-                axes[0].set_ylabel("Valve MRS position",
-                                   fontsize=fontsize+2)
-                axes[0].set_xlabel(x_label,
-                                   fontsize=fontsize+2)
-                axes[1].set_ylabel("Valve MIX position",
-                                   fontsize=fontsize+2)
-                axes[1].set_xlabel(x_label,
-                                   fontsize=fontsize+2)
+            axes[0].legend(fontsize=fontsize)
+            axes[1].legend(fontsize=fontsize)
 
-                axes[0].legend(fontsize=fontsize)
-                axes[1].legend(fontsize=fontsize)
+            plt.tight_layout()
+            if save:
+                plt.savefig(f"{fig_name}.png")
+                print(f"Saved as {fig_name} in png formats.")
 
-                plt.tight_layout()
-                if save:
-                    plt.savefig(f"{fig_name}.png")
-                    print(f"Saved as {fig_name} in png formats.")
-
-                plt.show()
+            plt.show()
 
         except KeyError as e:
             raise KeyError("Plot valves with Valves.plot_valves")
 
-    ##### plotting functions for mass spectrometer #####
-
     def plot_mass_spec(
         self,
         mass_list=None,
-        normalization=False,
-        color_dict="ammonia_reaction_colors",
         df="interpolated",
-        fig_name="RGA",
-        zoom=None,
-        cursor_positions=[None],
-        cursor_colours=[None],
-        y_pos_text_valve=None,
-        hours=True,
         heater_file=None,
-        save=False,
         figsize=(16, 9),
         fontsize=15,
+        normalization=False,
+        zoom=None,
+        color_dict="ammonia_reaction_colors",
+        cursor_positions=[None],
+        cursor_labels=[None],
+        text_dict=None,
+        hours=True,
+        save=False,
+        fig_name="rga_data",
     ):
         """Plot the evolution of the gas detected by the mass spectrometer.
         Each mass corresponds to one channel detected. Careful, some mass can
@@ -838,27 +796,27 @@ class XCAT():
 
         :param mass_list: list of mass to be plotted (if set up prior to the
          experiment for detection).
-        :param normalization: False, choose how to normalize the data. Options
-         are False, "ptot", "leak", "carrier_gas"
-        :param color_dict: str, name of dict from the configuration file that
-         will be used for the colors.
         :param df: DataFrame from which the data will be plotted. Default is
          "interpolated" which corresponds to the data truncated on the mass
          spectrometer time range and in seconds.
-        :param fig_name: figure name
+        :param normalization: False, choose how to normalize the data. Options
+         are False, "ptot", "leak", "carrier_gas"
+        :param figsize: size of each figure, defaults to (16, 9)
+        :param fontsize: size of labels, defaults to 15, title have +2.
         :param zoom: list of 4 integers to zoom
+        :param color_dict: str, name of dict from the configuration file that
+         will be used for the colors.
         :param cursor_positions: add cursors using these positions
-        :param cursor_colours: colour of the cursors, same length as
+        :param cursor_labels: colour of the cursors, same length as
          cursor_positions
-        :param y_pos_text_valve: Add text on plot, same length as
-         cursor_positions
-         e.g. {"ar": [45, 3.45], "argon": [45, 3.45], "o2": [5, 2], "h2": [5, 2]},
+        :param text_dict: Add text on plot, same length as
+         cursor_positions, e.g. {"ar": [45, 3.45], "argon": [45, 3.45],
+         "o2": [5, 2], "h2": [5, 2]}
         :param hours: True to show x scale in hours instead of seconds
         :param heater_file: path to heater data, in csv format, must contain
          a time and a temperature column.
         :param save: True to save the plot:
-        :param figsize: size of each figure, defaults to (16, 9)
-        :param fontsize: size of labels, defaults to 15, title have +2.
+        :param fig_name: figure name when saving
         """
 
         # Get coloring dictionnary
@@ -869,10 +827,10 @@ class XCAT():
 
         # Get dataframe
         if df == "interpolated":
-            used_df = self.rga_df_interpolated.copy()
+            self.norm_df = self.rga_df_interpolated.copy()
 
         else:
-            used_df = self.rga_data.copy()
+            self.norm_df = self.rga_data.copy()
 
         # Normalize data
         if normalization == "ptot":
@@ -888,13 +846,13 @@ class XCAT():
 
             # Get data
             try:
-                used_arr = used_df[[self.ptot_names]].values
-                used_columns = used_df[[self.ptot_names]].columns
+                used_arr = self.norm_df[[self.ptot_names]].values
+                used_columns = self.norm_df[[self.ptot_names]].columns
                 print("Using columns specified with ptot_names list.")
 
             except (TypeError, AttributeError):
-                used_arr = used_df.iloc[:, 1:].values
-                used_columns = used_df.iloc[:, 1:].columns
+                used_arr = self.norm_df.iloc[:, 1:].values
+                used_columns = self.norm_df.iloc[:, 1:].columns
                 print("Using all the columns to compute the total pressure.\
                     \nTo change, create a ptot_names list in conf file")
 
@@ -907,14 +865,12 @@ class XCAT():
             norm_arr = used_arr*ptot_arr
 
             # Create new DataFrame
-            self.norm_df_ptot = pd.DataFrame(norm_arr, columns=used_columns)
-            self.norm_df_ptot["Time"] = used_df["Time"]
+            norm_df_ptot = pd.DataFrame(norm_arr, columns=used_columns)
+            norm_df_ptot["Time"] = self.norm_df["Time"]
+            self.norm_df = norm_df_ptot #to do better
 
-            print("Created a data frame normalized by total pressure, XCAT.norm_df_ptot")
-            display(self.norm_df_ptot.head())
-
-            # Use new df for plots
-            used_df = self.norm_df_ptot
+            print("Normalized RGA pressure by total pressure.")
+            display(self.norm_df.head())
 
             # Changed y scale
             y_units = "bar"
@@ -925,21 +881,24 @@ class XCAT():
         # Change to hours
         if hours:
             x_label = "Time (h)"
-            used_df["Time"] = used_df["Time"].values/3600
+            self.norm_df["Time"] = self.norm_df["Time"].values/3600
         else:
             x_label = "Time (s)"
 
         # Create figure
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         ax.semilogy()
-        ax.set_title(f"Pressure for each element", fontsize=fontsize+5)
+        ax.set_title(
+            f"Pressure in XCAT reactor cell for each mass",
+            fontsize=fontsize+5
+        )
 
         # If only plotting a subset of the masses
         try:
             for mass in mass_list:
                 ax.plot(
-                    used_df.Time.values,
-                    used_df[mass].values,
+                    self.norm_df.Time.values,
+                    self.norm_df[mass].values,
                     linewidth=2,
                     label=f"{mass}",
                     color=color_dict[mass]
@@ -948,10 +907,12 @@ class XCAT():
         except KeyError:
             print("Is there an entry on the color dict for each mass ?")
         except TypeError:
-            for mass in used_df.columns[1:]:
+            # Using all the entries
+            mass_list = self.norm_df.columns[1:]
+            for mass in mass_list:
                 ax.plot(
-                    used_df.Time.values,
-                    used_df[mass].values,
+                    self.norm_df.Time.values,
+                    self.norm_df[mass].values,
                     linewidth=2,
                     label=f"{mass}",
                     color=color_dict[mass]
@@ -959,15 +920,16 @@ class XCAT():
 
         # Temperature on second ax
         try:
-            used_df, mask = self.add_temperature_column(
-                df=used_df,
-                heater_file=heater_file
+            self.norm_df, mask = self.add_temperature_column(
+                df=self.norm_df,
+                heater_file=heater_file,
+                time_shift=self.time_shift,
             )
 
             twin_ax = ax.twinx()
             twin_ax.plot(
-                used_df.Time[mask],
-                used_df.temperature[mask],
+                self.norm_df.Time[mask],
+                self.norm_df.temperature[mask],
                 label="Temperature",
                 linestyle="--",
                 color="r"
@@ -975,25 +937,27 @@ class XCAT():
 
             twin_ax.legend(fontsize=fontsize)
             twin_ax.set_ylabel('Temperature (°C)', fontsize=fontsize)
+            twin_ax.grid(which="both", color="r", alpha=0.5)
+            twin_ax.tick_params(axis='both', labelsize=fontsize)
 
         except (TypeError, ValueError):
             pass
 
         # Plot cursors
-        try:
-            for cursor_pos, cursor_colour in zip(
-                cursor_positions,
-                cursor_colours
-            ):
+        for cursor_pos, cursor_label in zip(
+            cursor_positions,
+            cursor_labels
+        ):
+            try:
                 ax.axvline(
                     cursor_pos,
                     linestyle="--",
-                    color=color_dict[cursor_colour],
+                    color=color_dict[cursor_label],
                     linewidth=1.5,
-                    label=cursor_colour
+                    label=cursor_label
                 )
-        except (TypeError, KeyError):
-            pass
+            except (TypeError, KeyError):
+                pass
 
         # Zoom
         try:
@@ -1003,47 +967,47 @@ class XCAT():
             pass
 
         # Vertical span color to show conditions
-        # dict for y positions of text depending on the valve
-        try:
-            for x1, x2, cursor_colour in zip(
-                cursor_positions[:-1],
-                cursor_positions[1:],
-                cursor_colours
-            ):
+        for x1, x2, cursor_label in zip(
+            cursor_positions[:-1],
+            cursor_positions[1:],
+            cursor_labels
+        ):
+            try:
                 ax.axvspan(
                     x1,
                     x2,
                     alpha=0.2,
-                    facecolor=color_dict[cursor_colour],
+                    facecolor=color_dict[cursor_label],
                 )
+            except TypeError:
+                pass
 
-                # ax.text(
-                #     x1 + (x2-x1)/2,
-                #     y=y_pos_text_valve[entry.lower()][j],
-                #     s=cursor_colour,
-                #     fontsize=fontsize+5
-                # )
-        except Exception as e:
-            raise e
+            # Dict for y positions of text depending on the valve
+            try:
+                ax.text(
+                    x1 + (x2-x1)/2,
+                    y=text_dict[cursor_label],
+                    s=cursor_label,
+                    fontsize=fontsize+5
+                )
+            except TypeError:
+                pass
 
         ax.set_xlabel(x_label, fontsize=fontsize)
         ax.set_ylabel(f'Pressure ({y_units})', fontsize=fontsize)
+        ax.tick_params(axis='both', labelsize=fontsize)
         ax.legend(
-            bbox_to_anchor=(0., -0.15, 1., .102),
+            bbox_to_anchor=(0., -0.2, 1., .102),
             loc=3,
             ncol=5,
             mode="expand",
-            borderaxespad=0.)
-        ax.grid(
-            b=True,
-            which='major',
-            linestyle='-')
-        ax.grid(
-            b=True,
-            which='minor',
-            linestyle='--')
+            borderaxespad=0.,
+            fontsize=fontsize-2
+        )
+        ax.grid(True, which='major', linestyle='-')
+        ax.grid(True, which='minor', linestyle='--')
 
-        plt.tight_layout()
+        fig.tight_layout()
         if save:
             plt.savefig(f"{fig_name}.png")
             print(f"Saved as {fig_name} in png format.")
@@ -1402,6 +1366,48 @@ class XCAT():
 
                 print(f"Saved as {fig_name} in png format.")
             plt.show()
+
+    # Extra functions
+
+    def add_temperature_column(
+        self,
+        df,
+        heater_file,
+        time_shift=0,
+    ):
+        """Add a temperature column to the DataFrame from a csv file
+
+        :param df: DataFrame object to which we assign the new df,
+         usually rga_interpolated, must be created before the heater df
+        :param heater_file: path to heater data, in csv format, must contain
+         a time and a temperature column.
+        :param time_shift: rigid time shift in seconds to apply.
+        """
+
+        # Get heater df
+        self.heater_df = pd.read_csv(heater_file)
+
+        # Starting time
+        self.heater_starting_time = self.heater_df.time[0]
+
+        # Find delta in seconds between beginning of heater df and experiment
+        delta_s = self.heater_starting_time - self.time_stamp
+
+        # Reset time
+        self.heater_df.time = self.heater_df.time \
+            - self.heater_starting_time + delta_s + time_shift
+
+        # Create temp column
+        df["temperature"] = [np.nan for i in range(len(df))]
+
+        # Find closest value and assign them
+        for j, row in self.heater_df.iterrows():
+            df.iloc[int(row.time), -1] = row.temperature
+
+        # Create mask for plots
+        mask = ~np.isnan(df.iloc[:, -1].values)
+
+        return df, mask
 
     def fit_error_function(self,
                            initial_guess,
