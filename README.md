@@ -20,8 +20,6 @@ Secondly, I advise you to create a virtual environment to help with debogging, a
 * `python3.8 -m venv .`
 * `source bin/activate` # To activate the environment
 
-Then you should create an alias such as: `alias source_py38="source /data/id01/inhouse/david/py38-env/bin/activate"`
-
 ## Install phdutils
 * `cd /Packages`
 * `git clone https://github.com/DSimonne/phdutils.git`
@@ -48,9 +46,3 @@ Then you should create an alias such as: `alias source_py38="source /data/id01/i
 
 You can create macros and run them with `do.run("<filename>")`
 They must respect a pythonic synthax and are read lign by lign
-
-
-### RGA
-The `analysis` module contains an `xcat` submodule that contains methods about the mass spectrometer and mass flow controller.
-
-![mass_flow](https://user-images.githubusercontent.com/51970962/150782601-01500902-614c-4bd3-bfed-7ea41dfe1cc8.png)

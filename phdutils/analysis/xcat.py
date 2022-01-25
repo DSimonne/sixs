@@ -867,7 +867,7 @@ class XCAT():
             # Create new DataFrame
             norm_df_ptot = pd.DataFrame(norm_arr, columns=used_columns)
             norm_df_ptot["Time"] = self.norm_df["Time"]
-            self.norm_df = norm_df_ptot #to do better
+            self.norm_df = norm_df_ptot  # to do better
 
             print("Normalized RGA pressure by total pressure.")
             display(self.norm_df.head())
