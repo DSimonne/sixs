@@ -606,7 +606,9 @@ class XCAT():
                 plt.tight_layout()
                 if save:
                     plt.savefig(f"{fig_name}_{entry}.png")
-                    print(f"Saved as {fig_name}_{entry} in png formats.")
+                    plt.savefig(f"{fig_name}_{entry}.pdf")
+                    print(
+                        f"Saved as {fig_name}_{entry} in (png, pdf) formats.")
 
                 plt.show()
 
@@ -755,7 +757,8 @@ class XCAT():
             plt.tight_layout()
             if save:
                 plt.savefig(f"{fig_name}.png")
-                print(f"Saved as {fig_name} in png formats.")
+                plt.savefig(f"{fig_name}.pdf")
+                print(f"Saved as {fig_name} in (png, pdf) formats.")
 
             plt.show()
 
@@ -999,7 +1002,8 @@ class XCAT():
         fig.tight_layout()
         if save:
             plt.savefig(f"{fig_name}.png")
-            print(f"Saved as {fig_name} in png format.")
+            plt.savefig(f"{fig_name}.pdf")
+            print(f"Saved as {fig_name} in (png, pdf) formats.")
 
         plt.show()
 
