@@ -11,12 +11,6 @@ from phdutils.sixs import utilities3 as ut3
 from phdutils.sixs import ReadNxs4 as rn4
 from scipy import interpolate
 
-plt.style.use('fivethirtyeight')
-plt.rc('text', usetex=True)
-
-warnings.filterwarnings('ignore')
-
-
 class Map(object):
     """docstring for Map"""
 

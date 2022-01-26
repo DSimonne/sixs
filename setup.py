@@ -1,22 +1,22 @@
 import setuptools
 
-with open("phdutils/README.md", "r") as fh:
+with open("sixs/README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="phdutils",
+    name="sixs",
     version="0.0.1",
     description="Python package for SXRD",
     author="David Simonne, Andrea Resta",
     author_email="david.simonne@synchrotron-soleil.fr",
     data_files=[('', ["licence.txt",
-                      "phdutils/sixs/alias_dict_2021.txt",
-                      "phdutils/experiments/ammonia.yml",
+                      "sixs/sixs/alias_dict_2021.txt",
+                      "sixs/experiments/ammonia.yml",
                      ])],
     scripts=[
-          "phdutils/scripts/print_pos.py"
+          "sixs/scripts/print_pos.py"
     ],
-    url="https://github.com/DSimonne/PhDUtils/tree/master",
+    url="https://github.com/DSimonne/sixs/tree/main",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",

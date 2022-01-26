@@ -15,12 +15,41 @@ ammonia_reaction_colors:
     O2: "#fc4f30"
     Oxygen: "#fc4f30"
     H2O: "#e5ae38"
+    Water: "#e5ae38"
     "NO": "#6d904f"
     N2O: "#8b8b8b"
     N2: "#810f7c"
+    Nitrogen: "#810f7c"
+    NH: "#d8b365"
 
-ptot:
-    0.5
+gas_colors:
+    "Ar": '#1f77b4'
+    "Argon": '#1f77b4'
+    "NH3": '#ff7f0e'
+    "Ammonia": '#ff7f0e'
+    "O2": '#2ca02c'
+    "Oxygen": '#2ca02c'
+    "NO": '#d62728'
+    "N2O": '#9467bd'
+    "N2": '#8c564b'
+    "Nitrogen": '#8c564b'
+    "H2O": '#e377c2'
+    "Water": '#e377c2'
+    "NH": '#7f7f7f'
+    "H": '#bcbd22'
+    "Hydrogen": '#bcbd22'
+    "C": '#17becf'
+    "Carbon": '#17becf'
+    A: "#fc4f30"
+    B: "#e5ae38"
+    C: "#6d904f"
+    D: "#8b8b8b"
+    E: "#810f7c"
+    CondA: "#fc4f30"
+    CondB: "#e5ae38"
+    CondC: "#6d904f"
+    CondD: "#8b8b8b"
+    CondE: "#810f7c"
 
 diverging_colors_1:
     Argon: "#8c510a"
@@ -39,6 +68,18 @@ sequential_colors_brown:
     C: "#fc8d59"
     D: "#e34a33"
     E: "#b30000"
+
+matplotlib_colours:
+    "1": '#1f77b4'
+    "2": '#ff7f0e'
+    "3": '#2ca02c'
+    "4": '#d62728'
+    "5": '#9467bd'
+    "6": '#8c564b'
+    "7": '#e377c2'
+    "8": '#7f7f7f'
+    "9": '#bcbd22'
+    "10": '#17becf'
 
 diverging_colors_1:
     Ar: "#8c510a"
@@ -86,6 +127,13 @@ BP_colors:
     500: "#fc8d62"
     600: "#8da0cb"
     RT: "#df65b0"
+
+products_color:
+    "H2O": "#1f77b4"
+    "NO": "#ff7f0e"
+    "N2O": "#2ca02c"
+    "N2": "#d62728"
+    "Nitrogen": "#d62728"
 
 mass_flow__colors:
     H2: "#008fd5"

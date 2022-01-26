@@ -6,4 +6,4 @@
 """
 Welcome to phdutils, the package is divided in several modules listed under."""
 
-__all__ = ["analysis", "experiments", "sixs", "scripts"]
+__all__ = ["analysis", "experiments", "sixs", "scripts", "readnxs"]

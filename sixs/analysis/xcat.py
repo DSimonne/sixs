@@ -456,7 +456,7 @@ class XCAT():
         fontsize=15,
         zoom1=None,
         zoom2=None,
-        color_dict="ammonia_reaction_colors",
+        color_dict="gas_colors",
         cursor_positions=[None],
         cursor_labels=[None],
         text_dict=None,
@@ -499,6 +499,9 @@ class XCAT():
             mass_list = [g.lower() for g in mass_list]
 
             for entry in mass_list:
+                print("#######################################################")
+                print("Plotting for ", entry)
+                print("#######################################################")
                 plt.close()
                 fig, axes = plt.subplots(2, 1, figsize=figsize)
 
@@ -536,24 +539,15 @@ class XCAT():
                 axes[1].plot(
                     plot_df[f"time_{entry}"],
                     plot_df[f"valve_{entry}"],
-                    linestyle="--",
                     label=f"valve_{entry}")
 
                 # Zoom
                 try:
-                    if entry != "ar":
-                        axes[0].set_xlim([zoom1[0], zoom1[1]])
-                        axes[0].set_ylim([zoom1[2], 10])
+                    axes[0].set_xlim([zoom1[0], zoom1[1]])
+                    axes[0].set_ylim([zoom1[2], zoom1[3]])
 
-                        axes[1].set_xlim([zoom2[0], zoom2[1]])
-                        axes[1].set_ylim([zoom2[2], zoom2[3]])
-
-                    else:
-                        axes[0].set_xlim([zoom1[0], zoom1[1]])
-                        axes[0].set_ylim([zoom1[2], zoom1[3]])
-
-                        axes[1].set_xlim([zoom2[0], zoom2[1]])
-                        axes[1].set_ylim([zoom2[2], zoom2[3]])
+                    axes[1].set_xlim([zoom2[0], zoom2[1]])
+                    axes[1].set_ylim([zoom2[2], zoom2[3]])
                 except TypeError:
                     pass
 
@@ -622,7 +616,7 @@ class XCAT():
         fontsize=15,
         zoom1=None,
         zoom2=None,
-        color_dict="ammonia_reaction_colors",
+        color_dict="gas_colors",
         cursor_positions=[None],
         cursor_labels=[None],
         text_dict=None,
@@ -772,9 +766,12 @@ class XCAT():
         heater_file=None,
         figsize=(16, 9),
         fontsize=15,
-        normalization=False,
+        norm_ptot=False,
+        ptot_mass_list=False,
+        norm_carrier=False,
+        pressure_carrier=False,
         zoom=None,
-        color_dict="ammonia_reaction_colors",
+        color_dict="gas_colors",
         cursor_positions=[None],
         cursor_labels=[None],
         text_dict=None,
@@ -791,8 +788,14 @@ class XCAT():
         :param df: DataFrame from which the data will be plotted. Default is
          "interpolated" which corresponds to the data truncated on the mass
          spectrometer time range and in seconds.
-        :param normalization: False, choose how to normalize the data. Options
-         are False, "ptot", "leak", "carrier_gas"
+        :param norm_ptot: False, normalize the data by total pressure if float.
+        :param ptot_mass_list: False, list of mass to use for normalization, if
+         False same as mass_list
+        :param norm_carrier: False, normalize the data by carrier gas
+         (norm_carrier) pressure if str. Choose a gas in mass_list.
+        :param pressure_carrier: False. Pressure of the carrier gas (bar) in the
+         reactor (e.g. p_Argon = 0.5 bar). Allows to normalize the data by this
+         value to find the pressures in the reactor cell.
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title have +2.
         :param zoom: list of 4 integers to zoom
@@ -824,29 +827,27 @@ class XCAT():
         else:
             self.norm_df = self.rga_data.copy()
 
-        # Normalize data
-        if normalization == "ptot":
+        # Normalize data by total pressure
+        if isinstance(norm_ptot, float):
+            self.ptot = norm_ptot
+            self.ptot_mass_list = ptot_mass_list if isinstance(
+                ptot_mass_list, list) else mass_list
 
-            # Get total pressure
-            try:
-                print(
-                    f"Using P={self.ptot} (bar)for total pressure in the reactor.")
-            except:
-                self.ptot = 0.3
-                print(f"Defaulted to P={self.ptot} (bar)for total pressure in the reactor.\
-                \nTo change, add a ptot entry in the configuration file.")
+            # Total pressure
+            print(
+                f"Using P={self.ptot} (bar)for total pressure in the reactor.")
 
             # Get data
             try:
-                used_arr = self.norm_df[[self.ptot_names]].values
-                used_columns = self.norm_df[[self.ptot_names]].columns
-                print("Using columns specified with ptot_names list.")
+                used_arr = self.norm_df[self.ptot_mass_list].values
+                used_columns = self.norm_df[self.ptot_mass_list].columns
+                print("Using columns specified with ptot_mass_list.")
 
             except (TypeError, AttributeError):
                 used_arr = self.norm_df.iloc[:, 1:].values
                 used_columns = self.norm_df.iloc[:, 1:].columns
                 print("Using all the columns to compute the total pressure.\
-                    \nTo change, create a ptot_names list in conf file")
+                    \nTo change, give a ptot_mass_list in entry.")
 
             # Normalize
             # Sum columns to have total pressure per second
@@ -866,6 +867,39 @@ class XCAT():
 
             # Changed y scale
             y_units = "bar"
+
+        # Normalize data by carrier gas
+        if isinstance(norm_carrier, str):
+            self.carrier_gaz = norm_carrier
+
+            # Carrier gas
+            print(
+                f"Using {self.carrier_gaz} as carrier gas for normalization.")
+
+            # Remove carrier gas from plot
+            try:
+                if self.carrier_gaz in mass_list:
+                    mass_list.remove(self.carrier_gaz)
+
+            except:
+                # Carrier gas not in mass list, it's OK
+                pass
+
+            # Normalize
+            try:
+                for mass in mass_list:
+                    self.norm_df[mass] = self.norm_df[mass] / \
+                        self.norm_df[self.carrier_gaz]
+            except Exception as E:
+                raise E
+
+            print("Normalized RGA pressure by carrier gas pressure.")
+            display(self.norm_df.head())
+
+            # Changed y scale
+            y_units = None
+
+        # Normalize data by leak pressure
 
         else:
             y_units = "mbar"
@@ -1007,13 +1041,19 @@ class XCAT():
 
         plt.show()
 
-    def plot_mass_spec_norm_leak(self,
-                                 interpolated_data=True,
-                                 leak_values=[1],
-                                 leak_positions=[None, None],
-                                 save=False,
-                                 fig_name="rga_norm_leak",
-                                 plotted_columns=None, zoom=[None, None, None, None], cursor_positions=[None], cursor_labels=[None]):
+    # Outdated functions below
+    def plot_mass_spec_norm_leak(
+        self,
+        interpolated_data=True,
+        leak_values=[1],
+        leak_positions=[None, None],
+        save=False,
+        fig_name="rga_norm_leak",
+        plotted_columns=None,
+        zoom=[None, None, None, None],
+        cursor_positions=[None],
+        cursor_labels=[None]
+    ):
         """
         Plot RGA data normalized by the values given in leak_values on the intervals given by leak_positions
         e.g. leak_values = [1.3, 2] and leak_positions = [100, 200, 500] will result in a division by 1.3 between indices 100 and 200
@@ -1104,129 +1144,21 @@ class XCAT():
         else:
             print("Length of leak_positions should be one more than leak_values.")
 
-    def plot_mass_spec_norm_carrier(self,
-                                    interpolated_data=True,
-                                    save=False,
-                                    legend=True,
-                                    fig_name="rga_norm_carrier",
-                                    carrier_gaz="Ar",
-                                    plotted_columns=None,
-                                    zoom=[None, None, None, None],
-                                    cursor_positions=[None],
-                                    cursor_labels=[None],
-                                    vlines=[None],
-                                    title=False):
+    def plot_mass_spec_norm_temp(
+        self,
+        start_heating,
+        nb_points,
+        amp_final, save=False,
+        fig_name="rga_norm_temp",
+        interpolated_data=True,
+        delta_time=10,
+        bins_nb=1000, binning=False,
+        plotted_columns=None,
+        zoom=[None, None, None, None],
+        cursor_positions=[None],
+        cursor_labels=[None]
+    ):
         """
-        Plot RGA data normalized by one column (carrier_gaz)
-        works on rga_df_interpolated
-        if plotted_columns = None, it plots all the columns
-        possible to use a zoom and vertical cursors (one or multiple) 
-        """
-        if interpolated_data:
-            norm_df = self.rga_df_interpolated.copy()
-        else:
-            norm_df = self.rga_data.copy()
-
-        # change to hours !!!!!!
-        norm_df = norm_df/3600
-
-        plt.figure(figsize=(17, 10), dpi=150, facecolor='w', edgecolor='k')
-        plt.semilogy()
-
-        try:
-            if carrier_gaz in plotted_columns:
-                plotted_columns.remove(carrier_gaz)
-
-        except:
-            # No plotted_columns given
-            plotted_columns = list(norm_df.columns)
-            plotted_columns.remove(carrier_gaz)
-
-        for element in plotted_columns:
-            norm_df[mass] = norm_df[mass] / norm_df[carrier_gaz]
-
-            plt.plot(norm_df.Time.values, norm_df[mass].values,
-                     linewidth=2, label=f"{element}", color=self.ammonia_reaction_colors[element])
-
-        self.norm_carrier_gas_df = norm_df
-        print("Saved df as self.norm_carrier_gas_df.")
-
-        # Add vlines to help find good values
-        try:
-            for i in vlines:
-                plt.axvline(i, color="r", linestyle="--", linewidth=1)
-        except:
-            pass
-
-        # vertical span color to show conditions
-        try:
-            # mcolors.CSS4_COLORS["teal"]
-            # range(len(cursor_positions)):#, cursor_lab in zip(cursor_positions, cursor_labels):
-            for x1, x2, l in zip(cursor_positions[:-1], cursor_positions[1:], cursor_labels):
-                plt.axvspan(x1, x2,
-                            alpha=0.2,
-                            facecolor=self.ammonia_conditions_colors[l],
-                            # label = l
-                            )
-
-                plt.text(
-                    x1 + (x2-x1)/2,
-                    y=0.1,
-                    s=l,
-                    fontsize=25
-                )
-
-        except Exception as e:
-            raise e
-        # except (TypeError, KeyError):
-        # 	print("No cursor")
-
-        finally:
-            plt.xlim(zoom[0], zoom[1])
-            plt.ylim(zoom[2], zoom[3])
-
-            if isinstance(title, str):
-                plt.title(title, fontsize=26)
-
-            plt.xlabel('Time (h)', fontsize=35)
-            plt.ylabel('Pressure (a.u.)', fontsize=35)
-            if legend:
-                plt.legend(bbox_to_anchor=(1.15, 1), loc="upper right",
-                           ncol=1, fontsize=20, fancybox=True)
-
-            plt.xticks(fontsize=30)
-            plt.yticks(fontsize=30)
-            plt.grid(b=True, which='major', color='b', linestyle='-')
-            plt.grid(b=True, which='minor',
-                     color=mcolors.CSS4_COLORS["teal"], linestyle='--')
-
-            if save:
-                plt.tight_layout()
-                plt.savefig(f"{fig_name}.png", bbox_inches='tight')
-
-                print(f"Saved as {fig_name} in png format.")
-
-            plt.show()
-
-    def plot_mass_spec_norm_temp(self,
-                                 start_heating,
-                                 nb_points,
-                                 amp_final, save=False,
-                                 fig_name="rga_norm_temp",
-                                 interpolated_data=True,
-                                 delta_time=10,
-                                 bins_nb=1000, binning=False,
-                                 plotted_columns=None,
-                                 zoom=[None, None, None, None],
-                                 cursor_positions=[None],
-                                 cursor_labels=[None]):
-        """
-        Plot RGA data normalized by the values given in intensity_values on the intervals given by leak_positions
-        e.g. intensity_values = [1.3, 2] and leak_positions = [100, 200, 500] will result in a division by 1.3 between indices 100 and 200
-        and by a division by 2 between indices 200 and 500.
-        works on rga_df_interpolated
-        if plotted_columns = None, it plots all the columns
-        possible to use a zoom and vertical cursors (one or multiple) 
         """
         if interpolated_data:
             norm_df = self.rga_df_interpolated.copy()
@@ -1362,6 +1294,83 @@ class XCAT():
 
     # Extra functions
 
+    def remove_background(
+        self,
+        df,
+        x_col,
+        y_col,
+        peak_start,
+        peak_end,
+        degree=2,
+        data_start=0,
+        data_end=-1
+    ):
+        """
+        Simple background reduction routine using np.polyfit
+
+        :param df: dataframe to use
+        :param x_col: str, column in df to use for x axis
+        :param y_col: str, column in df to use for y axis
+        :param peak_start: beginning of range to ignore for background
+         subtraction, 0 is equal to data_start
+        :param peak_end: end of range to ignore for background subtraction,
+         0 is equal to data_end
+        :param degree: degree of np.polyfit
+        :param data_start: beginning of data range of interest (includes peak
+         and background around it)
+        :param data_end: end of data range of interest (includes peak and
+         background around it)
+        """
+        # Init figure
+        fig, axs = plt.subplots(2, 1, figsize=(16, 9), sharex=True)
+
+        # Range of interest
+        # axs[0].plot(df[x_col],
+        #             df[y_col],
+        #             label="Data"
+        #             )
+        x = df[x_col][data_start:data_end].values
+        y = df[y_col][data_start:data_end].values
+
+        # Peak area in this range
+        x_peak = x[peak_start:peak_end]
+        y_peak = y[peak_start:peak_end]
+
+        axs[0].plot(x_peak,
+                    y_peak,
+                    label="Peak"
+                    )
+        axs[0].set_ylabel(y_col)
+        axs[0].set_xlabel(x_col)
+
+        # No peak area in this range
+        x_no_peak = np.concatenate([x[:peak_start], x[peak_end:]])
+        y_no_peak = np.concatenate([y[:peak_start], y[peak_end:]])
+
+        axs[0].plot(x_no_peak,
+                    y_no_peak,
+                    label="No peak"
+                    )
+
+        # Fit range without peak to get background
+        poly = np.polyfit(x_no_peak, y_no_peak, degree)
+        poly_fit = np.poly1d(poly)
+
+        # Plot data on range of interest minus background
+        axs[0].plot(x, poly_fit(x), label="Background fit")
+        axs[0].legend(fontsize=15)
+
+        # Save background
+        new_y = np.zeros(len(df))
+        new_y[data_start:data_end] = y - poly_fit(x)
+        df[f"{y_col}_bckg"] = new_y
+
+        axs[1].plot(df[x_col], new_y, label="Background subtracted data")
+        axs[1].legend(fontsize=15)
+        axs[1].set_ylabel(y_col)
+        axs[1].set_xlabel(x_col)
+        plt.show()
+
     def add_temperature_column(
         self,
         df,
@@ -1402,16 +1411,21 @@ class XCAT():
 
         return df, mask
 
-    def fit_error_function(self,
-                           initial_guess,
-                           new_amper_vect,
-                           interpolated_data=True,
-                           fitted_columns=None,
-                           binning=False,
-                           zoom=[None, None, None, None],
-                           cursor_positions=[None],
-                           cursor_labels=[None]):
-        """fit pressure vs temperature dta with error function"""
+    def fit_error_function(
+        self,
+        initial_guess,
+        new_amper_vect,
+        interpolated_data=True,
+        fitted_columns=None,
+        binning=False,
+        zoom=[None, None, None, None],
+        cursor_positions=[None],
+        cursor_labels=[None],
+    ):
+        """
+        Fit pressure in the reactor as a function of the temperature with an
+        error function
+        """
 
         def error_function(z, a, b, c, d):
             return a * (1 + special.erf((z - b) / c)) + d
