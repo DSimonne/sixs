@@ -11,6 +11,7 @@ import glob
 from sixs import readnxs as rn
 from scipy import interpolate
 
+
 class Map(object):
     """docstring for Map"""
 
