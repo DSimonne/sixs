@@ -1,12 +1,12 @@
 # Welcome 
 
-## This github is focused on
+## This github is focused on data reduction tools at SixS
 * Surface X-Ray Diffraction (SXRD) data analysis (CTR, reflectivity)
-* Mass spectrometer data analysis (Residual Gas Analyser - RGA), at SixS
+* Mass spectrometer data analysis (Residual Gas Analyser - RGA)
 
-Contact : david.simonne@universite-paris-saclay.fr
+Contact : david.simonne@synchrotron-soleil.fr
 
-You can install phdutils via the setup.py script, so that you can use via a package after in python, see below
+You can install sixs via the setup.py script, so that you can use via a package after in python, see below
 
 # Installing different packages
 
@@ -20,10 +20,10 @@ Secondly, I advise you to create a virtual environment to help with debogging, a
 * `python3.8 -m venv .`
 * `source bin/activate` # To activate the environment
 
-## Install phdutils
+## Install sixs
 * `cd /Packages`
-* `git clone https://github.com/DSimonne/phdutils.git`
-* `cd phdutils`
+* `git clone https://github.com/DSimonne/sixs.git`
+* `cd sixs`
 * `source_py38`
 * `pip install .`
 

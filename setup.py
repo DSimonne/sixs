@@ -6,11 +6,11 @@ with open("sixs/README.md", "r") as fh:
 setuptools.setup(
     name="sixs",
     version="0.0.1",
-    description="Python package for SXRD",
+    description="Python package for data reduction at SixS",
     author="David Simonne, Andrea Resta",
     author_email="david.simonne@synchrotron-soleil.fr",
     data_files=[('', ["licence.txt",
-                      "sixs/sixs/alias_dict_2021.txt",
+                      "sixs/sixs/alias_dict.txt",
                       "sixs/experiments/ammonia.yml",
                      ])],
     scripts=[

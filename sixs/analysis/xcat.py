@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import datetime
-import phdutils
+import sixs
 import inspect
 import yaml
 
@@ -29,7 +29,7 @@ class XCAT():
          stores metadata specific to the reaction
         """
 
-        self.path_package = inspect.getfile(phdutils).split("__")[0]
+        self.path_package = inspect.getfile(sixs).split("__")[0]
 
         # Load configuration file
         try:
