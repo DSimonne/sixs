@@ -14,7 +14,7 @@ import pandas as pd
 import glob
 
 # from phdutils.binoculars import binUtil3 as bin3
-from sixs import readnxs as rn
+from sixs import ReadNxs4 as rn4
 # from sixs import utilities3 as ut3
 
 import xrayutilities as xu
@@ -35,10 +35,16 @@ class reflecto(object):
     """docstring for reflecto"""
 
     def __init__(self, folder, scan_indices, data_format, var="l"):
-        # class arguments
+        """
+        :param folder: path to data folder
+        :param scan_indices: indices of reflectivity scans
+        :param data_format: hdf5 (after binoculars) or nxs (raw data)
+        :param var:
+        """
+        # Init class arguments
         self.folder = folder
         self.scan_indices = [str(s) for s in scan_indices]
-        self.data_format = data_format  # nxs or "hdf5"
+        self.data_format = data_format
 
         self.lat_para = dict()
 
@@ -69,7 +75,7 @@ class reflecto(object):
             raise KeyError("Choose a variable according to", var_dict)
 
         all_files = [f.split("/")[-1]
-                     for f in sorted(glob.glob(f"{folder}/*.hdf5"))]
+                     for f in sorted(glob.glob(f"{folder}/*.{data_format}"))]
 
         if self.data_type == "hkl" and self.data_format == "hdf5":
             self.scan_list = [f for f in all_files if any(
@@ -87,14 +93,12 @@ class reflecto(object):
             self.scan_list = [f for f in all_files if any(
                 ["ang_" + n + ".hdf5" in f for n in self.scan_indices])]
 
-        # data type not important for nxs files
+        # Data type not important for nxs files
         elif self.data_format == "nxs":
-            all_files = [f.split("/")[-1]
-                         for f in sorted(glob.glob(f"{folder}/*.nxs"))]
             self.scan_list = [f for f in all_files if any(
                 [n + ".nxs" in f for n in self.scan_indices])]
 
-        # plotting variables
+        # Plotting variables
         self.linewidth = 2
         self.linewidth_hline = 1.6
         self.linewidth_vline = 1.6
@@ -118,15 +122,20 @@ class reflecto(object):
         self.background_bottom = 0
 
     def prep_nxs_data(self, roi=False):
-        """The goal of this function is to change the integration roi to see if it has an impact on the data, then the data is intergrated on this roi.
-        Many parameters are taken from the nxs file such as q, qpar, qper, mu, gamma, delta, omega, h, k and l
+        """
+        The goal of this function is to change the integration roi to see if
+        it has an impact on the data, then the data is intergrated on this roi.
+        Many parameters are taken from the nxs file such as q, qpar, qper, mu,
+        gamma, delta, omega, h, k and l
         h, k and l depend on the orientation matrix used at that time.
 
-        Each one of these parameters is defined FOR THE CENTRAL PIXEL of the detector !
+        Each one of these parameters is defined FOR THE CENTRAL PIXEL of the
+        detector !
 
         The reflecto may not have the same length, and/ or amount of points
 
-        We take the wavelength of the first dataset in the series"""
+        We take the wavelength of the first dataset in the series
+        """
 
         self.roi = roi
         self.intensities = []
@@ -144,9 +153,17 @@ class reflecto(object):
             if not self.roi:
                 data.calcROI_new2()
 
-                # Do not take bad values due to attenuator change, long but necessary
-                ind1 = np.where(np.log(data.roi3_xpad70_new) > 0)
-                self.roi = tuple(data._roi_limits_xpad70[3])
+                # Do not take bad values due to attenuator change
+                # long but necessary
+                try:
+                    ind1 = np.where(np.log(data.roi3_xpad70_new) > 0)
+                    self.roi = tuple(data._roi_limits_xpad70[3])
+                except AttributeError:
+                    try:
+                        ind1 = np.where(np.log(data.roi3_xpad140_new) > 0)
+                        self.roi = tuple(data._roi_limits_xpad140[3])
+                    except Exception as E:
+                        raise E
 
             else:
                 a, b, c, d = self.roi
@@ -207,9 +224,13 @@ class reflecto(object):
                 print("No roi for this dataset")
 
             if not self.roi:
-                # We use the roi3, defined as the good one during the experiment, this can change for other experiments
+                # We use the roi3, defined as the good one during the
+                # experiment, this can change for other experiments
                 data.calcROI_new2()
-                self.intensities.append(data.roi3_xpad70_new[ind])
+                try:
+                    self.intensities.append(data.roi3_xpad70_new[ind])
+                except AttributeError:
+                    self.intensities.append(data.roi3_xpad140_new[ind])
 
             else:
                 # We use our own roi
@@ -501,7 +522,8 @@ class reflecto(object):
             self.x_axis = getattr(self, x_axes[x_axis])
 
         elif self.data_format == "nxs" and x_axis not in ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"]:
-            return("Choose a x_axis in the following list :", ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"])
+            return("Choose a x_axis in the following list :", [
+                "h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"])
 
         # x_axis has no influence if we use binocular file for now
         elif self.data_format == "hdf5":
@@ -962,7 +984,8 @@ class reflecto(object):
             x_total = getattr(self, x_axes[x_axis])
 
         elif self.data_format == "nxs" and x_axis not in ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"]:
-            return("Choose a x_axis in the following list :", ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"])
+            return("Choose a x_axis in the following list :", [
+                "h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"])
 
         # Iterate over each data set to find the Bragg peak
         for q_range, gamma_range, delta_range, x, y, scan_name in zip(self.cp_q, self.cp_gamma, self.cp_delta, x_total, self.intensities, self.scan_indices):

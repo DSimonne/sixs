@@ -20,6 +20,11 @@ class XCAT():
     to compare the input flow in the reactor cell and the products of the
     reaction.
     All the data is transformed to pandas.DataFrame objects.
+
+    What's left to do?
+    See if we can create a routine to normalize the data by the coefficient of
+    the leak that is linked to the temperature. It can be extracted from the an
+    experiment without any products but just a temperature change.
     """
 
     def __init__(self, configuration_file=None):
@@ -65,15 +70,32 @@ class XCAT():
             print("Could not find configuration file.")
             print("Defaulted to ammonia configuration.")
 
-        self.gaz_travel_time = 12  # time for the gaz to travel from cell to detector
-        print(
-            f"Travel time from cell to detector fixed to {self.gaz_travel_time} seconds.")
-        print("\n#####################################################################\n")
+        # Time for the gaz to travel from cell to detector
+        try:
+            print(
+                f"Travel time from cell to detector fixed to {self.gaz_travel_time} seconds.")
+            print(
+                "\n#####################################################################\n")
+        except TypeError:
+            self.gaz_travel_time = 12
+            print(
+                f"Travel time from cell to detector fixed to {self.gaz_travel_time} seconds.")
+            print(
+                "\n#####################################################################\n")
 
-        self.time_shift = 502  # experiment in 2022
-        # self.time_shift = 1287 # experiment in 2021
-        print(f"Time shift fixed to {self.time_shift} seconds.")
-        print("\n#####################################################################\n")
+        # Time shift between computers
+        try:
+            print(
+                f"Travel shift between computers fixed to {self.time_shift} seconds.")
+            print(
+                "\n#####################################################################\n")
+        except TypeError:
+            self.time_shift = 502  # jan 2022
+            # self.time_shift = 1287 # experiment in 2021
+            print(
+                f"Travel shift between computers fixed to {self.time_shift} seconds.")
+            print(
+                "\n#####################################################################\n")
 
     def load_mass_flow_controller_file(
         self,
@@ -790,12 +812,12 @@ class XCAT():
          spectrometer time range and in seconds.
         :param norm_ptot: False, normalize the data by total pressure if float.
         :param ptot_mass_list: False, list of mass to use for normalization, if
-         False same as mass_list
+         False same as mass_list, used with norm_ptot
         :param norm_carrier: False, normalize the data by carrier gas
          (norm_carrier) pressure if str. Choose a gas in mass_list.
         :param pressure_carrier: False. Pressure of the carrier gas (bar) in the
          reactor (e.g. p_Argon = 0.5 bar). Allows to normalize the data by this
-         value to find the pressures in the reactor cell.
+         value to find the pressures in the reactor cell. used with norm_carrier
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title have +2.
         :param zoom: list of 4 integers to zoom
@@ -830,24 +852,32 @@ class XCAT():
         # Normalize data by total pressure
         if isinstance(norm_ptot, float):
             self.ptot = norm_ptot
-            self.ptot_mass_list = ptot_mass_list if isinstance(
-                ptot_mass_list, list) else mass_list
 
             # Total pressure
             print(
                 f"Using P={self.ptot} (bar)for total pressure in the reactor.")
 
-            # Get data
-            try:
-                used_arr = self.norm_df[self.ptot_mass_list].values
-                used_columns = self.norm_df[self.ptot_mass_list].columns
-                print("Using columns specified with ptot_mass_list.")
+            # What gases do we use for the normalization ?
+            if isinstance(ptot_mass_list, list):  # list if specified
+                self.ptot_mass_list = ptot_mass_list
+                print("Using columns specified with ptot_mass_list for normalization.")
 
-            except (TypeError, AttributeError):
-                used_arr = self.norm_df.iloc[:, 1:].values
-                used_columns = self.norm_df.iloc[:, 1:].columns
-                print("Using all the columns to compute the total pressure.\
-                    \nTo change, give a ptot_mass_list in entry.")
+            elif isinstance(mass_list, list):  # otherwise list of mass to plot
+                self.ptot_mass_list = mass_list
+                print("""
+                    \nUsing columns specified with mass_list for normalization. \
+                    \nIf you want to use other gases, use ptot_mass_list.
+                    """)
+
+            else:
+                raise TypeError("""
+                    \nPlease give a list of masses to use for normalization with \
+                    \n ptot_mass_list. Otherwise the same masses as mass_list \
+                    \n will be used.
+                    """)
+
+            # Get data
+            used_arr = self.norm_df[self.ptot_mass_list].values
 
             # Normalize
             # Sum columns to have total pressure per second
@@ -858,7 +888,7 @@ class XCAT():
             norm_arr = used_arr*ptot_arr
 
             # Create new DataFrame
-            norm_df_ptot = pd.DataFrame(norm_arr, columns=used_columns)
+            norm_df_ptot = pd.DataFrame(norm_arr, columns=self.ptot_mass_list)
             norm_df_ptot["Time"] = self.norm_df["Time"]
             self.norm_df = norm_df_ptot  # to do better
 
@@ -876,28 +906,42 @@ class XCAT():
             print(
                 f"Using {self.carrier_gaz} as carrier gas for normalization.")
 
-            # Remove carrier gas from plot
+            # Remove carrier gas from list to avoid division by 1
             try:
-                if self.carrier_gaz in mass_list:
-                    mass_list.remove(self.carrier_gaz)
-
-            except:
-                # Carrier gas not in mass list, it's OK
+                mass_list.remove(self.carrier_gaz)
+            except ValueError:
+                # Not in the list
                 pass
 
             # Normalize
             try:
                 for mass in mass_list:
-                    self.norm_df[mass] = self.norm_df[mass] / \
-                        self.norm_df[self.carrier_gaz]
+                    y = self.norm_df[mass] / self.norm_df[self.carrier_gaz]
+
+                    # Multiply by carrier pressure if known
+                    if isinstance(pressure_carrier, float):
+                        self.norm_df[mass] = y * pressure_carrier
+                    else:
+                        self.norm_df[mass] = y
+
             except Exception as E:
                 raise E
+
+            # Now modify the carrier gas pressure
+            if isinstance(pressure_carrier, float):
+                self.norm_df[self.carrier_gaz] = np.ones(
+                    len(self.norm_df)) * pressure_carrier
+            else:
+                self.norm_df[self.carrier_gaz] = np.ones(len(self.norm_df))
+
+            # Put the carrier gas back in the list of mass to plot
+            mass_list.append(self.carrier_gaz)
 
             print("Normalized RGA pressure by carrier gas pressure.")
             display(self.norm_df.head())
 
-            # Changed y scale
-            y_units = None
+            # Change y scale
+            y_units = "bar" if isinstance(pressure_carrier, float) else None
 
         # Normalize data by leak pressure
 
@@ -1041,257 +1085,6 @@ class XCAT():
 
         plt.show()
 
-    # Outdated functions below
-    def plot_mass_spec_norm_leak(
-        self,
-        interpolated_data=True,
-        leak_values=[1],
-        leak_positions=[None, None],
-        save=False,
-        fig_name="rga_norm_leak",
-        plotted_columns=None,
-        zoom=[None, None, None, None],
-        cursor_positions=[None],
-        cursor_labels=[None]
-    ):
-        """
-        Plot RGA data normalized by the values given in leak_values on the intervals given by leak_positions
-        e.g. leak_values = [1.3, 2] and leak_positions = [100, 200, 500] will result in a division by 1.3 between indices 100 and 200
-        and by a division by 2 between indices 200 and 500.
-        works on rga_df_interpolated
-        if plotted_columns = None, it plots all the columns
-        possible to use a zoom and vertical cursors (one or multiple) 
-        """
-        if interpolated_data:
-            norm_df = self.rga_df_interpolated.copy()
-        else:
-            norm_df = self.rga_data.copy()
-
-        # change to hours !!!!!!
-        norm_df = norm_df/3600
-
-        if len(leak_values) + 1 == len(leak_positions):
-
-            plt.figure(figsize=(18, 13), dpi=80, facecolor='w', edgecolor='k')
-
-            # for each column
-            try:
-                for element in plotted_columns:
-                    normalized_values = norm_df[mass].values.copy()
-
-                    # normalize between the leak positions
-                    for j, value in enumerate(leak_values):
-
-                        # print(f"We normalize between {leak_positions[j]} s and {leak_positions[j+1]} s by {value}")
-
-                        normalized_values[leak_positions[j]:leak_positions[j+1]] = (
-                            normalized_values[leak_positions[j]:leak_positions[j+1]] / value)
-
-                    plt.plot(norm_df.Time.values, normalized_values,
-                             linewidth=2, label=f"{element}", color=self.ammonia_reaction_colors[element])
-
-            # if plotted_columns is None
-            except:
-                for element in norm_df.columns[1:]:
-                    normalized_values = norm_df[mass].values.copy()
-
-                    # normalize between the leak positions
-                    for j, value in enumerate(leak_values):
-
-                        # print(f"We normalize between {leak_positions[j]} s and {leak_positions[j+1]} s by {value}")
-
-                        normalized_values[leak_positions[j]:leak_positions[j+1]] = (
-                            normalized_values[leak_positions[j]:leak_positions[j+1]] / value)
-
-                    plt.plot(norm_df.Time.values, normalized_values,
-                             linewidth=2, label=f"{element}", color=self.ammonia_reaction_colors[element])
-
-            plt.semilogy()
-
-            # cursor
-            try:
-                # mcolors.CSS4_COLORS["teal"]
-                for cursor_pos, cursor_lab in zip(cursor_positions, cursor_labels):
-                    plt.axvline(cursor_pos,
-                                linestyle="--", color=self.ammonia_conditions_colors[cursor_lab], linewidth=1.5, label=cursor_lab)
-
-            except (TypeError, KeyError):
-                print("No cursor")
-
-            finally:
-                plt.xlim(zoom[0], zoom[1])
-                plt.ylim(zoom[2], zoom[3])
-
-                plt.title(
-                    f"Normalized by pressure in RGA (leak valve)", fontsize=24)
-
-                plt.xlabel('Time (h)', fontsize=16)
-                plt.ylabel('Pressure (mBar)', fontsize=16)
-                plt.legend(bbox_to_anchor=(0., -0.15, 1., .102), loc=3,
-                           ncol=5, mode="expand", borderaxespad=0.)
-                plt.grid(b=True, which='major', color='b', linestyle='-')
-                plt.grid(b=True, which='minor',
-                         color=mcolors.CSS4_COLORS["teal"], linestyle='--')
-
-                if save:
-                    plt.tight_layout()
-                    plt.savefig(f"{fig_name}.png")
-
-                    print(f"Saved as {fig_name} in png format.")
-
-                plt.show()
-
-        else:
-            print("Length of leak_positions should be one more than leak_values.")
-
-    def plot_mass_spec_norm_temp(
-        self,
-        start_heating,
-        nb_points,
-        amp_final, save=False,
-        fig_name="rga_norm_temp",
-        interpolated_data=True,
-        delta_time=10,
-        bins_nb=1000, binning=False,
-        plotted_columns=None,
-        zoom=[None, None, None, None],
-        cursor_positions=[None],
-        cursor_labels=[None]
-    ):
-        """
-        """
-        if interpolated_data:
-            norm_df = self.rga_df_interpolated.copy()
-        else:
-            norm_df = self.rga_data.copy()
-
-        # change to hours !!!!!!
-        norm_df = norm_df/3600
-
-        # recreate points that were used during data acquisition
-        # amperage = np.round(np.concatenate((np.linspace(0, amp_final, nb_points*delta_time, endpoint=False), np.linspace(amp_final, 0, nb_points*delta_time))), 2)
-        amperage = np.concatenate((np.linspace(0, amp_final, nb_points*delta_time,
-                                  endpoint=False), np.linspace(amp_final, 0, nb_points*delta_time)))
-
-        # recreate temperature from heater benchmarks
-        temperature = self.heater_poly_fit(amperage)
-        temperature_real = np.array([t if t > 25 else 25 for t in temperature])
-
-        # find end time
-        end_heating = start_heating + (2 * nb_points) * delta_time
-
-        # timerange of heating
-        time_column = norm_df["time"].values[start_heating:end_heating]
-
-        # save in df
-        self.rga_during_heating = pd.DataFrame({
-            "time": time_column,
-            "amperage": amperage,
-            "temperature": temperature_real,
-        })
-
-        print("Results saved in self.rga_during_heating DataFrame")
-
-        plt.figure(figsize=(18, 9))
-
-        # for each column
-        try:
-            max_plot = 0
-            for element in plotted_columns:
-                data_column = norm_df[mass].values[start_heating:end_heating]
-                self.rga_during_heating[element] = data_column
-
-                if not binning:
-                    plt.plot(temperature_real, data_column,
-                             linewidth=2, linestyle="dashdot", label=f"{element}", color=self.ammonia_reaction_colors[element])
-                    if max(data_column[element]) > max_plot:
-                        max_plot = max(data_column[element])
-
-        # if plotted_columns is None
-        except:
-            max_plot = 0
-            for element in norm_df.columns[1:]:
-                data_column = norm_df[mass].values[start_heating:end_heating]
-                self.rga_during_heating[element] = data_column
-
-                if not binning:
-                    plt.plot(self.rga_during_heating.temperature,
-                             self.rga_during_heating[element],
-                             linewidth=2,
-                             linestyle="dashdot",
-                             label=f"{element}",
-                             color=self.ammonia_reaction_colors[element])
-                    # plt.plot(temperature_real, data_column, linewidth = 2, label = f"{element}")
-                    if max(self.rga_during_heating[element]) > max_plot:
-                        max_plot = max(self.rga_during_heating[element])
-
-        # Bin after so that the DataFrame on heating timerange already exists
-        if binning:
-
-            # Bin the data frame by "time" with bins_nb bins...
-            bins = np.linspace(self.rga_during_heating.time.min(
-            ), self.rga_during_heating.time.max(), bins_nb)
-            groups = self.rga_during_heating.groupby(
-                np.digitize(self.rga_during_heating.time, bins))
-
-            # Get the mean of each bin:
-            self.binned_data = groups.mean()
-            max_plot = 0
-            for element in plotted_columns:
-                plt.plot(self.binned_data.temperature,
-                         self.binned_data[element],
-                         linewidth=2,
-                         #linestyle = "dashdot",
-                         label=f"{element}",
-                         color=self.ammonia_reaction_colors[element])
-                if max(self.binned_data[element]) > max_plot:
-                    max_plot = max(self.binned_data[element])
-        plt.semilogy()
-
-        # cursor
-        try:
-            # mcolors.CSS4_COLORS["teal"]
-            for cursor_pos, cursor_lab in zip(cursor_positions, cursor_labels):
-                plt.axvline(cursor_pos, linestyle="--",
-                            color=self.ammonia_conditions_colors[cursor_lab], linewidth=1.5, label=cursor_lab)
-
-        except (TypeError, KeyError):
-            print("No cursor")
-
-        finally:
-            plt.xlim(zoom[0], zoom[1])
-            plt.ylim(zoom[2], zoom[3])
-            plt.text(x=0, y=1.4*max_plot, s="Ammonia oxidation on Pt nanoparticles",
-                     fontsize=26, weight='bold', alpha=.75)
-            if not binning:
-                plt.text(x=0, y=1.25*max_plot,
-                         s="""Pressure as a function of the temperature (from input current)""",
-                         fontsize=19, alpha=.85)
-            else:
-                plt.text(x=0, y=1.25*max_plot,
-                         s=f"Pressure as a function of the temperature (from input current), with {bins_nb} bins.",
-                         fontsize=19, alpha=.85)
-
-            # Ticks
-
-            plt.xticks(np.arange(0, 700, 50), fontsize=20)
-            #plt.yticks(np.arange(5, 22.5, 1.5), fontsize=20)
-
-            plt.xlabel('Temperature (°C)', fontsize=25)
-            plt.ylabel('Pressure (mBar)', fontsize=25)
-            plt.legend(bbox_to_anchor=(0., -0.15, 1., .102), loc=3,
-                       ncol=5, mode="expand", borderaxespad=0., fontsize=25)
-            plt.grid(b=True, which='major', color='b', linestyle='-')
-            plt.grid(b=True, which='minor',
-                     color=mcolors.CSS4_COLORS["teal"], linestyle='--')
-
-            if save:
-                plt.tight_layout()
-                plt.savefig(f"{fig_name}.png", bbox_inches='tight')
-
-                print(f"Saved as {fig_name} in png format.")
-            plt.show()
-
     # Extra functions
 
     def remove_background(
@@ -1306,7 +1099,7 @@ class XCAT():
         data_end=-1
     ):
         """
-        Simple background reduction routine using np.polyfit
+        Simple background reduction routine using np.polyfit()
 
         :param df: dataframe to use
         :param x_col: str, column in df to use for x axis
@@ -1378,6 +1171,8 @@ class XCAT():
         time_shift=0,
     ):
         """Add a temperature column to the DataFrame from a csv file
+        The csv file must have a unix timestamp "time" column that will be used
+        to add the temperature values at the right time in the DataFrame.
 
         :param df: DataFrame object to which we assign the new df,
          usually rga_interpolated, must be created before the heater df
