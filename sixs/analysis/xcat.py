@@ -179,12 +179,12 @@ class XCAT():
 
             column -= 2082844800
         print("Changed time to unix epoch for all time columns")
-        self.mass_flow_start_time_epoch = self.df.iloc[0,0]
+        self.mass_flow_start_time_epoch = self.df.iloc[0, 0]
         self.mass_flow_start_time = datetime.fromtimestamp(
-            self.df.iloc[0,0]).strftime('%Y-%m-%d %H:%M:%S')
-        self.mass_flow_end_time_epoch = self.df.iloc[0,0]
+            self.df.iloc[0, 0]).strftime('%Y-%m-%d %H:%M:%S')
+        self.mass_flow_end_time_epoch = self.df.iloc[0, 0]
         self.mass_flow_end_time = datetime.fromtimestamp(
-            self.df.iloc[-1,0]).strftime('%Y-%m-%d %H:%M:%S')
+            self.df.iloc[-1, 0]).strftime('%Y-%m-%d %H:%M:%S')
 
         print(
             f"Mass flow. starting time: {self.mass_flow_start_time_epoch} (unix epoch), {self.mass_flow_start_time}.")
@@ -350,7 +350,8 @@ class XCAT():
 
             print(f"Experiment time range: {h}h:{m}m:{s}s")
 
-            self.mass_spec_end_time_epoch = int(self.time_range + self.mass_spec_start_time_epoch)
+            self.mass_spec_end_time_epoch = int(
+                self.time_range + self.mass_spec_start_time_epoch)
             self.mass_spec_end_time = datetime.fromtimestamp(
                 self.mass_spec_end_time_epoch).strftime('%Y-%m-%d %H:%M:%S')
             print(
