@@ -24,6 +24,7 @@ from matplotlib.colors import LogNorm
 import sixs
 import inspect
 
+
 class emptyO(object):
     '''Empty class used as container in the nxs2spec case. '''
     pass

@@ -8,7 +8,7 @@ import pandas as pd
 import glob
 # from phdutils.binoculars import binUtil3 as bin3
 # from phdutils.sixs import utilities3 as ut3
-from sixs import readnxs as rn
+from sixs import ReadNxs4 as rn
 from scipy import interpolate
 
 

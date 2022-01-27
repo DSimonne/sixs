@@ -258,10 +258,25 @@ class reflecto(object):
             self.cp_qpar.append(data.qPar[ind])
             self.cp_qper.append(data.qPer[ind])
 
-    def prep_binoc_data(self, wavel, tt_cutoff=20, interpol_step=0.03, CTR_range_h=None, CTR_range_k=None, qpar_range=None, qx_range=None, qy_range=None, delta_range=None, omega_range=None):
-        """Here we do not integrate over a roi of the detector but rather on a region of the reciprocal space,
-        it is the same in the end but more clear
-        In the future, implement integration over different axes than l for hkl for example"""
+    def prep_binoc_data(
+        self,
+        wavel,
+        tt_cutoff=20,
+        interpol_step=0.03,
+        CTR_range_h=None,
+        CTR_range_k=None,
+        qpar_range=None,
+        qx_range=None,
+        qy_range=None,
+        delta_range=None,
+        omega_range=None
+    ):
+        """
+        Here we do not integrate over a roi of the detector but rather on a
+        region of the reciprocal space, it is the same in the end but more clear
+        In the future, implement integration over different axes than l
+        for hkl for example
+        """
 
         # Compute reflections for afterwards
         self.compute_miller(wl=wavel, tt_cutoff=tt_cutoff)
@@ -471,7 +486,11 @@ class reflecto(object):
 
                     self.intensities.append(f(self.binoc_x_axis))
 
-    def compute_miller(self, wl, tt_cutoff=20):
+    def compute_miller(
+        self,
+        wl,
+        tt_cutoff=20
+    ):
         """L given is not good because not the good surface orientation"""
 
         self.Pt_PD = xu.simpack.PowderDiffraction(
@@ -489,20 +508,53 @@ class reflecto(object):
         del self.BN_PD[(0, 0, 3)]
 
         self.theta_bragg_pos_BN = [
-            (miller_indices, self.BN_PD[miller_indices]["ang"]) for miller_indices in self.BN_PD]
+            (miller_indices, self.BN_PD[miller_indices]["ang"])
+            for miller_indices in self.BN_PD
+        ]
         self.theta_bragg_pos_Al2O3 = [
-            (miller_indices, self.Al2O3_PD[miller_indices]["ang"]) for miller_indices in self.Al2O3_PD]
+            (miller_indices, self.Al2O3_PD[miller_indices]["ang"])
+            for miller_indices in self.Al2O3_PD
+        ]
         self.theta_bragg_pos_Pt = [
-            (miller_indices, self.Pt_PD[miller_indices]["ang"]) for miller_indices in self.Pt_PD]
+            (miller_indices, self.Pt_PD[miller_indices]["ang"])
+            for miller_indices in self.Pt_PD
+        ]
 
         self.q_bragg_pos_BN = [
-            (miller_indices, self.BN_PD[miller_indices]["qpos"]) for miller_indices in self.BN_PD]
+            (miller_indices, self.BN_PD[miller_indices]["qpos"])
+            for miller_indices in self.BN_PD
+        ]
         self.q_bragg_pos_Al2O3 = [
-            (miller_indices, self.Al2O3_PD[miller_indices]["qpos"]) for miller_indices in self.Al2O3_PD]
+            (miller_indices, self.Al2O3_PD[miller_indices]["qpos"])
+            for miller_indices in self.Al2O3_PD
+        ]
         self.q_bragg_pos_Pt = [
-            (miller_indices, self.Pt_PD[miller_indices]["qpos"]) for miller_indices in self.Pt_PD]
+            (miller_indices, self.Pt_PD[miller_indices]["qpos"])
+            for miller_indices in self.Pt_PD
+        ]
 
-    def plot_refl(self, title, save_as, figsize=(18, 9), labels=False, ncol=2, scan_gas_dict=False, x_axis="l", y_max=False, y_min=False, x_min=False, x_max=False, fill=False, fill_first=0, fill_last=-1, miller=False, critical_angles=False, background=True, low_range=False, high_range=False):
+    def plot_refl(
+        self,
+        title,
+        save_as,
+        figsize=(18, 9),
+        labels=False,
+        ncol=2,
+        scan_gas_dict=False,
+        x_axis="l",
+        y_max=False,
+        y_min=False,
+        x_min=False,
+        x_max=False,
+        fill=False,
+        fill_first=0,
+        fill_last=-1,
+        miller=False,
+        critical_angles=False,
+        background=True,
+        low_range=False,
+        high_range=False
+    ):
         """miller must be a list containing nothing or "pt", 'al2o3' or "bn"
         x_axis will be set to var in the future
         """
@@ -523,7 +575,9 @@ class reflecto(object):
 
         elif self.data_format == "nxs" and x_axis not in ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"]:
             return("Choose a x_axis in the following list :", [
-                "h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"])
+                "h", "k", "l", "q", "qpar", "qper",
+                "gamma", "mu", "delta", "omega"
+            ])
 
         # x_axis has no influence if we use binocular file for now
         elif self.data_format == "hdf5":
@@ -593,7 +647,11 @@ class reflecto(object):
             plt.figure(figsize=figsize, dpi=150)
             plt.semilogy()
 
-            for (i, y), x, scan_index in zip(enumerate(self.intensities), self.x_axis, self.scan_indices):
+            for (i, y), x, scan_index in zip(
+                enumerate(self.intensities),
+                self.x_axis,
+                self.scan_indices
+            ):
                 if isinstance(background, str):
                     # indices of x for which the value is defined on the background x
                     idx = (x < max(self.bck[0])) * (x > min(self.bck[0]))
@@ -608,7 +666,9 @@ class reflecto(object):
                     new_bck = f(x)
 
                     y_plot = np.where(
-                        (y-new_bck < self.background_bottom), self.background_bottom, y-new_bck)
+                        (y-new_bck < self.background_bottom),
+                        self.background_bottom, y-new_bck
+                    )
 
                 else:
                     y_plot = y
@@ -1121,65 +1181,66 @@ class reflecto(object):
                 reflecto.xpad_s70_image[index, b:b+d, a:a+c],
                 norm=LogNorm(vmin=v_min_log, vmax=v_max_log))
 
-        _list_widgets = interactive(plot2D,
-                                    a=widgets.IntSlider(
-                                        value=self.roi[0],
-                                        min=0,
-                                        max=self.delta_width,
-                                        step=1,
-                                        description='a:',
-                                        continuous_update=False,
-                                        orientation='horizontal',
-                                        readout=True,
-                                        readout_format='d'),
-                                    b=widgets.IntSlider(
-                                        value=self.roi[1],
-                                        min=0,
-                                        max=self.gamma_width,
-                                        step=1,
-                                        description='b:',
-                                        continuous_update=False,
-                                        orientation='horizontal',
-                                        readout=True,
-                                        readout_format='d'),
-                                    c=widgets.IntSlider(
-                                        value=self.roi[2],
-                                        min=0,
-                                        max=self.delta_width,
-                                        step=1,
-                                        description='c:',
-                                        continuous_update=False,
-                                        orientation='horizontal',
-                                        readout=True,
-                                        readout_format='d'),
-                                    d=widgets.IntSlider(
-                                        value=self.roi[3],
-                                        min=0,
-                                        max=self.gamma_width,
-                                        step=1,
-                                        description='d:',
-                                        continuous_update=False,
-                                        orientation='horizontal',
-                                        readout=True,
-                                        readout_format='d'),
-                                    index=widgets.IntSlider(
-                                        value=0,
-                                        min=0,
-                                        max=index_range-1,
-                                        step=5,
-                                        description='Index:',
-                                        continuous_update=False,
-                                        orientation='horizontal',
-                                        readout=True,
-                                        readout_format='d',
-                                        style={'description_width': 'initial'},
-                                        layout=Layout(width="30%")),
-                                    reflecto=widgets.Select(
-                                        options=[rn4.DataSet(
-                                            self.folder + f) for f in self.scan_list],
-                                        description='Scan:',
-                                        style={'description_width': 'initial'},
-                                        layout=Layout(width="70%")))
+        _list_widgets = interactive(
+            plot2D,
+            a=widgets.IntSlider(
+                value=self.roi[0],
+                min=0,
+                max=self.delta_width,
+                step=1,
+                description='a:',
+                continuous_update=False,
+                orientation='horizontal',
+                readout=True,
+                readout_format='d'),
+            b=widgets.IntSlider(
+                value=self.roi[1],
+                min=0,
+                max=self.gamma_width,
+                step=1,
+                description='b:',
+                continuous_update=False,
+                orientation='horizontal',
+                readout=True,
+                readout_format='d'),
+            c=widgets.IntSlider(
+                value=self.roi[2],
+                min=0,
+                max=self.delta_width,
+                step=1,
+                description='c:',
+                continuous_update=False,
+                orientation='horizontal',
+                readout=True,
+                readout_format='d'),
+            d=widgets.IntSlider(
+                value=self.roi[3],
+                min=0,
+                max=self.gamma_width,
+                step=1,
+                description='d:',
+                continuous_update=False,
+                orientation='horizontal',
+                readout=True,
+                readout_format='d'),
+            index=widgets.IntSlider(
+                value=0,
+                min=0,
+                max=index_range-1,
+                step=5,
+                description='Index:',
+                continuous_update=False,
+                orientation='horizontal',
+                readout=True,
+                readout_format='d',
+                style={'description_width': 'initial'},
+                layout=Layout(width="30%")),
+            reflecto=widgets.Select(
+                options=[rn4.DataSet(
+                    self.folder + f) for f in self.scan_list],
+                description='Scan:',
+                style={'description_width': 'initial'},
+                layout=Layout(width="70%")))
         window = widgets.VBox([
             widgets.HBox(_list_widgets.children[0:4]),
             widgets.HBox(_list_widgets.children[4:-1]),

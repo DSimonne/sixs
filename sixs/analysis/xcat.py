@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import datetime
+from datetime import datetime
 import sixs
 import inspect
 import yaml
@@ -76,7 +76,7 @@ class XCAT():
                 f"Travel time from cell to detector fixed to {self.gaz_travel_time} seconds.")
             print(
                 "\n#####################################################################\n")
-        except TypeError:
+        except AttributeError:
             self.gaz_travel_time = 12
             print(
                 f"Travel time from cell to detector fixed to {self.gaz_travel_time} seconds.")
@@ -89,7 +89,7 @@ class XCAT():
                 f"Travel shift between computers fixed to {self.time_shift} seconds.")
             print(
                 "\n#####################################################################\n")
-        except TypeError:
+        except AttributeError:
             self.time_shift = 502  # jan 2022
             # self.time_shift = 1287 # experiment in 2021
             print(
@@ -179,6 +179,18 @@ class XCAT():
 
             column -= 2082844800
         print("Changed time to unix epoch for all time columns")
+        self.mass_flow_start_time_epoch = self.df.iloc[0,0]
+        self.mass_flow_start_time = datetime.fromtimestamp(
+            self.df.iloc[0,0]).strftime('%Y-%m-%d %H:%M:%S')
+        self.mass_flow_end_time_epoch = self.df.iloc[0,0]
+        self.mass_flow_end_time = datetime.fromtimestamp(
+            self.df.iloc[-1,0]).strftime('%Y-%m-%d %H:%M:%S')
+
+        print(
+            f"Mass flow. starting time: {self.mass_flow_start_time_epoch} (unix epoch), {self.mass_flow_start_time}.")
+        print(
+            f"Mass flow. end time: {self.mass_flow_end_time_epoch} (unix epoch), {self.mass_flow_end_time}.")
+        print("Careful, there are two hours added regarding utc time.")
         print("\n#####################################################################\n")
 
         # Show preview of DataFrame
@@ -188,6 +200,7 @@ class XCAT():
         # two times shunt valve ? TODO
         # INJ ?
         # OUT ?
+        self.separate_mass_flow_dataframes()
 
     def separate_mass_flow_dataframes(self, mass_list=False):
         """
@@ -294,21 +307,22 @@ class XCAT():
                     # Get starting time
                     if "Start time, " in line:
                         timeline = line.rstrip()  # removes spaces
-                        self.time_stamp = int(datetime.datetime.strptime(
+                        self.mass_spec_start_time_epoch = int(datetime.strptime(
                             timeline[12:], "%b %d, %Y  %I:%M:%S  %p").timestamp())
-                        self.start_time_utc = timeline[12:]
+                        self.mass_spec_start_time = datetime.fromtimestamp(
+                            self.mass_spec_start_time_epoch).strftime('%Y-%m-%d %H:%M:%S')
 
                     # Get mass spectrometer channels
                     elif line[:3] in channel_index:
                         channels.append(line[25:35].replace(" ", ""))
 
-        except Exception as E:
-            self.time_stamp = None
-            self.start_time_utc = None
-            raise E  # TODO
+            print(
+                f"Mass spec. starting time: {self.mass_spec_start_time_epoch} (unix epoch), {self.mass_spec_start_time}.")
 
-        print(
-            f"Experiment starting time: {self.time_stamp} (unix epoch), {self.start_time_utc}.")
+        except Exception as E:
+            self.mass_spec_start_time_epoch = None
+            self.mass_spec_start_time = None
+            raise E  # TODO
 
         # Create DataFrame
         try:
@@ -336,11 +350,11 @@ class XCAT():
 
             print(f"Experiment time range: {h}h:{m}m:{s}s")
 
-            self.end_time = int(self.time_range + self.time_stamp)
-            self.end_timeutc = datetime.datetime.fromtimestamp(
-                self.end_time).strftime("%b %d, %Y  %I:%M:%S  %p")
+            self.mass_spec_end_time_epoch = int(self.time_range + self.mass_spec_start_time_epoch)
+            self.mass_spec_end_time = datetime.fromtimestamp(
+                self.mass_spec_end_time_epoch).strftime('%Y-%m-%d %H:%M:%S')
             print(
-                f"Experiment end time: {self.end_time} (unix epoch), {self.end_timeutc}.")
+                f"Mass spec. end time: {self.mass_spec_end_time_epoch} (unix epoch), {self.mass_spec_end_time}.")
             print("Careful, there are two hours added regarding utc time.")
 
             # Create new time column in integer seconds
@@ -371,15 +385,25 @@ class XCAT():
             display(self.rga_df_interpolated.tail())
 
         except NameError:
-            print(
-                "To interpolate also the RGA data, you need to load the mass spectrometer file first")
+            print("\n#######################################################")
+            print("""
+                \nCould not interpolate the rga data.
+                \nTo interpolate also the RGA data, you need to load the mass spectrometer file first
+                """)
+            print("#######################################################\n")
 
-        except Exception as e:
-            raise e
-            print("Play with the amount of columns names and the amount of rows skipped.")
+        except ValueError:
+            print("\n#######################################################")
+            print("""
+                \nCould not interpolate the rga data.
+                \nPlay with the amount of columns names and the amount of rows skipped.")
+                """)
+            print("#######################################################\n")
 
         # Directly truncate df to avoid errors if forgotten
         self.truncate_mass_flow_df()
+
+        self.interpolate_mass_flow_df()
 
     def truncate_mass_flow_df(self):
         """Truncate mass-specific mass flow DataFrame based on timestamp and
@@ -393,7 +417,7 @@ class XCAT():
                 # Find starting time for this DataFrame
                 temp_df = getattr(self, f"{mass}_df").copy()
                 index_start_time = (
-                    temp_df[f"time_{mass}"] - self.time_stamp).abs().argsort()[0]
+                    temp_df[f"time_{mass}"] - self.mass_spec_start_time_epoch).abs().argsort()[0]
 
                 # Reset time
                 temp_df = temp_df.iloc[index_start_time:, :].reset_index(
@@ -1188,7 +1212,7 @@ class XCAT():
         self.heater_starting_time = self.heater_df.time[0]
 
         # Find delta in seconds between beginning of heater df and experiment
-        delta_s = self.heater_starting_time - self.time_stamp
+        delta_s = self.heater_starting_time - self.mass_spec_start_time_epoch
 
         # Reset time
         self.heater_df.time = self.heater_df.time \
