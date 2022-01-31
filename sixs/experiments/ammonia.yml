@@ -139,3 +139,21 @@ mass_flow__colors:
     H2: "#008fd5"
     O2: "#008fd5"
     Ar: "#fc4f30"
+
+reflecto:
+    linewidth: 2
+    linewidth_hline: 1.6
+    linewidth_vline: 1.6
+    alpha_hline: 0.7
+    alpha_vline: 0.7
+    color_hline: "black"
+    color_vline: "black"
+    filling_alpha: 0.2
+    fontsize: 25
+    x_tick_step: 0.5
+    y_tick_step: 10
+    y_og: None
+    tick_fontsize: 30
+    y_text: 10000
+    title_fontsize: 30
+    background_bottom: 0

@@ -31,19 +31,58 @@ plt.rc('text', usetex=True)
 np.seterr(divide='ignore')
 
 
-class reflecto(object):
-    """docstring for reflecto"""
+class reflecto:
+    """Contains methods to load reflectometry data collected at SixS"""
 
-    def __init__(self, folder, scan_indices, data_format, var="l"):
+    def __init__(
+        self,
+        folder,
+        scan_indices,
+        data_format,
+        var="l",
+        configuration_file = False,
+    ):
         """
         :param folder: path to data folder
-        :param scan_indices: indices of reflectivity scans
+        :param scan_indices: indices of reflectivity scans, list
         :param data_format: hdf5 (after binoculars) or nxs (raw data)
+        :param configuration_file: .yml file,
+         stores metadata specific to the reaction
         :param var:
         """
+
+        # Load configuration file
+        try:
+            if os.path.isfile(configuration_file):
+                self.configuration_file = configuration_file
+            else:
+                self.configuration_file = self.path_package + "experiments/ammonia.yml"
+            print("Could not find configuration file.")
+            print("Defaulted to ammonia configuration.")
+
+        except TypeError:
+            self.configuration_file = self.path_package + "experiments/ammonia.yml"
+            print("Defaulted to ammonia configuration.")
+
+        finally:
+            with open(self.configuration_file) as filepath:
+                yaml_parsed_file = yaml.load(
+                    filepath,
+                    Loader=yaml.FullLoader
+                )
+
+                for key in yaml_parsed_file:
+                    setattr(self, key, yaml_parsed_file[key])
+                print("Loaded configuration file.")
+
         # Init class arguments
         self.folder = folder
+
+        if not isinstance(scan_indices, list):
+            self.scan_indices = list(scan_indices)
+
         self.scan_indices = [str(s) for s in scan_indices]
+
         self.data_format = data_format
 
         self.lat_para = dict()
@@ -67,66 +106,52 @@ class reflecto(object):
             "mu": "ang",
             "gamma": "ang",
             "delta": "ang",
-            "omega": "ang"}
+            "omega": "ang",
+            "delta": "ang",
+            "basepitch": "ang",
+        }
 
         try:
             self.data_type = var_dict[var]
         except:
             raise KeyError("Choose a variable according to", var_dict)
 
-        all_files = [f.split("/")[-1]
-                     for f in sorted(glob.glob(f"{folder}/*.{data_format}"))]
+        # Find files in folder depending on data format
+        files = [f.split("/")[-1]
+                 for f in sorted(glob.glob(f"{folder}/*.{data_format}"))]
+        print(f"Detected files in {folder}: {files}")
 
+        # Get files of interest based on scan_indices
         if self.data_type == "hkl" and self.data_format == "hdf5":
-            self.scan_list = [f for f in all_files if any(
+            self.scan_list = [f for f in files if any(
                 ["hkl_" + n + ".hdf5" in f for n in self.scan_indices])]
 
         elif self.data_type == "qxqyqz" and self.data_format == "hdf5":
-            self.scan_list = [f for f in all_files if any(
+            self.scan_list = [f for f in files if any(
                 ["qxqyqz_" + n + ".hdf5" in f for n in self.scan_indices])]
 
         elif self.data_type == "qparqper" and self.data_format == "hdf5":
-            self.scan_list = [f for f in all_files if any(
+            self.scan_list = [f for f in files if any(
                 ["qparqper_" + n + ".hdf5" in f for n in self.scan_indices])]
 
         elif self.data_type == "ang" and self.data_format == "hdf5":
-            self.scan_list = [f for f in all_files if any(
+            self.scan_list = [f for f in files if any(
                 ["ang_" + n + ".hdf5" in f for n in self.scan_indices])]
 
         # Data type not important for nxs files
         elif self.data_format == "nxs":
-            self.scan_list = [f for f in all_files if any(
+            self.scan_list = [f for f in files if any(
                 [n + ".nxs" in f for n in self.scan_indices])]
 
-        # Plotting variables
-        self.linewidth = 2
-        self.linewidth_hline = 1.6
-        self.linewidth_vline = 1.6
-        self.alpha_hline = 0.7
-        self.alpha_vline = 0.7
-        self.color_hline = "black"
-        self.color_vline = "black"
-
-        self.filling_alpha = 0.2
-
-        self.fontsize = 25
-
-        self.x_tick_step = 0.5
-        self.y_tick_step = 10
-        self.y_og = None
-        self.tick_fontsize = 30
-        self.y_text = 10e6
-
-        self.title_fontsize = 30
-
-        self.background_bottom = 0
-
-    def prep_nxs_data(self, roi=False):
+    def prep_nxs_data(
+        self,
+        roi,
+    ):
         """
-        The goal of this function is to change the integration roi to see if
-        it has an impact on the data, then the data is intergrated on this roi.
+        Change the integration roi to see if it has an impact on the data,
+        then the data is intergrated on this roi.
         Many parameters are taken from the nxs file such as q, qpar, qper, mu,
-        gamma, delta, omega, h, k and l
+        gamma, delta, omega, h, k and l.
         h, k and l depend on the orientation matrix used at that time.
 
         Each one of these parameters is defined FOR THE CENTRAL PIXEL of the
@@ -134,10 +159,13 @@ class reflecto(object):
 
         The reflecto may not have the same length, and/ or amount of points
 
-        We take the wavelength of the first dataset in the series
+        We take the wavelength of the last dataset in the series
+
+        :param roi: int or container
+         if int, use this roi (e.g. if 3, roi3)
+         if container of length 4, define roi as [roi[0], roi[1], roi[2], roi[3]]
         """
 
-        self.roi = roi
         self.intensities = []
 
         # cp stands for central pixel
@@ -145,67 +173,79 @@ class reflecto(object):
         self.cp_gamma, self.cp_delta, self.cp_mu, self.cp_omega = [], [], [], []
         self.cp_q, self.cp_qper, self.cp_qpar = [], [], []
 
-        # First loop to find shortest index list
+        # First loop to find shortest common index between the scans
+        for j, f in enumerate(self.scan_list):
+            data = rn4.DataSet(filename=f, directory=self.folder)
 
-        for f in self.scan_list:
-            data = rn4.DataSet(self.folder + f)
-
-            if not self.roi:
+            if isinstance(roi, int):
+                # calculate the roi corrected by attcoef, mask, filters,
+                # acquisition_time
                 data.calcROI_new2()
 
                 # Do not take bad values due to attenuator change
                 # long but necessary
                 try:
                     ind1 = np.where(np.log(data.roi3_xpad70_new) > 0)
-                    self.roi = tuple(data._roi_limits_xpad70[3])
+                    self.roi = data._roi_limits_xpad70[roi]
                 except AttributeError:
                     try:
                         ind1 = np.where(np.log(data.roi3_xpad140_new) > 0)
-                        self.roi = tuple(data._roi_limits_xpad140[3])
+                        self.roi = data._roi_limits_xpad140[roi]
                     except Exception as E:
                         raise E
 
             else:
-                a, b, c, d = self.roi
-                data.calcROI(data.xpad70, [a, b, c, d], "_mask_xpad70",
-                             data._integration_time, "roi5_xpad70_new", coef='default', filt='default')
+                self.roi = roi
+                data.calcROI(
+                    stack = data.xpad70,
+                    roiextent = self.roi,
+                    maskname = "_mask_xpad70",
+                    acqTime = data._integration_time,
+                    ROIname = "roi5_xpad70_new",
+                    coef='default',
+                    filt='default'
+                )
 
                 # Do not take bad values due to attenuator change
                 if "post" in f:
+                    # wtf is this value ?
+                    # np.log(5*data.roi5_xpad70_new)
                     ind1_pm = np.where(np.log(5*data.roi5_xpad70_new) > 0)
 
                 else:
                     ind1 = np.where(np.log(data.roi5_xpad70_new) > 0)
 
             if "post" in f:
-                try:
-                    ind_pm = np.intersect1d(ind_pm, ind1_pm)
-                except:
-                    ind_pm = ind1_pm
+                if j==0: # Create array
+                    self.ind_pm = ind1_pm
+                else: # Intersect both arrays
+                    self.ind_pm = np.intersect1d(self.ind_pm, ind1_pm)
             else:
-                try:
-                    ind = np.intersect1d(ind, ind1)
-                except:
-                    ind = ind1
+                if j==0: # Create array
+                    self.ind = ind1
+                else: # Intersect both arrays
+                    self.ind = np.intersect1d(self.ind, ind1)
 
         print("Found common indices between all scans")
-        try:
-            self.ind_pm = ind_pm
-        except:
-            pass
-        self.ind = ind
 
-        dataset = rn4.DataSet(self.folder + self.scan_list[0])
-
-        # Compute reflections for afterwards, we use the wavelength of last dataset in list
-        self.compute_miller(wl=dataset.waveL, tt_cutoff=dataset.gamma[-1])
+        # Compute reflections, we use the wavelength of last dataset in list
+        dataset = rn4.DataSet(
+            filename=self.scan_list[0],
+            directory=self.folder
+            )
         self.wavel = dataset.waveL
 
+        self.compute_miller(
+            wl=self.wavel,
+            tt_cutoff=dataset.gamma[-1]
+        )
+
+        # Second loop
         for f in self.scan_list:
             print("Opening " + f)
 
             # Keep andrea's script because it corrects for attenuation
-            data = rn4.DataSet(self.folder + f)
+            data = rn4.DataSet(filename=f, directory=self.folder)
 
             # Take good indices depending on scans
             if "post" in f:
@@ -234,10 +274,15 @@ class reflecto(object):
 
             else:
                 # We use our own roi
-                a, b, c, d = self.roi
-                data.calcROI(data.xpad70, [a, b, c, d], "_mask_xpad70",
-                             data._integration_time, "roi5_xpad70_new", coef='default', filt='default')
-
+                data.calcROI(
+                    stack = data.xpad70,
+                    roiextent = self.roi,
+                    maskname = "_mask_xpad70",
+                    acqTime = data._integration_time,
+                    ROIname = "roi5_xpad70_new",
+                    coef='default',
+                    filt='default'
+                )
                 if "post" in f:
                     print("Post mortem data. Multiplying intensity by 5.")
                     self.intensities.append(5*data.roi5_xpad70_new[ind])
@@ -895,14 +940,24 @@ class reflecto(object):
             if critical_angles:
                 print("Critical angles position is angular (theta).")
                 # Generate a bolded vertical line at x = 0.24 to highlightcritical angle of Pt
-                axes[0].axvline(x=2*0.254509 if x_axis == "gamma" else 0.254509, color='red', linewidth=self.linewidth_vline, alpha=self.alpha_vline,
-                                # label = "$\\alpha_c$ Pt",
-                                linestyle="--")
+                axes[0].axvline(
+                    x=2*0.254509 if x_axis == "gamma" else 0.254509,
+                    color='red',
+                    linewidth=self.linewidth_vline,
+                    alpha=self.alpha_vline,
+                    # label = "$\\alpha_c$ Pt",
+                    linestyle="--"
+                )
 
                 # Generate a bolded vertical line at x = 0.12 to highlightcritical angle of Al2O3
-                axes[0].axvline(x=2*0.130261 if x_axis == "gamma" else 0.130261, color='black', linewidth=self.linewidth_vline, alpha=self.alpha_vline,
-                                # label = "$\\alpha_c$ $Al_2O_3$",
-                                linestyle="--")
+                axes[0].axvline(
+                    x=2*0.130261 if x_axis == "gamma" else 0.130261,
+                    color='black',
+                    linewidth=self.linewidth_vline,
+                    alpha=self.alpha_vline,
+                    # label = "$\\alpha_c$ $Al_2O_3$",
+                    linestyle="--"
+                )
 
             if miller:
                 if self.data_format == "hdf5" and self.data_type == "qxqyqz":
@@ -1013,15 +1068,17 @@ class reflecto(object):
 
         print(f"Saved as {save_as}")
 
-    def fit_bragg(self,
-                  scan_to_fit,
-                  fit_range=[2.75, 2.95],
-                  x_axis="q",
-                  peak_nb=1,
-                  peak_pos=[2.85],
-                  peak_amp=[1e5],
-                  peak_sigma=[0.0008],
-                  back=[10, 0, 100]):
+    def fit_bragg(
+        self,
+        scan_to_fit,
+        fit_range=[2.75, 2.95],
+        x_axis="q",
+        peak_nb=1,
+        peak_pos=[2.85],
+        peak_amp=[1e5],
+        peak_sigma=[0.0008],
+        back=[10, 0, 100]
+    ):
         """docstring"""
 
         # Create a dictionnary for the peak to be able to iterate on their names
@@ -1040,15 +1097,34 @@ class reflecto(object):
                   "qper": "cp_qper"}
 
         # Find good x axis
-        if self.data_format == "nxs" and x_axis in ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"]:
+        if self.data_format == "nxs" and x_axis in [
+            "h", "k", "l", "q",
+            "qpar", "qper", "gamma",
+            "mu", "delta", "omega"
+        ]:
             x_total = getattr(self, x_axes[x_axis])
 
-        elif self.data_format == "nxs" and x_axis not in ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"]:
+        elif self.data_format == "nxs" and x_axis not in [
+            "h", "k", "l",
+            "q", "qpar", "qper",
+            "qpar", "qper", "gamma",
+            "mu", "delta", "omega"
+        ]:
             return("Choose a x_axis in the following list :", [
-                "h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"])
+                "h", "k", "l",
+                "q", "qpar", "qper",
+                "gamma", "mu",
+                "delta", "omega"])
 
         # Iterate over each data set to find the Bragg peak
-        for q_range, gamma_range, delta_range, x, y, scan_name in zip(self.cp_q, self.cp_gamma, self.cp_delta, x_total, self.intensities, self.scan_indices):
+        for q_range, gamma_range, delta_range, x, y, scan_name in zip(
+            self.cp_q,
+            self.cp_gamma,
+            self.cp_delta,
+            x_total,
+            self.intensities,
+            self.scan_indices
+        ):
             if scan_name in scan_to_fit:
                 x_zoom = x[(x >= fit_range[0]) & (x <= fit_range[1])]
                 y_zoom = y[(x >= fit_range[0]) & (x <= fit_range[1])]
@@ -1112,7 +1188,14 @@ class reflecto(object):
                 dist_plane = 2 * np.pi / qnorm
                 self.lat_para[scan_name] = np.sqrt(3)*dist_plane
 
-    def compare_roi(self, index_range=1010, v_min_log=0.01, v_max_log=100, central_pixel_gamma=25, central_pixel_delta=285):
+    def compare_roi(
+        self,
+        index_range=1010,
+        v_min_log=0.01,
+        v_max_log=100,
+        central_pixel_gamma=25,
+        central_pixel_delta=285
+    ):
         """Define a widget function to be sure of the quality of the roi on the nxs file
         Assumes that the same detector is used for all the reflecto.
         """

@@ -4,6 +4,7 @@ from datetime import datetime
 import sixs
 import inspect
 import yaml
+import os
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -27,7 +28,7 @@ class XCAT():
     experiment without any products but just a temperature change.
     """
 
-    def __init__(self, configuration_file=None):
+    def __init__(self, configuration_file=False):
         """Initialize the module with a configuration file
 
         :param configuration_file: .yml file,
@@ -38,7 +39,19 @@ class XCAT():
 
         # Load configuration file
         try:
-            with open(configuration_file) as filepath:
+            if os.path.isfile(configuration_file):
+                self.configuration_file = configuration_file
+            else:
+                self.configuration_file = self.path_package + "experiments/ammonia.yml"
+            print("Could not find configuration file.")
+            print("Defaulted to ammonia configuration.")
+
+        except TypeError:
+            self.configuration_file = self.path_package + "experiments/ammonia.yml"
+            print("Defaulted to ammonia configuration.")
+
+        finally:
+            with open(self.configuration_file) as filepath:
                 yaml_parsed_file = yaml.load(
                     filepath,
                     Loader=yaml.FullLoader
@@ -47,28 +60,6 @@ class XCAT():
                 for key in yaml_parsed_file:
                     setattr(self, key, yaml_parsed_file[key])
                 print("Loaded configuration file.")
-        except TypeError:
-            with open(self.path_package + "experiments/ammonia.yml") as filepath:
-                yaml_parsed_file = yaml.load(
-                    filepath,
-                    Loader=yaml.FullLoader
-                )
-
-                for key in yaml_parsed_file:
-                    setattr(self, key, yaml_parsed_file[key])
-            print("Defaulted to ammonia configuration.")
-
-        except FileNotFoundError:
-            with open(self.path_package + "experiments/ammonia.yml") as filepath:
-                yaml_parsed_file = yaml.load(
-                    filepath,
-                    Loader=yaml.FullLoader
-                )
-
-                for key in yaml_parsed_file:
-                    setattr(self, key, yaml_parsed_file[key])
-            print("Could not find configuration file.")
-            print("Defaulted to ammonia configuration.")
 
         # Time for the gaz to travel from cell to detector
         try:
@@ -497,7 +488,7 @@ class XCAT():
 
     def plot_mass_flow_entry(
         self,
-        mass_list,
+        mass_list=["NO", "H2", "O2", "CO", "Ar", "shunt", "reactor", "drain"],
         df="interpolated",
         figsize=(10, 6),
         fontsize=15,
@@ -542,119 +533,115 @@ class XCAT():
         except AttributeError:
             print("Wrong name for color dict.")
 
-        try:
-            mass_list = [g.lower() for g in mass_list]
+        mass_list = [g.lower() for g in mass_list]
 
-            for entry in mass_list:
-                print("#######################################################")
-                print("Plotting for ", entry)
-                print("#######################################################")
-                plt.close()
-                fig, axes = plt.subplots(2, 1, figsize=figsize)
+        for entry in mass_list:
+            print("#######################################################")
+            print("Plotting for ", entry)
+            print("#######################################################")
+            plt.close()
+            fig, axes = plt.subplots(2, 1, figsize=figsize)
 
-                # Get dataframe
-                if df == "interpolated":
-                    plot_df = getattr(self, f"{entry}_df_interpolated").copy()
+            # Get dataframe
+            if df == "interpolated":
+                plot_df = getattr(self, f"{entry}_df_interpolated").copy()
 
-                elif df == "truncated":
-                    plot_df = getattr(self, f"{entry}_df_truncated").copy()
+            elif df == "truncated":
+                plot_df = getattr(self, f"{entry}_df_truncated").copy()
 
-                else:
-                    raise NameError("Wrong df.")
+            else:
+                raise NameError("Wrong df.")
 
-                # Change to hours
-                if hours:
-                    x_label = "Time (h)"
-                    plot_df[f"time_{entry}"] = plot_df[f"time_{entry}"].values/3600
-                else:
-                    x_label = "Time (s)"
+            # Change to hours
+            if hours:
+                x_label = "Time (h)"
+                plot_df[f"time_{entry}"] = plot_df[f"time_{entry}"].values/3600
+            else:
+                x_label = "Time (s)"
 
-                # Plot flow
-                axes[0].plot(
-                    plot_df[f"time_{entry}"],
-                    plot_df[f"flow_{entry}"],
-                    label=f"flow_{entry}")
+            # Plot flow
+            axes[0].plot(
+                plot_df[f"time_{entry}"],
+                plot_df[f"flow_{entry}"],
+                label=f"flow_{entry}")
 
-                # Plot setpoint
-                axes[0].plot(
-                    plot_df[f"time_{entry}"],
-                    plot_df[f"setpoint_{entry}"],
-                    linestyle="--",
-                    label=f"setpoint_{entry}")
+            # Plot setpoint
+            axes[0].plot(
+                plot_df[f"time_{entry}"],
+                plot_df[f"setpoint_{entry}"],
+                linestyle="--",
+                label=f"setpoint_{entry}")
 
-                # Plot valve position
-                axes[1].plot(
-                    plot_df[f"time_{entry}"],
-                    plot_df[f"valve_{entry}"],
-                    label=f"valve_{entry}")
+            # Plot valve position
+            axes[1].plot(
+                plot_df[f"time_{entry}"],
+                plot_df[f"valve_{entry}"],
+                label=f"valve_{entry}")
 
-                # Zoom
-                try:
-                    axes[0].set_xlim([zoom1[0], zoom1[1]])
-                    axes[0].set_ylim([zoom1[2], zoom1[3]])
+            # Zoom
+            try:
+                axes[0].set_xlim([zoom1[0], zoom1[1]])
+                axes[0].set_ylim([zoom1[2], zoom1[3]])
 
-                    axes[1].set_xlim([zoom2[0], zoom2[1]])
-                    axes[1].set_ylim([zoom2[2], zoom2[3]])
-                except TypeError:
-                    pass
+                axes[1].set_xlim([zoom2[0], zoom2[1]])
+                axes[1].set_ylim([zoom2[2], zoom2[3]])
+            except TypeError:
+                pass
 
-                # Plot cursors
-                for cursor_pos, cursor_label in zip(
-                    cursor_positions,
-                    cursor_labels
-                ):
-                    for j, ax in enumerate(axes):
-                        try:
-                            ax.axvline(
-                                cursor_pos,
-                                linestyle="--",
-                                color=color_dict[cursor_label],
-                                linewidth=1.5,
-                                label=cursor_label
-                            )
-                        except Exception as E:
-                            raise E
-                        # except (TypeError, KeyError):
-                        #     pass
+            # Plot cursors
+            for cursor_pos, cursor_label in zip(
+                cursor_positions,
+                cursor_labels
+            ):
+                for j, ax in enumerate(axes):
+                    try:
+                        ax.axvline(
+                            cursor_pos,
+                            linestyle="--",
+                            color=color_dict[cursor_label],
+                            linewidth=1.5,
+                            label=cursor_label
+                        )
+                    except KeyError:
+                        print("Is there an entry on the color dict for each mass ?")
+                    # except (TypeError, KeyError):
+                    #     pass
 
-                # Dict for y positions of text depending on the valve
-                for x1, x2, cursor_label in zip(
-                    cursor_positions[:-1],
-                    cursor_positions[1:],
-                    cursor_labels
-                ):
-                    for j, ax in enumerate(axes):
+            # Dict for y positions of text depending on the valve
+            for x1, x2, cursor_label in zip(
+                cursor_positions[:-1],
+                cursor_positions[1:],
+                cursor_labels
+            ):
+                for j, ax in enumerate(axes):
 
-                        # Vertical span color to show conditions
-                        try:
-                            ax.axvspan(
-                                x1,
-                                x2,
-                                alpha=0.2,
-                                facecolor=color_dict[cursor_label],
-                            )
-                        except Exception as E:
-                            raise E
+                    # Vertical span color to show conditions
+                    try:
+                        ax.axvspan(
+                            x1,
+                            x2,
+                            alpha=0.2,
+                            facecolor=color_dict[cursor_label],
+                        )
+                    except Exception as E:
+                        raise E
 
-                axes[0].set_ylabel("Flow", fontsize=fontsize+2)
-                axes[0].set_xlabel(x_label, fontsize=fontsize+2)
-                axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
-                axes[1].set_xlabel(x_label, fontsize=fontsize+2)
+            axes[0].set_ylabel("Flow", fontsize=fontsize+2)
+            axes[0].set_xlabel(x_label, fontsize=fontsize+2)
+            axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
+            axes[1].set_xlabel(x_label, fontsize=fontsize+2)
 
-                axes[0].legend(ncol=len(mass_list), fontsize=fontsize)
-                axes[1].legend(ncol=len(mass_list), fontsize=fontsize)
+            axes[0].legend(ncol=len(mass_list), fontsize=fontsize)
+            axes[1].legend(ncol=len(mass_list), fontsize=fontsize)
 
-                plt.tight_layout()
-                if save:
-                    plt.savefig(f"{fig_name}_{entry}.png")
-                    plt.savefig(f"{fig_name}_{entry}.pdf")
-                    print(
-                        f"Saved as {fig_name}_{entry} in (png, pdf) formats.")
+            plt.tight_layout()
+            if save:
+                plt.savefig(f"{fig_name}_{entry}.png")
+                plt.savefig(f"{fig_name}_{entry}.pdf")
+                print(
+                    f"Saved as {fig_name}_{entry} in (png, pdf) formats.")
 
-                plt.show()
-
-        except KeyError as e:
-            raise KeyError("Plot valves with Valves.plot_valves")
+            plt.show()
 
     def plot_mass_flow_valves(
         self,
@@ -701,110 +688,106 @@ class XCAT():
         except AttributeError:
             print("Wrong name for color dict.")
 
+        fig, axes = plt.subplots(2, 1, figsize=figsize)
+
+        # Get dataframe
+        if df == "interpolated":
+            plot_df = getattr(self, f"valve_df_interpolated").copy()
+
+        elif df == "truncated":
+            plot_df = getattr(self, f"valve_df_truncated").copy()
+
+        else:
+            raise NameError("Wrong df.")
+
+        # Change to hours
+        if hours:
+            x_label = "Time (h)"
+            plot_df["time_valve"] = plot_df["time_valve"].values/3600
+        else:
+            x_label = "Time (s)"
+
+        axes[0].plot(plot_df["time_valve"],
+                     plot_df["valve_MRS"],
+                     label="valve_MRS")
+        axes[1].plot(plot_df["time_valve"],
+                     plot_df["valve_MIX"],
+                     label="valve_MIX")
+
+        # Zoom
         try:
-            fig, axes = plt.subplots(2, 1, figsize=figsize)
+            axes[0].set_xlim([zoom1[0], zoom1[1]])
+            axes[0].set_ylim([zoom1[2], zoom1[3]])
 
-            # Get dataframe
-            if df == "interpolated":
-                plot_df = getattr(self, f"valve_df_interpolated").copy()
+            axes[1].set_xlim([zoom2[0], zoom2[1]])
+            axes[1].set_ylim([zoom2[2], zoom2[3]])
+        except TypeError:
+            pass
 
-            elif df == "truncated":
-                plot_df = getattr(self, f"valve_df_truncated").copy()
+        # Plot cursors
+        for cursor_pos, cursor_label in zip(
+            cursor_positions,
+            cursor_labels
+        ):
+            for j, ax in enumerate(axes):
+                try:
+                    ax.axvline(
+                        cursor_pos,
+                        linestyle="--",
+                        color=color_dict[cursor_label],
+                        linewidth=1.5,
+                        label=cursor_label
+                    )
+                except (TypeError, KeyError):
+                    pass
 
-            else:
-                raise NameError("Wrong df.")
+        # Dict for y positions of text depending on the valve
+        for x1, x2, cursor_label in zip(
+            cursor_positions[:-1],
+            cursor_positions[1:],
+            cursor_labels
+        ):
+            for j, ax in enumerate(axes):
+                try:
+                    ax.text(
+                        x1 + (x2-x1)/2,
+                        y=text_dict[cursor_label],
+                        s=cursor_label,
+                        fontsize=fontsize+5
+                    )
+                except TypeError:
+                    pass
+                except Exception as E:
+                    raise E
 
-            # Change to hours
-            if hours:
-                x_label = "Time (h)"
-                plot_df["time_valve"] = plot_df["time_valve"].values/3600
-            else:
-                x_label = "Time (s)"
+                # Vertical span color to show conditions
+                try:
+                    ax.axvspan(
+                        x1,
+                        x2,
+                        alpha=0.2,
+                        facecolor=color_dict[cursor_label],
+                    )
+                except TypeError:
+                    pass
+                except Exception as E:
+                    raise E
 
-            axes[0].plot(plot_df["time_valve"],
-                         plot_df["valve_MRS"],
-                         label="valve_MRS")
-            axes[1].plot(plot_df["time_valve"],
-                         plot_df["valve_MIX"],
-                         label="valve_MIX")
+        axes[0].set_ylabel("Valve MRS position", fontsize=fontsize+2)
+        axes[0].set_xlabel(x_label, fontsize=fontsize+2)
+        axes[1].set_ylabel("Valve MIX position", fontsize=fontsize+2)
+        axes[1].set_xlabel(x_label, fontsize=fontsize+2)
 
-            # Zoom
-            try:
-                axes[0].set_xlim([zoom1[0], zoom1[1]])
-                axes[0].set_ylim([zoom1[2], zoom1[3]])
+        axes[0].legend(fontsize=fontsize)
+        axes[1].legend(fontsize=fontsize)
 
-                axes[1].set_xlim([zoom2[0], zoom2[1]])
-                axes[1].set_ylim([zoom2[2], zoom2[3]])
-            except TypeError:
-                pass
+        plt.tight_layout()
+        if save:
+            plt.savefig(f"{fig_name}.png")
+            plt.savefig(f"{fig_name}.pdf")
+            print(f"Saved as {fig_name} in (png, pdf) formats.")
 
-            # Plot cursors
-            for cursor_pos, cursor_label in zip(
-                cursor_positions,
-                cursor_labels
-            ):
-                for j, ax in enumerate(axes):
-                    try:
-                        ax.axvline(
-                            cursor_pos,
-                            linestyle="--",
-                            color=color_dict[cursor_label],
-                            linewidth=1.5,
-                            label=cursor_label
-                        )
-                    except (TypeError, KeyError):
-                        pass
-
-            # Dict for y positions of text depending on the valve
-            for x1, x2, cursor_label in zip(
-                cursor_positions[:-1],
-                cursor_positions[1:],
-                cursor_labels
-            ):
-                for j, ax in enumerate(axes):
-                    try:
-                        ax.text(
-                            x1 + (x2-x1)/2,
-                            y=text_dict[cursor_label],
-                            s=cursor_label,
-                            fontsize=fontsize+5
-                        )
-                    except TypeError:
-                        pass
-                    except Exception as E:
-                        raise E
-
-                    # Vertical span color to show conditions
-                    try:
-                        ax.axvspan(
-                            x1,
-                            x2,
-                            alpha=0.2,
-                            facecolor=color_dict[cursor_label],
-                        )
-                    except TypeError:
-                        pass
-                    except Exception as E:
-                        raise E
-
-            axes[0].set_ylabel("Valve MRS position", fontsize=fontsize+2)
-            axes[0].set_xlabel(x_label, fontsize=fontsize+2)
-            axes[1].set_ylabel("Valve MIX position", fontsize=fontsize+2)
-            axes[1].set_xlabel(x_label, fontsize=fontsize+2)
-
-            axes[0].legend(fontsize=fontsize)
-            axes[1].legend(fontsize=fontsize)
-
-            plt.tight_layout()
-            if save:
-                plt.savefig(f"{fig_name}.png")
-                plt.savefig(f"{fig_name}.pdf")
-                print(f"Saved as {fig_name} in (png, pdf) formats.")
-
-            plt.show()
-
-        except KeyError as e:
-            raise KeyError("Plot valves with Valves.plot_valves")
+        plt.show()
 
     def plot_mass_spec(
         self,
@@ -874,6 +857,12 @@ class XCAT():
         else:
             self.norm_df = self.rga_data.copy()
 
+        # Use all comlumns if none specified
+        if mass_list is None:
+            mass_list = list(self.norm_df.columns[1:])
+            print(mass_list)
+            print("Defaulted mass_list to all columns")
+
         # Normalize data by total pressure
         if isinstance(norm_ptot, float):
             self.ptot = norm_ptot
@@ -892,13 +881,6 @@ class XCAT():
                 print("""
                     \nUsing columns specified with mass_list for normalization. \
                     \nIf you want to use other gases, use ptot_mass_list.
-                    """)
-
-            else:
-                raise TypeError("""
-                    \nPlease give a list of masses to use for normalization with \
-                    \n ptot_mass_list. Otherwise the same masses as mass_list \
-                    \n will be used.
                     """)
 
             # Get data
@@ -1001,17 +983,6 @@ class XCAT():
 
         except KeyError:
             print("Is there an entry on the color dict for each mass ?")
-        except TypeError:
-            # Using all the entries
-            mass_list = self.norm_df.columns[1:]
-            for mass in mass_list:
-                ax.plot(
-                    self.norm_df.Time.values,
-                    self.norm_df[mass].values,
-                    linewidth=2,
-                    label=f"{mass}",
-                    color=color_dict[mass]
-                )
 
         # Temperature on second ax
         try:
