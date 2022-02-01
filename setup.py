@@ -11,9 +11,9 @@ setuptools.setup(
     author_email="david.simonne@synchrotron-soleil.fr",
     data_files=[('', ["licence.txt",
                       "sixs/experiments/ammonia.yml",
-                     ])],
+                      ])],
     scripts=[
-          "sixs/scripts/print_pos.py"
+        "sixs/scripts/print_pos.py"
     ],
     url="https://github.com/DSimonne/sixs/tree/main",
     classifiers=[
@@ -21,11 +21,11 @@ setuptools.setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
     ],
-    keywords = ["SXRD", "XCAT", "RGA"],
+    keywords=["SXRD", "XCAT", "RGA"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
-	include_package_data=True,
+    include_package_data=True,
     python_requires='>=3.6',
     install_requires=[
         "numpy",
@@ -37,5 +37,5 @@ setuptools.setup(
         "xrayutilities",
         "tables",
         "PyQt5"
-        ]
+    ]
 )

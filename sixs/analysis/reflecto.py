@@ -1257,12 +1257,12 @@ class reflecto:
             ax[0].axhline(b + d, linewidth=1, color="red")
 
             ax[0].axvline(a, linewidth=1, color="red")
-            ax[0].axvline(a + c, linewidth=1, color="red", label = "ROI")
+            ax[0].axvline(a + c, linewidth=1, color="red", label="ROI")
 
             ax[0].axvline(central_pixel_x, linestyle="--",
                           linewidth=1, color="black")
             ax[0].axhline(central_pixel_y, linestyle="--",
-                          linewidth=1, color="black", label = "Central pixel")
+                          linewidth=1, color="black", label="Central pixel")
             ax[0].legend(fontsize=15)
 
             ax[0].set_title('Entire detector', fontsize=15)
