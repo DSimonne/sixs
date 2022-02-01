@@ -16,7 +16,7 @@ from ipywidgets import interact, Button, Layout, interactive, fixed
 from scipy import interpolate
 
 import sixs
-from sixs import ReadNxs4 as rn4
+from sixs_nxsread import ReadNxs4 as rn4
 # from sixs.binoculars import binUtil3 as bin3
 # from sixs import utilities3 as ut3
 
@@ -53,6 +53,8 @@ class reflecto:
         self.path_package = inspect.getfile(sixs).split("__")[0]
 
         # Load configuration file
+
+        print("###########################################################")
         try:
             if os.path.isfile(configuration_file):
                 self.configuration_file = configuration_file
@@ -75,6 +77,7 @@ class reflecto:
                 for key in yaml_parsed_file:
                     setattr(self, key, yaml_parsed_file[key])
                 print("Loaded configuration file.")
+                print("###########################################################\n")
 
         # Init class arguments
         self.folder = folder
@@ -174,7 +177,11 @@ class reflecto:
         self.two_theta = two_theta
         self.detector = detector
 
+        # Temporary lists
+        # x_values, y_values = [], []
+
         # First loop to find shortest common index between the scans
+        # Only useful if using the same amount of point
         for j, f in enumerate(self.scan_list):
             data = rn4.DataSet(filename=f, directory=self.folder)
 
@@ -190,6 +197,7 @@ class reflecto:
                         data, f"_roi_limits_{self.detector}")[roi]
                     data_array = getattr(data, f"roi{roi}_{self.detector}_new")
                     mask = np.log(data_array) > 0
+                    # y_values.append(data_array[mask])
                 except AttributeError:
                     print("Could not find data, is it the good detector ?")
 
@@ -215,9 +223,14 @@ class reflecto:
             if j == 0:  # Create mask array
                 self.common_mask = mask
             else:  # Intersect both arrays
-                self.common_mask = np.intersect1d(self.common_mask, mask)
+                try:
+                    self.common_mask = self.common_mask * mask
+                except ValueError:
+                    print("Do the scans have the same number of points ?")
 
+        print("\n###########################################################")
         print("Found common mask between all scans")
+        print("###########################################################")
 
         # Compute reflections, we use the wavelength of last dataset in list
         dataset = rn4.DataSet(
@@ -225,8 +238,8 @@ class reflecto:
             directory=self.folder
         )
         self.wavel = dataset.waveL
-        self.x_range = getattr(dataset, detector).shape[1]
-        self.y_range = getattr(dataset, detector).shape[2]
+        self.y_range = getattr(dataset, detector).shape[1]
+        self.x_range = getattr(dataset, detector).shape[2]
 
         # self.compute_miller(
         #     wl=self.wavel,
@@ -251,6 +264,7 @@ class reflecto:
 
         # Second loop
         for j, f in enumerate(self.scan_list):
+            print("\n###########################################################")
             print("Opening " + f)
 
             # Keep andrea's script because it corrects for attenuation
@@ -295,6 +309,8 @@ class reflecto:
                     print("Saved values for", value)
                 except AttributeError:
                     pass
+
+            print("###########################################################")
 
     def prep_binoc_data(
         self,
@@ -593,7 +609,7 @@ class reflecto:
         critical_angles=False,
         background=False,
         low_range=False,
-        high_range=False
+        high_range=False,
     ):
         """
         miller must be a list containing nothing or "pt", 'al2o3' or "bn"
@@ -738,24 +754,25 @@ class reflecto:
             if critical_angles:
                 print("Critical angles position is angular (theta).")
                 # Generate a bolded vertical line at x = 0.24 to highlightcritical angle of Pt
+                # 0.2538
                 plt.axvline(
-                    x=2*0.254509 if x_axis == "gamma" else 0.254509,
+                    x=2*0.2540 if x_axis == "gamma" else 0.2540,
                     color='red',
-                    linewidth=1,
+                    linewidth=2,
                     alpha=1,
                     label="$\\alpha_c$ Pt",
                     linestyle="--"
                 )
 
                 # Generate a bolded vertical line at x = 0.12 to highlightcritical angle of Al2O3
-                plt.axvline(
-                    x=2*0.130261 if x_axis == "gamma" else 0.130261,
-                    color='black',
-                    linewidth=1,
-                    alpha=1,
-                    label="$\\alpha_c$ $Al_2O_3$",
-                    linestyle="--"
-                )
+                # plt.axvline(
+                #     x=2*0.130261 if x_axis == "gamma" else 0.130261,
+                #     color='black',
+                #     linewidth=1,
+                #     alpha=1,
+                #     label="$\\alpha_c$ $Al_2O_3$",
+                #     linestyle="--"
+                # )
 
             if miller:
                 if self.data_format == "hdf5" and self.data_type == "qxqyqz":
@@ -849,10 +866,10 @@ class reflecto:
 
             # Ticks
             plt.xticks(
-                np.arange(
-                    (self.x_min//x_tick_step)*x_tick_step,
-                    (self.x_max // x_tick_step)*x_tick_step,
-                    x_tick_step),
+                # np.arange(
+                # (self.x_min//x_tick_step)*x_tick_step,
+                # (self.x_max // x_tick_step)*x_tick_step,
+                # x_tick_step),
                 fontsize=self.fontsize
             )
             plt.yticks(
@@ -875,9 +892,8 @@ class reflecto:
                     plt.fill_between(x_axis, y_first, y_last, alpha=0.1)
                 except:
                     print("Could not add filling.")
-            else:
-                print("No filling")
 
+            # Legend and labels
             plt.legend(fontsize=self.fontsize, ncol=ncol)
 
             if self.data_format == "hdf5" and self.var == "hkl":
@@ -1068,11 +1084,9 @@ class reflecto:
         plt.tight_layout()
 
         # Save
-        try:
+        if filename != None:
             plt.savefig(f"{filename}", bbox_inches='tight')
             print(f"Saved as {filename}")
-        except TypeError:
-            pass
 
         plt.show()
 
@@ -1200,19 +1214,23 @@ class reflecto:
         self,
         v_min_log=0.01,
         v_max_log=1000,
-        central_pixel_x=285,
-        central_pixel_y=25,
+        central_pixel_x=94,
+        central_pixel_y=278,
         figsize=(16, 9),
     ):
         """
         Widget function to assess the quality of the roi on the .nxs file.
         Assumes that the same detector is used for all the scans.
 
-        :param v_min_log:
-        :param v_max_log:
-        :param central_pixel_x:
-        :param central_pixel_y:
-        :param figsize:
+        :param v_min_log: minimum value in log scale
+        :param v_max_log: maximum value in log scale
+        :param central_pixel_x: central pixel (x usually delta) corresponding
+         to the angular positions saved in nexus file. There is usually a
+         shift of about ~1.7° that allows us to hide the direct beam to work
+         with the attenuators.
+        :param central_pixel_y: central pixel (y usually gamma) corresponding
+         to the angular positions saved in nexus file.
+        :param figsize: size of figure
         """
 
         try:
@@ -1239,20 +1257,21 @@ class reflecto:
             ax[0].axhline(b + d, linewidth=1, color="red")
 
             ax[0].axvline(a, linewidth=1, color="red")
-            ax[0].axvline(a + c, linewidth=1, color="red")
+            ax[0].axvline(a + c, linewidth=1, color="red", label = "ROI")
 
-            ax[0].axvline(central_pixel_y, linestyle="--",
+            ax[0].axvline(central_pixel_x, linestyle="--",
                           linewidth=1, color="black")
-            ax[0].axhline(central_pixel_x, linestyle="--",
-                          linewidth=1, color="black")
+            ax[0].axhline(central_pixel_y, linestyle="--",
+                          linewidth=1, color="black", label = "Central pixel")
+            ax[0].legend(fontsize=15)
 
             ax[0].set_title('Entire detector', fontsize=15)
-            ax[0].set_ylabel("Gamma", fontsize=15)
-            ax[0].set_xlabel("Delta", fontsize=15)
+            ax[0].set_ylabel("Y (Gamma)", fontsize=15)
+            ax[0].set_xlabel("X (Delta)", fontsize=15)
 
             ax[1].set_title('Zoom in ROI', fontsize=15)
-            ax[1].set_ylabel("Gamma", fontsize=15)
-            ax[1].set_xlabel("Delta", fontsize=15)
+            ax[1].set_ylabel("Y (Gamma)", fontsize=15)
+            ax[1].set_xlabel("X (Delta)", fontsize=15)
 
             # ax[0].text(x=1.5,
             #            y=-25,
@@ -1277,7 +1296,7 @@ class reflecto:
             a=widgets.IntSlider(
                 value=self.roi[0],
                 min=0,
-                max=self.y_range,
+                max=self.x_range,
                 step=1,
                 description='a:',
                 continuous_update=False,
@@ -1287,7 +1306,7 @@ class reflecto:
             b=widgets.IntSlider(
                 value=self.roi[1],
                 min=0,
-                max=self.x_range,
+                max=self.y_range,
                 step=1,
                 description='b:',
                 continuous_update=False,
@@ -1297,7 +1316,7 @@ class reflecto:
             c=widgets.IntSlider(
                 value=self.roi[2],
                 min=0,
-                max=self.y_range,
+                max=self.x_range,
                 step=1,
                 description='c:',
                 continuous_update=False,
@@ -1307,7 +1326,7 @@ class reflecto:
             d=widgets.IntSlider(
                 value=self.roi[3],
                 min=0,
-                max=self.x_range,
+                max=self.y_range,
                 step=1,
                 description='d:',
                 continuous_update=False,

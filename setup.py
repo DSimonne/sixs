@@ -10,7 +10,6 @@ setuptools.setup(
     author="David Simonne, Andrea Resta",
     author_email="david.simonne@synchrotron-soleil.fr",
     data_files=[('', ["licence.txt",
-                      "sixs/alias_dict.txt",
                       "sixs/experiments/ammonia.yml",
                      ])],
     scripts=[

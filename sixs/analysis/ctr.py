@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import glob
-from sixs import ReadNxs4 as rn
+from sixs_nxsread import ReadNxs4 as rn
 from scipy import interpolate
 
 
