@@ -1,20 +1,23 @@
+import numpy as np
+import tables as tb
+import pandas as pd
+import glob
+import os
+import inspect
+import yaml
+
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, interact_manual
 from ipywidgets import interact, Button, Layout, interactive, fixed
 
 from scipy import interpolate
 
-import tables as tb
-
-import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
-
-import numpy as np
-import pandas as pd
-import glob
-
-# from phdutils.binoculars import binUtil3 as bin3
+import sixs
 from sixs import ReadNxs4 as rn4
+# from sixs.binoculars import binUtil3 as bin3
 # from sixs import utilities3 as ut3
 
 import xrayutilities as xu
@@ -24,11 +27,6 @@ from lmfit import minimize, Parameters, Parameter
 from lmfit.models import LinearModel, ConstantModel, QuadraticModel, PolynomialModel, StepModel
 from lmfit.models import GaussianModel, LorentzianModel, SplitLorentzianModel, VoigtModel, PseudoVoigtModel
 from lmfit.models import MoffatModel, Pearson7Model, StudentsTModel, BreitWignerModel, LognormalModel, ExponentialGaussianModel, SkewedGaussianModel, SkewedVoigtModel, DonaichModel
-
-plt.style.use('fivethirtyeight')
-plt.rc('text', usetex=True)
-
-np.seterr(divide='ignore')
 
 
 class reflecto:
@@ -40,16 +38,19 @@ class reflecto:
         scan_indices,
         data_format,
         var="l",
-        configuration_file = False,
+        configuration_file=False,
     ):
         """
         :param folder: path to data folder
         :param scan_indices: indices of reflectivity scans, list
         :param data_format: hdf5 (after binoculars) or nxs (raw data)
-        :param configuration_file: .yml file,
-         stores metadata specific to the reaction
-        :param var:
+        :param var: "l", variable used as x axis to plot data
+        :param configuration_file: False, .yml file that stores metadata
+         specific to the reaction, if False, default to
+         self.path_package + "experiments/ammonia.yml"
         """
+
+        self.path_package = inspect.getfile(sixs).split("__")[0]
 
         # Load configuration file
         try:
@@ -57,8 +58,8 @@ class reflecto:
                 self.configuration_file = configuration_file
             else:
                 self.configuration_file = self.path_package + "experiments/ammonia.yml"
-            print("Could not find configuration file.")
-            print("Defaulted to ammonia configuration.")
+                print("Could not find configuration file.")
+                print("Defaulted to ammonia configuration.")
 
         except TypeError:
             self.configuration_file = self.path_package + "experiments/ammonia.yml"
@@ -84,10 +85,6 @@ class reflecto:
         self.scan_indices = [str(s) for s in scan_indices]
 
         self.data_format = data_format
-
-        self.lat_para = dict()
-
-        # implemented for now in case in the future we want to plot on other axes
         self.var = var
 
         var_dict = {
@@ -107,7 +104,7 @@ class reflecto:
             "gamma": "ang",
             "delta": "ang",
             "omega": "ang",
-            "delta": "ang",
+            "beta": "ang",
             "basepitch": "ang",
         }
 
@@ -146,6 +143,9 @@ class reflecto:
     def prep_nxs_data(
         self,
         roi,
+        theta="mu",
+        two_theta="gamma",
+        detector="xpad140"
     ):
         """
         Change the integration roi to see if it has an impact on the data,
@@ -164,14 +164,15 @@ class reflecto:
         :param roi: int or container
          if int, use this roi (e.g. if 3, roi3)
          if container of length 4, define roi as [roi[0], roi[1], roi[2], roi[3]]
+        :param theta: angle used as theta in theta / two_theta geometry
+        :param two_theta: angle used as two_theta in theta / two_theta geometry
+        :param detector: detector used, can be xpad140, xpad70, ...
         """
 
         self.intensities = []
-
-        # cp stands for central pixel
-        self.cp_h, self.cp_k, self.cp_l = [], [], []
-        self.cp_gamma, self.cp_delta, self.cp_mu, self.cp_omega = [], [], [], []
-        self.cp_q, self.cp_qper, self.cp_qpar = [], [], []
+        self.theta = theta
+        self.two_theta = two_theta
+        self.detector = detector
 
         # First loop to find shortest common index between the scans
         for j, f in enumerate(self.scan_list):
@@ -185,123 +186,115 @@ class reflecto:
                 # Do not take bad values due to attenuator change
                 # long but necessary
                 try:
-                    ind1 = np.where(np.log(data.roi3_xpad70_new) > 0)
-                    self.roi = data._roi_limits_xpad70[roi]
+                    self.roi = getattr(
+                        data, f"_roi_limits_{self.detector}")[roi]
+                    data_array = getattr(data, f"roi{roi}_{self.detector}_new")
+                    mask = np.log(data_array) > 0
                 except AttributeError:
-                    try:
-                        ind1 = np.where(np.log(data.roi3_xpad140_new) > 0)
-                        self.roi = data._roi_limits_xpad140[roi]
-                    except Exception as E:
-                        raise E
+                    print("Could not find data, is it the good detector ?")
 
             else:
                 self.roi = roi
+                # Create a roi, name it roi5
                 data.calcROI(
-                    stack = data.xpad70,
-                    roiextent = self.roi,
-                    maskname = "_mask_xpad70",
-                    acqTime = data._integration_time,
-                    ROIname = "roi5_xpad70_new",
+                    stack=getattr(data, self.detector),
+                    roiextent=self.roi,
+                    maskname=f"_mask_{self.detector}",
+                    acqTime=data._integration_time,
+                    ROIname=f"roi5_{self.detector}_new",
                     coef='default',
                     filt='default'
                 )
 
                 # Do not take bad values due to attenuator change
-                if "post" in f:
-                    # wtf is this value ?
-                    # np.log(5*data.roi5_xpad70_new)
-                    ind1_pm = np.where(np.log(5*data.roi5_xpad70_new) > 0)
+                # Careful if different current in synchrotron, different
+                # intensities overall ! -> *5
+                data_array = getattr(data, f"roi5_{self.detector}_new")
+                mask = np.log(data_array) > 0
 
-                else:
-                    ind1 = np.where(np.log(data.roi5_xpad70_new) > 0)
+            if j == 0:  # Create mask array
+                self.common_mask = mask
+            else:  # Intersect both arrays
+                self.common_mask = np.intersect1d(self.common_mask, mask)
 
-            if "post" in f:
-                if j==0: # Create array
-                    self.ind_pm = ind1_pm
-                else: # Intersect both arrays
-                    self.ind_pm = np.intersect1d(self.ind_pm, ind1_pm)
-            else:
-                if j==0: # Create array
-                    self.ind = ind1
-                else: # Intersect both arrays
-                    self.ind = np.intersect1d(self.ind, ind1)
-
-        print("Found common indices between all scans")
+        print("Found common mask between all scans")
 
         # Compute reflections, we use the wavelength of last dataset in list
         dataset = rn4.DataSet(
             filename=self.scan_list[0],
             directory=self.folder
-            )
-        self.wavel = dataset.waveL
-
-        self.compute_miller(
-            wl=self.wavel,
-            tt_cutoff=dataset.gamma[-1]
         )
+        self.wavel = dataset.waveL
+        self.x_range = getattr(dataset, detector).shape[1]
+        self.y_range = getattr(dataset, detector).shape[2]
+
+        # self.compute_miller(
+        #     wl=self.wavel,
+        #     tt_cutoff=getattr(data, two_theta)[-1]
+        # )
+
+        # Possible x axes, key is the name here, value is the name in rn4
+        self.x_axes = {
+            "h": "h",
+            "k": "k",
+            "l": "l",
+            "q": "q",
+            "qpar": "qpar",
+            "qper": "qper",
+            "gamma": "gamma",
+            "mu": "mu",
+            "delta": "delta",
+            "omega": "omega",
+            "beta": "beta",
+            "basepitch": "basepitch",
+        }
 
         # Second loop
-        for f in self.scan_list:
+        for j, f in enumerate(self.scan_list):
             print("Opening " + f)
 
             # Keep andrea's script because it corrects for attenuation
             data = rn4.DataSet(filename=f, directory=self.folder)
 
-            # Take good indices depending on scans
-            if "post" in f:
-                ind = self.ind_pm
-            else:
-                ind = self.ind
-
-            try:
-                self.roi_limits_xpad70 = data._roi_limits_xpad70
-
-                # used for compare roi widget
-                self.gamma_width = data.xpad_s70_image.shape[1]
-                self.delta_width = data.xpad_s70_image.shape[2]
-            except:
-                # post mortem scans, there was a bog
-                print("No roi for this dataset")
-
-            if not self.roi:
-                # We use the roi3, defined as the good one during the
-                # experiment, this can change for other experiments
+            if isinstance(roi, int):
+                # calculate the roi corrected by attcoef, mask, filters,
+                # acquisition_time
                 data.calcROI_new2()
-                try:
-                    self.intensities.append(data.roi3_xpad70_new[ind])
-                except AttributeError:
-                    self.intensities.append(data.roi3_xpad140_new[ind])
+
+                # Do not take bad values due to attenuator change
+                # long but necessary
+                data_array = getattr(data, f"roi{roi}_{self.detector}_new")
+                self.intensities.append(data_array[self.common_mask])
 
             else:
-                # We use our own roi
+                # Create a roi, name it roi5
                 data.calcROI(
-                    stack = data.xpad70,
-                    roiextent = self.roi,
-                    maskname = "_mask_xpad70",
-                    acqTime = data._integration_time,
-                    ROIname = "roi5_xpad70_new",
+                    stack=getattr(data, self.detector),
+                    roiextent=self.roi,
+                    maskname=f"_mask_{self.detector}",
+                    acqTime=data._integration_time,
+                    ROIname=f"roi5_{self.detector}_new",
                     coef='default',
                     filt='default'
                 )
-                if "post" in f:
-                    print("Post mortem data. Multiplying intensity by 5.")
-                    self.intensities.append(5*data.roi5_xpad70_new[ind])
 
-                else:
-                    self.intensities.append(data.roi5_xpad70_new[ind])
+                data_array = getattr(data, f"roi5_{self.detector}_new")
+                self.intensities.append(data_array[self.common_mask])
 
-            self.cp_h.append(data.h[ind])
-            self.cp_k.append(data.k[ind])
-            self.cp_l.append(data.l[ind])
+            # Get metadata if defined
+            for key, value in self.x_axes.items():
+                try:  # Get current list
+                    p = getattr(self, key)
+                except AttributeError:  # Create one
+                    p = []
 
-            self.cp_gamma.append(data.gamma[ind]-0.5)
-            self.cp_mu.append(data.mu[ind])
-            self.cp_omega.append(data.omega[ind])
-            self.cp_delta.append(data.delta[ind])
-
-            self.cp_q.append(data.q[ind])
-            self.cp_qpar.append(data.qPar[ind])
-            self.cp_qper.append(data.qPer[ind])
+                # Append scan values for this x axis
+                try:
+                    p.append(getattr(data, value)[self.common_mask])
+                    setattr(self, key, p)
+                    print("Saved values for", value)
+                except AttributeError:
+                    pass
 
     def prep_binoc_data(
         self,
@@ -580,62 +573,52 @@ class reflecto:
 
     def plot_refl(
         self,
-        title,
-        save_as,
+        x_var,
+        title=None,
+        filename=None,
         figsize=(18, 9),
         labels=False,
         ncol=2,
-        scan_gas_dict=False,
-        x_axis="l",
+        color_dict="gas_colors",
+        y_zero=0,
         y_max=False,
         y_min=False,
         x_min=False,
         x_max=False,
+        x_tick_step=0.5,
         fill=False,
         fill_first=0,
         fill_last=-1,
         miller=False,
         critical_angles=False,
-        background=True,
+        background=False,
         low_range=False,
         high_range=False
     ):
-        """miller must be a list containing nothing or "pt", 'al2o3' or "bn"
+        """
+        miller must be a list containing nothing or "pt", 'al2o3' or "bn"
         x_axis will be set to var in the future
         """
-        x_axes = {"h": "cp_h",
-                  "k": "cp_k",
-                  "l": "cp_l",
-                  "gamma": "cp_gamma",
-                  "mu": "cp_mu",
-                  "omega": "cp_omega",
-                  "delta": "cp_delta",
-                  "q": "cp_q",
-                  "qpar": "cp_qpar",
-                  "qper": "cp_qper"}
 
-        # Find good x axis
-        if self.data_format == "nxs" and x_axis in ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"]:
-            self.x_axis = getattr(self, x_axes[x_axis])
+        # Get x axis
+        if self.data_format == "nxs" and x_var in self.x_axes:
+            x_axis = getattr(self, x_var)
 
-        elif self.data_format == "nxs" and x_axis not in ["h", "k", "l", "q", "qpar", "qper", "gamma", "mu", "delta", "omega"]:
-            return("Choose a x_axis in the following list :", [
-                "h", "k", "l", "q", "qpar", "qper",
-                "gamma", "mu", "delta", "omega"
-            ])
+        elif self.data_format == "nxs" and x_var not in self.x_axes:
+            return("Choose x_axis in the following list :", self.x_axes)
 
-        # x_axis has no influence if we use binocular file for now
+        # x_var has no influence if we use binocular file for now
         elif self.data_format == "hdf5":
-            self.x_axis = [self.binoc_x_axis for i in self.scan_list]
+            x_axis = [self.binoc_x_axis for i in self.scan_list]
 
-        # Take x axe limits for future use
+        # Get axes limits
         if not x_min:
-            self.x_min = np.array(self.x_axis).min()
+            self.x_min = np.array(x_axis).min()
         else:
             self.x_min = x_min
 
         if not x_max:
-            self.x_max = np.array(self.x_axis).max()
+            self.x_max = np.array(x_axis).max()
         else:
             self.x_max = x_max
 
@@ -649,7 +632,7 @@ class reflecto:
         else:
             self.y_max = y_max
 
-        # Add dome background
+        # Add PEAK dome background
         if isinstance(background, str):
             print("Subtracting bck...")
 
@@ -684,19 +667,18 @@ class reflecto:
                 except:
                     print("Use x axis equal to l, mu, gamma, q or qper.")
 
-        else:
-            print("No background.")
-
         # Plot
         if not low_range and not high_range:
-            plt.figure(figsize=figsize, dpi=150)
+            plt.figure(figsize=figsize)
             plt.semilogy()
+            plt.grid()
 
             for (i, y), x, scan_index in zip(
                 enumerate(self.intensities),
-                self.x_axis,
+                x_axis,
                 self.scan_indices
             ):
+                # Remove background
                 if isinstance(background, str):
                     # indices of x for which the value is defined on the background x
                     idx = (x < max(self.bck[0])) * (x > min(self.bck[0]))
@@ -718,51 +700,62 @@ class reflecto:
                 else:
                     y_plot = y
 
-                if isinstance(scan_gas_dict, dict):
+                # Add label from conf file
+                try:
                     plt.plot(
                         x,
                         y_plot,
-                        label=f"{scan_index}, {scan_gas_dict[scan_index]}",
-                        color=self.ammonia_conditions_colors[scan_gas_dict[scan_index]],
-                        linewidth=self.linewidth)
+                        color=getattr(self, color_dict)[scan_index],
+                        linewidth=2,
+                    )
 
-                else:
+                except:
                     label = labels[i] if labels else scan_index
 
                     plt.plot(
                         x,
                         y_plot,
                         label=label,
-                        linewidth=self.linewidth)
+                        linewidth=2,
+                    )
 
+                # Get y values for filling
                 if i == fill_first:
                     y_first = y_plot
 
                 elif i == len(self.intensities) + fill_last:
                     y_last = y_plot
 
-            # Generate a bolded horizontal line at y = self.y_og to highlight background
+            # Generate a bolded horizontal line at y_zero to highlight background
             try:
-                plt.axhline(y=self.y_og, color='black',
-                            linewidth=self.linewidth_hline, alpha=self.alpha_hline)
+                plt.axhline(y=y_zero, color='black', linewidth=1, alpha=0.5)
             except:
                 pass
 
             # Generate a bolded vertical line at x = 0 to highlight origin
-            plt.axvline(x=0, color='black',
-                        linewidth=self.linewidth_vline, alpha=self.alpha_vline)
+            plt.axvline(x=0, color='black', linewidth=1, alpha=0.5)
 
             if critical_angles:
                 print("Critical angles position is angular (theta).")
                 # Generate a bolded vertical line at x = 0.24 to highlightcritical angle of Pt
-                plt.axvline(x=2*0.254509 if x_axis == "gamma" else 0.254509, color='red', linewidth=self.linewidth_vline, alpha=self.alpha_vline,
-                            label="$\\alpha_c$ Pt",
-                            linestyle="--")
+                plt.axvline(
+                    x=2*0.254509 if x_axis == "gamma" else 0.254509,
+                    color='red',
+                    linewidth=1,
+                    alpha=1,
+                    label="$\\alpha_c$ Pt",
+                    linestyle="--"
+                )
 
                 # Generate a bolded vertical line at x = 0.12 to highlightcritical angle of Al2O3
-                plt.axvline(x=2*0.130261 if x_axis == "gamma" else 0.130261, color='black', linewidth=self.linewidth_vline, alpha=self.alpha_vline,
-                            label="$\\alpha_c$ $Al_2O_3$",
-                            linestyle="--")
+                plt.axvline(
+                    x=2*0.130261 if x_axis == "gamma" else 0.130261,
+                    color='black',
+                    linewidth=1,
+                    alpha=1,
+                    label="$\\alpha_c$ $Al_2O_3$",
+                    linestyle="--"
+                )
 
             if miller:
                 if self.data_format == "hdf5" and self.data_type == "qxqyqz":
@@ -818,7 +811,7 @@ class reflecto:
                             if bragg_angle > self.x_min and bragg_angle < self.x_max:
                                 plt.axvline(x=bragg_angle,
                                             # label ="Pt",
-                                            color=self.BP_colors["Pt"], linewidth=self.linewidth_vline, alpha=.5)
+                                            color=self.BP_colors["Pt"], linewidth=1, alpha=.5)
                                 plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Pt"],
                                          weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
 
@@ -829,12 +822,12 @@ class reflecto:
                             if bragg_angle > self.x_min and bragg_angle < self.x_max:
                                 if i == 0:
                                     plt.axvline(x=bragg_angle, color=self.BP_colors["Al2O3"],
-                                                linewidth=self.linewidth_vline, alpha=.5, label=("Al2O3"))
+                                                linewidth=1, alpha=.5, label=("Al2O3"))
                                     plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Al2O3"],
                                              weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
                                 else:
                                     plt.axvline(x=bragg_angle, color=self.BP_colors["Al2O3"],
-                                                linewidth=self.linewidth_vline, alpha=.5)
+                                                linewidth=1, alpha=.5)
                                     plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Al2O3"],
                                              weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
 
@@ -845,20 +838,30 @@ class reflecto:
                             if bragg_angle > self.x_min and bragg_angle < self.x_max:
                                 if i == 0:
                                     plt.axvline(x=bragg_angle, color=self.BP_colors["BN"],
-                                                linewidth=self.linewidth_vline, alpha=.5, label=("Boron nitride"))
+                                                linewidth=1, alpha=.5, label=("Boron nitride"))
                                     plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["BN"],
                                              weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
                                 else:
                                     plt.axvline(x=bragg_angle, color=self.BP_colors["BN"],
-                                                linewidth=self.linewidth_vline, alpha=.5)
+                                                linewidth=1, alpha=.5)
                                     plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["BN"],
                                              weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
 
             # Ticks
-            plt.xticks(np.arange((self.x_min//self.x_tick_step)*self.x_tick_step, (self.x_max //
-                       self.x_tick_step)*self.x_tick_step, self.x_tick_step), fontsize=self.tick_fontsize)
-            plt.yticks(np.arange((self.x_min//self.x_tick_step)*self.x_tick_step, (self.x_max //
-                       self.x_tick_step)*self.x_tick_step, self.x_tick_step), fontsize=self.tick_fontsize)
+            plt.xticks(
+                np.arange(
+                    (self.x_min//x_tick_step)*x_tick_step,
+                    (self.x_max // x_tick_step)*x_tick_step,
+                    x_tick_step),
+                fontsize=self.fontsize
+            )
+            plt.yticks(
+                #     np.arange(
+                #         (self.y_min//y_tick_step)*y_tick_step,
+                #         (self.y_max // y_tick_step)*y_tick_step,
+                #         y_tick_step),
+                fontsize=self.fontsize
+            )
 
             # Range
             plt.xlim(left=self.x_min)
@@ -869,7 +872,7 @@ class reflecto:
             if fill:
                 try:
                     # Add filling
-                    plt.fill_between(self.x_axis, y_first, y_last, alpha=0.1)
+                    plt.fill_between(x_axis, y_first, y_last, alpha=0.1)
                 except:
                     print("Could not add filling.")
             else:
@@ -886,19 +889,18 @@ class reflecto:
             elif self.data_format == "hdf5" and self.var == "qxqyqz":
                 plt.xlabel("qz", fontsize=self.fontsize)
             elif self.data_format == "nxs":
-                plt.xlabel(x_axis, fontsize=self.fontsize)
+                plt.xlabel(x_var, fontsize=self.fontsize)
 
             plt.ylabel("Intensity (a.u.)", fontsize=self.fontsize)
-            plt.title(title, fontsize=self.title_fontsize)
-
-        # TWO FIGURES ###########################################""
+            if isinstance(title, str):
+                plt.title(f"{title}.png", fontsize=20)
 
         elif low_range and high_range:
             fig, axes = plt.subplots(
                 1, 2, sharey=True, figsize=figsize, dpi=150)
             fig.subplots_adjust(wspace=0.05)
 
-            for (i, y), x, scan_index in zip(enumerate(self.intensities), self.x_axis, self.scan_indices):
+            for (i, y), x, scan_index in zip(enumerate(self.intensities), x_axis, self.scan_indices):
                 for ax in axes:
 
                     if isinstance(background, str):
@@ -926,7 +928,7 @@ class reflecto:
                             y_plot,
                             label=f"{scan_index}, {scan_gas_dict[scan_index]}",
                             color=self.ammonia_conditions_colors[scan_gas_dict[scan_index]],
-                            linewidth=self.linewidth)
+                            linewidth=2)
 
                     else:
                         label = labels[i] if labels else scan_index
@@ -935,7 +937,7 @@ class reflecto:
                             x,
                             y_plot,
                             label=label,
-                            linewidth=self.linewidth)
+                            linewidth=2)
 
             if critical_angles:
                 print("Critical angles position is angular (theta).")
@@ -943,8 +945,8 @@ class reflecto:
                 axes[0].axvline(
                     x=2*0.254509 if x_axis == "gamma" else 0.254509,
                     color='red',
-                    linewidth=self.linewidth_vline,
-                    alpha=self.alpha_vline,
+                    linewidth=1,
+                    alpha=1,
                     # label = "$\\alpha_c$ Pt",
                     linestyle="--"
                 )
@@ -953,8 +955,8 @@ class reflecto:
                 axes[0].axvline(
                     x=2*0.130261 if x_axis == "gamma" else 0.130261,
                     color='black',
-                    linewidth=self.linewidth_vline,
-                    alpha=self.alpha_vline,
+                    linewidth=1,
+                    alpha=1,
                     # label = "$\\alpha_c$ $Al_2O_3$",
                     linestyle="--"
                 )
@@ -1015,7 +1017,7 @@ class reflecto:
                                     x=bragg_angle,
                                     # label ="Pt",
                                     color=self.BP_colors["Pt"],
-                                    linewidth=self.linewidth_vline,
+                                    linewidth=1,
                                     alpha=.5)
 
                                 axes[1].text(x=bragg_angle,
@@ -1044,8 +1046,7 @@ class reflecto:
             axes[1].semilogy()
 
             # Generate a bolded vertical line at x = 0 to highlight origin
-            axes[0].axvline(
-                x=0.01, color='gray', linewidth=self.linewidth_vline, alpha=self.alpha_vline)
+            axes[0].axvline(x=0.01, color='gray', linewidth=1, alpha=1)
 
             if self.data_format == "hdf5" and self.var == "hkl":
                 fig.text(x=0.5, y=0, s="L", fontsize=30, ha='center')
@@ -1061,12 +1062,19 @@ class reflecto:
                 fig.text(x=0.5, y=-0.04, s="Gamma (°)",
                          fontsize=30, ha='center')
 
-            fig.suptitle(title, fontsize=self.title_fontsize)
+            if isinstance(title, str):
+                fig.suptitle(f"{title}.png", fontsize=20)
 
         plt.tight_layout()
-        plt.savefig(f"{save_as}", bbox_inches='tight')
 
-        print(f"Saved as {save_as}")
+        # Save
+        try:
+            plt.savefig(f"{filename}", bbox_inches='tight')
+            print(f"Saved as {filename}")
+        except TypeError:
+            pass
+
+        plt.show()
 
     def fit_bragg(
         self,
@@ -1190,43 +1198,41 @@ class reflecto:
 
     def compare_roi(
         self,
-        index_range=1010,
         v_min_log=0.01,
-        v_max_log=100,
-        central_pixel_gamma=25,
-        central_pixel_delta=285
+        v_max_log=1000,
+        central_pixel_x=285,
+        central_pixel_y=25,
+        figsize=(16, 9),
     ):
-        """Define a widget function to be sure of the quality of the roi on the nxs file
-        Assumes that the same detector is used for all the reflecto.
+        """
+        Widget function to assess the quality of the roi on the .nxs file.
+        Assumes that the same detector is used for all the scans.
+
+        :param v_min_log:
+        :param v_max_log:
+        :param central_pixel_x:
+        :param central_pixel_y:
+        :param figsize:
         """
 
-        print("This uses a lot of RAM to facilitate the fluidity of the widget.")
-
         try:
-            self.gamma_width
-            self.delta_width
+            self.x_range
+            self.y_range
 
         except:
             return("You need to run reflecto.prep_nxs_data() before!")
 
+        # Define detector image plotting function
         def plot2D(a, b, c, d, reflecto, index):
-            fig, ax = plt.subplots(2, 1, figsize=(16, 9))
+            fig, ax = plt.subplots(2, 1, figsize=figsize)
 
-            # h_min = min(c, d)
-            # h_max = max(c, d)
-            # v_min = min(a, b)
-            # v_max = max(a, b)
-
-            # ax[0].imshow(np.log(reflecto.xpad_s70_image[index, :, :]))
-            # ax[0].axhline(h_min, linewidth = 1)
-            # ax[0].axhline(h_max, linewidth = 1)
-
-            # ax[0].axvline(v_min, linewidth = 1)
-            # ax[0].axvline(v_max, linewidth = 1)
+            try:
+                data = getattr(reflecto, self.detector)[self.common_mask]
+            except AttributeError:
+                print("Could not load detector data ...")
 
             ax[0].imshow(
-                # np.log(reflecto.xpad_s70_image[index, :, :]),
-                reflecto.xpad_s70_image[index, :, :],
+                data[index, :, :],
                 norm=LogNorm(vmin=v_min_log, vmax=v_max_log)
             )
             ax[0].axhline(b, linewidth=1, color="red")
@@ -1235,41 +1241,43 @@ class reflecto:
             ax[0].axvline(a, linewidth=1, color="red")
             ax[0].axvline(a + c, linewidth=1, color="red")
 
-            ax[0].axvline(central_pixel_delta, linestyle="--",
+            ax[0].axvline(central_pixel_y, linestyle="--",
                           linewidth=1, color="black")
-            ax[0].axhline(central_pixel_gamma, linestyle="--",
+            ax[0].axhline(central_pixel_x, linestyle="--",
                           linewidth=1, color="black")
 
-            ax[0].set_title('Entire detector')
-            ax[0].set_ylabel("gamma")
-            ax[0].set_xlabel("delta")
+            ax[0].set_title('Entire detector', fontsize=15)
+            ax[0].set_ylabel("Gamma", fontsize=15)
+            ax[0].set_xlabel("Delta", fontsize=15)
 
-            ax[1].set_title('Zoom in ROI')
-            ax[1].set_ylabel("gamma")
-            ax[1].set_xlabel("delta")
+            ax[1].set_title('Zoom in ROI', fontsize=15)
+            ax[1].set_ylabel("Gamma", fontsize=15)
+            ax[1].set_xlabel("Delta", fontsize=15)
 
-            ax[0].text(x=1.5,
-                       y=-25,
-                       s="Parameters : gamma = {:.3f}, mu = {:.3f}, hkl = ({:.3f}, {:.3f}, {:.3f}), q = {:3f}, qpar, qper = ({:3f}, {:3f})".format(
-                           reflecto.gamma[index], reflecto.mu[index], reflecto.h[index], reflecto.k[index], reflecto.l[index], reflecto.q[index], reflecto.qPar[index], reflecto.qPer[index]),
-                       #color = diverging_colors_1["E"],
-                       weight='bold',
-                       rotation=0,
-                       backgroundcolor='#f0f0f0',
-                       fontsize="20")
+            # ax[0].text(x=1.5,
+            #            y=-25,
+            #            s="Parameters : gamma = {:.3f}, mu = {:.3f}, hkl = ({:.3f}, {:.3f}, {:.3f}), q = {:3f}, qpar, qper = ({:3f}, {:3f})".format(
+            #                reflecto.gamma[index], reflecto.mu[index], reflecto.h[index], reflecto.k[index], reflecto.l[index], reflecto.q[index], reflecto.qPar[index], reflecto.qPer[index]),
+            #            #color = diverging_colors_1["E"],
+            #            weight='bold',
+            #            rotation=0,
+            #            backgroundcolor='#f0f0f0',
+            #            fontsize="20")
 
-            # ax[1].imshow(np.log(reflecto.xpad_s70_image[index, h_min:h_max, v_min:v_max]))
             ax[1].imshow(
-                # np.log(reflecto.xpad_s70_image[index, b:b+d, a:a+c]),
-                reflecto.xpad_s70_image[index, b:b+d, a:a+c],
-                norm=LogNorm(vmin=v_min_log, vmax=v_max_log))
+                data[index, b:b+d, a:a+c],
+                norm=LogNorm(vmin=v_min_log, vmax=v_max_log)
+            )
 
+            plt.tight_layout()
+
+        # Create widget list
         _list_widgets = interactive(
             plot2D,
             a=widgets.IntSlider(
                 value=self.roi[0],
                 min=0,
-                max=self.delta_width,
+                max=self.y_range,
                 step=1,
                 description='a:',
                 continuous_update=False,
@@ -1279,7 +1287,7 @@ class reflecto:
             b=widgets.IntSlider(
                 value=self.roi[1],
                 min=0,
-                max=self.gamma_width,
+                max=self.x_range,
                 step=1,
                 description='b:',
                 continuous_update=False,
@@ -1289,7 +1297,7 @@ class reflecto:
             c=widgets.IntSlider(
                 value=self.roi[2],
                 min=0,
-                max=self.delta_width,
+                max=self.y_range,
                 step=1,
                 description='c:',
                 continuous_update=False,
@@ -1299,7 +1307,7 @@ class reflecto:
             d=widgets.IntSlider(
                 value=self.roi[3],
                 min=0,
-                max=self.gamma_width,
+                max=self.x_range,
                 step=1,
                 description='d:',
                 continuous_update=False,
@@ -1309,8 +1317,8 @@ class reflecto:
             index=widgets.IntSlider(
                 value=0,
                 min=0,
-                max=index_range-1,
-                step=5,
+                max=np.sum(self.common_mask),
+                step=1,
                 description='Index:',
                 continuous_update=False,
                 orientation='horizontal',
@@ -1319,14 +1327,15 @@ class reflecto:
                 style={'description_width': 'initial'},
                 layout=Layout(width="30%")),
             reflecto=widgets.Select(
-                options=[rn4.DataSet(
-                    self.folder + f) for f in self.scan_list],
+                options=[rn4.DataSet(filename=f, directory=self.folder)
+                         for f in self.scan_list],
                 description='Scan:',
                 style={'description_width': 'initial'},
                 layout=Layout(width="70%")))
         window = widgets.VBox([
             widgets.HBox(_list_widgets.children[0:4]),
             widgets.HBox(_list_widgets.children[4:-1]),
-            _list_widgets.children[-1]])
+            _list_widgets.children[-1]
+        ])
 
         return window
