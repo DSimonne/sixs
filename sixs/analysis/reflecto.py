@@ -119,7 +119,9 @@ class reflecto:
         # Find files in folder depending on data format
         files = [f.split("/")[-1]
                  for f in sorted(glob.glob(f"{folder}/*.{data_format}"))]
-        print(f"Detected files in {folder}: {files}")
+        print(f"Detected files in {folder}:")
+        for f in files:
+            print("\t",f)
 
         # Get files of interest based on scan_indices
         if self.data_type == "hkl" and self.data_format == "hdf5":
@@ -162,7 +164,7 @@ class reflecto:
 
         The reflecto may not have the same length, and/ or amount of points
 
-        We take the wavelength of the last dataset in the series
+        We take the wavelength of the first dataset in the series
 
         :param roi: int or container
          if int, use this roi (e.g. if 3, roi3)
@@ -177,62 +179,7 @@ class reflecto:
         self.two_theta = two_theta
         self.detector = detector
 
-        # Temporary lists
-        # x_values, y_values = [], []
-
-        # First loop to find shortest common index between the scans
-        # Only useful if using the same amount of point
-        for j, f in enumerate(self.scan_list):
-            data = rn4.DataSet(filename=f, directory=self.folder)
-
-            if isinstance(roi, int):
-                # calculate the roi corrected by attcoef, mask, filters,
-                # acquisition_time
-                data.calcROI_new2()
-
-                # Do not take bad values due to attenuator change
-                # long but necessary
-                try:
-                    self.roi = getattr(
-                        data, f"_roi_limits_{self.detector}")[roi]
-                    data_array = getattr(data, f"roi{roi}_{self.detector}_new")
-                    mask = np.log(data_array) > 0
-                    # y_values.append(data_array[mask])
-                except AttributeError:
-                    print("Could not find data, is it the good detector ?")
-
-            else:
-                self.roi = roi
-                # Create a roi, name it roi5
-                data.calcROI(
-                    stack=getattr(data, self.detector),
-                    roiextent=self.roi,
-                    maskname=f"_mask_{self.detector}",
-                    acqTime=data._integration_time,
-                    ROIname=f"roi5_{self.detector}_new",
-                    coef='default',
-                    filt='default'
-                )
-
-                # Do not take bad values due to attenuator change
-                # Careful if different current in synchrotron, different
-                # intensities overall ! -> *5
-                data_array = getattr(data, f"roi5_{self.detector}_new")
-                mask = np.log(data_array) > 0
-
-            if j == 0:  # Create mask array
-                self.common_mask = mask
-            else:  # Intersect both arrays
-                try:
-                    self.common_mask = self.common_mask * mask
-                except ValueError:
-                    print("Do the scans have the same number of points ?")
-
-        print("\n###########################################################")
-        print("Found common mask between all scans")
-        print("###########################################################")
-
-        # Compute reflections, we use the wavelength of last dataset in list
+        # Compute reflections, we use the wavelength of first dataset in list
         dataset = rn4.DataSet(
             filename=self.scan_list[0],
             directory=self.folder
@@ -276,9 +223,10 @@ class reflecto:
                 data.calcROI_new2()
 
                 # Do not take bad values due to attenuator change
-                # long but necessary
                 data_array = getattr(data, f"roi{roi}_{self.detector}_new")
-                self.intensities.append(data_array[self.common_mask])
+                # self.intensities.append(data_array[self.common_mask])
+                mask = np.log(data_array) > 0
+                self.intensities.append(data_array[mask])
 
             else:
                 # Create a roi, name it roi5
@@ -293,7 +241,9 @@ class reflecto:
                 )
 
                 data_array = getattr(data, f"roi5_{self.detector}_new")
-                self.intensities.append(data_array[self.common_mask])
+                # self.intensities.append(data_array[self.common_mask])
+                mask = np.log(data_array) > 0
+                self.intensities.append(data_array[mask])
 
             # Get metadata if defined
             for key, value in self.x_axes.items():
@@ -304,7 +254,8 @@ class reflecto:
 
                 # Append scan values for this x axis
                 try:
-                    p.append(getattr(data, value)[self.common_mask])
+                    # p.append(getattr(data, value)[self.common_mask])
+                    p.append(getattr(data, value)[mask])
                     setattr(self, key, p)
                     print("Saved values for", value)
                 except AttributeError:
@@ -627,27 +578,6 @@ class reflecto:
         elif self.data_format == "hdf5":
             x_axis = [self.binoc_x_axis for i in self.scan_list]
 
-        # Get axes limits
-        if not x_min:
-            self.x_min = np.array(x_axis).min()
-        else:
-            self.x_min = x_min
-
-        if not x_max:
-            self.x_max = np.array(x_axis).max()
-        else:
-            self.x_max = x_max
-
-        if not y_min:
-            self.y_min = np.array(self.intensities).min()
-        else:
-            self.y_min = y_min
-
-        if not y_max:
-            self.y_max = np.array(self.intensities).max()
-        else:
-            self.y_max = y_max
-
         # Add PEAK dome background
         if isinstance(background, str):
             print("Subtracting bck...")
@@ -881,10 +811,22 @@ class reflecto:
             )
 
             # Range
-            plt.xlim(left=self.x_min)
-            plt.xlim(right=self.x_max)
-            plt.ylim(bottom=self.y_min)
-            plt.ylim(top=self.y_max)
+            # Get axes limits
+            if x_min:
+                self.x_min = x_min
+                plt.xlim(left=self.x_min)
+
+            if x_max:
+                self.x_max = x_max
+                plt.xlim(right=self.x_max)
+
+            if y_min:
+                self.y_min = y_min
+                plt.ylim(bottom=self.y_min)
+
+            if y_max:
+                self.y_max = y_max
+                plt.ylim(top=self.y_max)
 
             if fill:
                 try:
@@ -910,176 +852,6 @@ class reflecto:
             plt.ylabel("Intensity (a.u.)", fontsize=self.fontsize)
             if isinstance(title, str):
                 plt.title(f"{title}.png", fontsize=20)
-
-        elif low_range and high_range:
-            fig, axes = plt.subplots(
-                1, 2, sharey=True, figsize=figsize, dpi=150)
-            fig.subplots_adjust(wspace=0.05)
-
-            for (i, y), x, scan_index in zip(enumerate(self.intensities), x_axis, self.scan_indices):
-                for ax in axes:
-
-                    if isinstance(background, str):
-                        # indices of x for which the value is defined on the background x
-                        idx = (x < max(self.bck[0])) * (x > min(self.bck[0]))
-
-                        x = x[idx]
-                        y = y[idx]
-
-                        # create ticks
-                        f = interpolate.interp1d(self.bck[0], self.bck[1])
-
-                        # create new bck
-                        new_bck = f(x)
-
-                        y_plot = np.where(
-                            (y-new_bck < self.background_bottom), self.background_bottom, y-new_bck)
-
-                    else:
-                        y_plot = y
-
-                    if isinstance(scan_gas_dict, dict):
-                        ax.plot(
-                            x,
-                            y_plot,
-                            label=f"{scan_index}, {scan_gas_dict[scan_index]}",
-                            color=self.ammonia_conditions_colors[scan_gas_dict[scan_index]],
-                            linewidth=2)
-
-                    else:
-                        label = labels[i] if labels else scan_index
-
-                        ax.plot(
-                            x,
-                            y_plot,
-                            label=label,
-                            linewidth=2)
-
-            if critical_angles:
-                print("Critical angles position is angular (theta).")
-                # Generate a bolded vertical line at x = 0.24 to highlightcritical angle of Pt
-                axes[0].axvline(
-                    x=2*0.254509 if x_axis == "gamma" else 0.254509,
-                    color='red',
-                    linewidth=1,
-                    alpha=1,
-                    # label = "$\\alpha_c$ Pt",
-                    linestyle="--"
-                )
-
-                # Generate a bolded vertical line at x = 0.12 to highlightcritical angle of Al2O3
-                axes[0].axvline(
-                    x=2*0.130261 if x_axis == "gamma" else 0.130261,
-                    color='black',
-                    linewidth=1,
-                    alpha=1,
-                    # label = "$\\alpha_c$ $Al_2O_3$",
-                    linestyle="--"
-                )
-
-            if miller:
-                if self.data_format == "hdf5" and self.data_type == "qxqyqz":
-                    Pt_pos = self.q_bragg_pos_Pt[:1]
-                    BN_pos = self.q_bragg_pos_BN
-                    Al2P3_pos = self.q_bragg_pos_Al2O3
-                    plot_peaks = True
-
-                elif self.data_format == "hdf5" and self.data_type == "qparqper":
-                    Pt_pos = self.q_bragg_pos_Pt[:1]
-                    BN_pos = self.q_bragg_pos_BN
-                    Al2P3_pos = self.q_bragg_pos_Al2O3
-                    plot_peaks = True
-
-                elif self.data_format == "hdf5" and self.data_type == "ang":
-                    Pt_pos = self.theta_bragg_pos_Pt[:1]
-                    BN_pos = self.theta_bragg_pos_BN
-                    Al2P3_pos = self.theta_bragg_pos_Al2O3
-                    plot_peaks = True
-
-                elif self.data_format == "nxs" and x_axis in "qparqper":
-                    Pt_pos = self.q_bragg_pos_Pt[:1]
-                    BN_pos = self.q_bragg_pos_BN
-                    Al2P3_pos = self.q_bragg_pos_Al2O3
-                    plot_peaks = True
-                    print("Careful, peak position in q.")
-
-                elif self.data_format == "nxs" and x_axis == "mu":
-                    Pt_pos = self.theta_bragg_pos_Pt[:1]
-                    BN_pos = self.theta_bragg_pos_BN
-                    Al2P3_pos = self.theta_bragg_pos_Al2O3
-                    plot_peaks = True
-
-                elif self.data_format == "nxs" and x_axis == "gamma":
-                    print("Shift of 0.5 in gamma")
-                    Pt_pos = [(a, 2*b + 0.5)
-                              for (a, b) in self.theta_bragg_pos_Pt[:1]]
-                    BN_pos = [(a, 2*b + 0.5)
-                              for (a, b) in self.theta_bragg_pos_BN]
-                    Al2P3_pos = [(a, 2*b + 0.5)
-                                 for (a, b) in self.theta_bragg_pos_Al2O3]
-                    plot_peaks = True
-
-                else:
-                    print("Positions only in angle or q.")
-                    plot_peaks = False
-
-                if plot_peaks:
-                    # Highlight Bragg peaks of Pt
-                    if "pt" in [z.lower() for z in miller]:
-
-                        for i, (miller_indices, bragg_angle) in enumerate(Pt_pos):
-                            if bragg_angle > self.x_min and bragg_angle < self.x_max:
-                                axes[1].axvline(
-                                    x=bragg_angle,
-                                    # label ="Pt",
-                                    color=self.BP_colors["Pt"],
-                                    linewidth=1,
-                                    alpha=.5)
-
-                                axes[1].text(x=bragg_angle,
-                                             y=self.y_text,
-                                             s=f"{miller_indices}",
-                                             color=self.BP_colors["Pt"],
-                                             weight='bold',
-                                             rotation=60,
-                                             backgroundcolor='#f0f0f0',
-                                             fontsize=self.fontsize)
-
-            # Add respective ranges
-            axes[0].set_xlim(low_range[0], low_range[1])
-            axes[0].set_ylim(self.y_min, self.y_max)
-
-            axes[1].set_xlim(high_range[0], high_range[1])
-            axes[1].set_ylim(self.y_min, self.y_max)
-
-            axes[0].legend(fontsize=self.fontsize, ncol=ncol)
-
-            axes[0].tick_params(axis='both', labelsize=self.fontsize)
-            axes[1].tick_params(axis='x', labelsize=self.fontsize)
-
-            axes[0].set_ylabel("Intensity (a.u)", fontsize=30)
-            axes[0].semilogy()
-            axes[1].semilogy()
-
-            # Generate a bolded vertical line at x = 0 to highlight origin
-            axes[0].axvline(x=0.01, color='gray', linewidth=1, alpha=1)
-
-            if self.data_format == "hdf5" and self.var == "hkl":
-                fig.text(x=0.5, y=0, s="L", fontsize=30, ha='center')
-            elif self.data_format == "hdf5" and self.var == "qparqper":
-                fig.text(x=0.5, y=0, s="qper", fontsize=30, ha='center')
-            elif self.data_format == "hdf5" and self.var == "qxqyqz":
-                fig.text(x=0.5, y=0, s="qz", fontsize=30, ha='center')
-            elif self.data_format == "hdf5" and self.var == "qxqyqz":
-                fig.text(x=0.5, y=0, s="qz", fontsize=30, ha='center')
-            elif self.data_format == "nxs" and x_axis == "mu":
-                fig.text(x=0.5, y=-0.04, s="Mu (°)", fontsize=30, ha='center')
-            elif self.data_format == "nxs" and x_axis == "gamma":
-                fig.text(x=0.5, y=-0.04, s="Gamma (°)",
-                         fontsize=30, ha='center')
-
-            if isinstance(title, str):
-                fig.suptitle(f"{title}.png", fontsize=20)
 
         plt.tight_layout()
 
