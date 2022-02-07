@@ -1,15 +1,38 @@
 # Tutorial on mass flow controller (XCAT) and mass flow spectrometer (RGA)
-Call the floor coordinator (9797) and tell him that we open the toxic gaz bottles to start the red experiment
-SAME WHEN WE CLOSE THEM
+
+* First, we beginning the experiment, call the floor coordinator (9797) and tell him that you open the toxic gaz bottles to start the red experiment.
+* You should **absolutely** tell them when you leave or when you close them because the experiment is finished.
 
 # Beginning
-* Create a folder in reactor_data/ for each experiment (e.g first day : reactor_data/heating_no_gaz)
-* One RGA data file for each experiment, the XCAT data file can last for longer, the two files time stamps issues, so to analyze the data, I advise to use the scripts in this repository, to be sure that they are linked.
+* You should create a new RGA data file for each experiment, the XCAT data file usually last for the whole experiment.
+* the two files have time stamps issues used to analyze the data,
+* I advise you to use the scripts in this repository, to be sure that they are correctly linked.
 
 # The Residual Gas Analyser (RGA)
-* Acts as a probe for species present in sample atmospheres
+
+## Operating
+* Acts as a probe for species present in the sample atmospheres=.
 * One file per experiment (e.g. heating and cooling of sample under same variating gaseous environment)
-* Generates data like this :
+* Time shift between computers: (502 secondes in Jan 2022, please calibrate it for time-resolved exp.).
+* There is a leak in the reactor cell that is directly connected to a ultra high vacuum chamber, in which the product detection happens.
+* So we are **not** measuring the pressure in the reactor cell but in the leak ! There must be a normalisation step to correctly find the pressure in the reactor chamber.
+* The pressure in that chamber, ~ 3e-6, should be constant throughout the experiment, you can control it with a valve.
+* The leak depends on the temperature (dilatation)
+* No dependance on particle size (Avrgadro nb)
+* However the flux depends on the speed, thus on the mass.
+* We can compute the dependance of the detector on the temperature by following its signal during a temperature cycle while keeping the reagent product constant. However, we are only sensible to the reagents.
+* Pressure control is after the reactor chamber exit.
+* For the small reactor, the leak is connected a meter after the chamber exit.
+
+## Background signals
+* There is always N2 in ultra-high vacuum chambers, as well as H2O.
+* Possible to normalize by using the total pressure in the chamber.
+* Possible also to divide the partial pressures collected by that of the carrier gas, that should be known  and stable at constant reaction.
+* Then, keeping in mind that we have, e.g. 82% of Ar and that the total pressure is of 0.3 bar, we can fix its pressure to 0.82\*0.3 bar.
+* Total pressure in the reactor is equal to the sum of the pressure of the reagents + carrier gas outside the reaction. Add the products when the reaction happens.
+* For Ammonia, we must use either NH or NH3 when normalizing, we showed that NH3 is usually better.
+
+## Data file example
 
 ```
 Jan 20, 2021  10:49:46 AM
@@ -48,13 +71,15 @@ Time(s)      Channel#1   Channel#2   Channel#3   Channel#4   Channel#5   Channel
 8.065,   6.8092E-008,   9.2156E-008,   4.8411E-009,   7.3067E-009,   1.6051E-007,   1.1131E-006,  
 ```
 
-* As many columns (channels) as gases we gave in input, be careful to include all the gases before launching an experiment since they are not automatically detected
-* Click on the green button to initiate data acquisition, and on the red button to stop
-* **IMPORTANT** Save data as `.rga` and then **export as ascii to save as `.txt`**
-* Save in data_folder/xcat_data
+* As many columns (channels) as gases we gave in input, be careful to include all the gases before launching an experiment since they are not automatically detected.
+* Click on the green button to initiate data acquisition, and on the red button to stop.
+* **IMPORTANT** Save data as `.rga` and then **save as ascii to save as `.txt`**, which is the readable file.
 
 # XCAT
-* Stores the position of the valves as well as the setpoints for each gas, allows us to better understand the dynamics
+
+![image](https://user-images.githubusercontent.com/51970962/152839468-73ec67e8-9cdd-4aba-bf26-83f635241d57.png)
+
+* Stores the position of the valves that control the gas flow, as well as the setpoints for each gas, allows us to better understand the dynamics.
 * Generates data like this :
 
 ```
@@ -85,7 +110,7 @@ gt.stflow()
 ```
 
 * Type `do.run("macro.txt")` in the MED env
-* Make sure the rga is recording (green button, you should see the Argon)
+* Make sure the RGA is recording (green button, you should see the Argon)
 * Save your macro in the directory where the scans are saved
 * It will generate a log file (log_nameofmacro_date_time.txt) in folder, interesting to be sure at what time we changed conditions on the particle (gas or temperature), put them in data_folder/xcat_data/date/log
 
@@ -94,13 +119,11 @@ gt.stflow()
 * Respect the order
 * Make sure to have copied the xcat_scripts folder too
 
-
 # GasTool commands
 
 `import GasTools as gt`
 
-ALL COMMANDS ARE /home/python/GasTool.py
-Once imported, you can have detail about the commands with `?`, e.g. `gt.closeall?`
+The module is in `/home/python/GasTool.py`. Once imported, you can have detail about each command with `?`, e.g. `gt.closeall?`
 
 ## Start the flow at 0.5 bar in the reactor, 50 ml/min and only Argon
 * `gt.stflow()`
