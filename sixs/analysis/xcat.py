@@ -43,8 +43,8 @@ class XCAT():
                 self.configuration_file = configuration_file
             else:
                 self.configuration_file = self.path_package + "experiments/ammonia.yml"
-            print("Could not find configuration file.")
-            print("Defaulted to ammonia configuration.")
+                print("Could not find configuration file.")
+                print("Defaulted to ammonia configuration.")
 
         except TypeError:
             self.configuration_file = self.path_package + "experiments/ammonia.yml"
@@ -859,7 +859,7 @@ class XCAT():
 
         # Use all comlumns if none specified
         if mass_list is None:
-            mass_list = list(self.norm_df.columns[1:])
+            mass_list = list(self.norm_df.columns[1:-1])
             print(mass_list)
             print("Defaulted mass_list to all columns")
 
@@ -952,6 +952,7 @@ class XCAT():
 
         # Normalize data by leak pressure
 
+        # No normalisation
         else:
             y_units = "mbar"
 
