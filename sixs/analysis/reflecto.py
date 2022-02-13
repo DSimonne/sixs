@@ -22,12 +22,8 @@ from sixs_nxsread import ReadNxs4 as rn4
 
 import xrayutilities as xu
 
-import lmfit
 from lmfit import minimize, Parameters, Parameter
-from lmfit.models import LinearModel, ConstantModel, QuadraticModel, PolynomialModel, StepModel
-from lmfit.models import GaussianModel, LorentzianModel, SplitLorentzianModel, VoigtModel, PseudoVoigtModel
-from lmfit.models import MoffatModel, Pearson7Model, StudentsTModel, BreitWignerModel, LognormalModel, ExponentialGaussianModel, SkewedGaussianModel, SkewedVoigtModel, DonaichModel
-
+from lmfit.models import *
 
 class reflecto:
     """Contains methods to load reflectometry data collected at SixS"""
@@ -544,15 +540,15 @@ class reflecto:
         title=None,
         filename=None,
         figsize=(18, 9),
-        labels=False,
         ncol=2,
         color_dict="gas_colors",
+        labels=False,
         y_zero=0,
         y_max=False,
         y_min=False,
         x_min=False,
         x_max=False,
-        x_tick_step=0.5,
+        x_tick_step=False,
         fill=False,
         fill_first=0,
         fill_last=-1,
@@ -563,8 +559,32 @@ class reflecto:
         high_range=False,
     ):
         """
-        miller must be a list containing nothing or "pt", 'al2o3' or "bn"
-        x_axis will be set to var in the future
+        Plot the reflectivity.
+
+        :param x_var: choose x_axis in the self.x_axes list
+        :param title: if string, set to figure title
+        :param filename: if string, figure will be saved to this path.
+        :param figsize: figure size, default is (18, 9)
+        :param ncol: columns in label, default is 2
+        :param color_dict: dict used for labels, keys are scan index, values are
+         colours for matplotlib.
+        :param labels: list of labels to use, if no color_dict
+        :param y_zero: Generate a bolded horizontal line at y_zero to highlight
+         background, default is 0
+        :param y_max: value used for plot range, default is False
+        :param y_min: value used for plot range, default is False
+        :param x_min: value used for plot range, default is False
+        :param x_max: value used for plot range, default is False
+        :param x_tick_step: tick step used for x axis, default is False
+        :param fill: if True, add filling between two plots
+        :param fill_first: index of scan to use for filling
+        :param fill_last: index of scan to use for filling
+        :param miller: list containing nothing or "pt", 'al2o3' or "bn"
+        :param critical_angles: if true, plot vertical line at 0.2540° (Pt)
+        :param background: path to .npz background file to load and subtract,
+         there must a data entry that corresponds to x_axis
+        :param low_range:
+        :param high_range:
         """
 
         # Get x axis
@@ -582,36 +602,10 @@ class reflecto:
         if isinstance(background, str):
             print("Subtracting bck...")
 
-            bck_dict = {"h": "bck_h",
-                        "k": "bck_k",
-                        "l": "bck_l",
-                        "hkl": "bck_l",
-                        "gamma": "bck_gamma",
-                        "mu": "bck_mu",
-                        "omega": "bck_omega",
-                        "delta": "bck_delta",
-                        "ang": "bck_mu",
-                        "q": "bck_q",
-                        "qpar": "bck_qpar",
-                        "qper": "bck_qper",
-                        "qparqper": "bck_qper"}
-
             try:
-                bck = np.load(background)
-            except Exception as e:
-                raise e
-
-            if self.data_format == "hdf5":
-                try:
-                    self.bck = bck[bck_dict[self.data_type]]
-                except:
-                    print("Use x axis equal to l, mu, gamma, q or qper.")
-
-            elif self.data_format == "nxs":
-                try:
-                    self.bck = bck[bck_dict[x_axis]]
-                except:
-                    print("Use x axis equal to l, mu, gamma, q or qper.")
+                bck = np.load(background)[x_axis]
+            except:
+                print(f"Use background file with {x_axis} entry.")
 
         # Plot
         if not low_range and not high_range:
@@ -625,7 +619,7 @@ class reflecto:
                 self.scan_indices
             ):
                 # Remove background
-                if isinstance(background, str):
+                try:
                     # indices of x for which the value is defined on the background x
                     idx = (x < max(self.bck[0])) * (x > min(self.bck[0]))
 
@@ -643,7 +637,7 @@ class reflecto:
                         self.background_bottom, y-new_bck
                     )
 
-                else:
+                except TypeError:
                     y_plot = y
 
                 # Add label from conf file
@@ -682,7 +676,7 @@ class reflecto:
             plt.axvline(x=0, color='black', linewidth=1, alpha=0.5)
 
             if critical_angles:
-                print("Critical angles position is angular (theta).")
+                print("\nCritical angles position is angular (theta).\n")
                 # Generate a bolded vertical line at x = 0.24 to highlightcritical angle of Pt
                 # 0.2538
                 plt.axvline(
@@ -835,7 +829,7 @@ class reflecto:
                 except:
                     print("Could not add filling.")
 
-            # Legend and labels
+            # Legend and axis labels
             plt.legend(fontsize=self.fontsize, ncol=ncol)
 
             if self.data_format == "hdf5" and self.var == "hkl":
@@ -873,7 +867,20 @@ class reflecto:
         peak_sigma=[0.0008],
         back=[10, 0, 100]
     ):
-        """docstring"""
+        """
+        Fit Bragg peak that appear in reflectivity scans (00L).
+        The peak shape is fixed to a lmfit.LorentzianModel for now.
+
+        :param scan_to_fit: list of scans on which we fit the data
+        :param fit_range: range on which we fit the data
+        :param x_axis: axis to use for x
+        :param peak_nb: amount of peaks in the range to fit
+        :param peak_pos: peak positions, initial guess, list of length peak_nb
+        :param peak_amp: peak amplitudes, initial guess, list of length peak_nb
+        :param peak_sigma: peak sigmas, initial guess, list of length peak_nb
+        :param back: initial guess, minimum and maximum values for background,
+         constant in this model.
+        """
 
         # Create a dictionnary for the peak to be able to iterate on their names
         peaks = dict()
