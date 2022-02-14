@@ -556,8 +556,6 @@ class reflecto:
         miller=False,
         critical_angles=False,
         background=False,
-        low_range=False,
-        high_range=False,
     ):
         """
         Plot the reflectivity.
@@ -584,8 +582,6 @@ class reflecto:
         :param critical_angles: if true, plot vertical line at 0.2540° (Pt)
         :param background: path to .npz background file to load and subtract,
          there must a data entry that corresponds to x_axis
-        :param low_range:
-        :param high_range:
         """
 
         # Get x axis
@@ -599,7 +595,7 @@ class reflecto:
         elif self.data_format == "hdf5":
             x_axis = [self.binoc_x_axis for i in self.scan_list]
 
-        # Add PEAK dome background
+        # Load background
         if isinstance(background, str):
             print("Subtracting bck...")
 
@@ -609,244 +605,243 @@ class reflecto:
                 print(f"Use background file with {x_axis} entry.")
 
         # Plot
-        if not low_range and not high_range:
-            plt.figure(figsize=figsize)
-            plt.semilogy()
-            plt.grid()
+        plt.figure(figsize=figsize)
+        plt.semilogy()
+        plt.grid()
 
-            for (i, y), x, scan_index in zip(
-                enumerate(self.intensities),
-                x_axis,
-                self.scan_indices
-            ):
-                # Remove background
-                try:
-                    # indices of x for which the value is defined on the background x
-                    idx = (x < max(self.bck[0])) * (x > min(self.bck[0]))
-
-                    x = x[idx]
-                    y = y[idx]
-
-                    # create ticks
-                    f = interpolate.interp1d(self.bck[0], self.bck[1])
-
-                    # create new bck
-                    new_bck = f(x)
-
-                    y_plot = np.where(
-                        (y-new_bck < self.background_bottom),
-                        self.background_bottom, y-new_bck
-                    )
-
-                except TypeError:
-                    y_plot = y
-
-                # Add label from conf file
-                try:
-                    plt.plot(
-                        x,
-                        y_plot,
-                        color=getattr(self, color_dict)[scan_index],
-                        linewidth=2,
-                    )
-
-                except:
-                    label = labels[i] if labels else scan_index
-
-                    plt.plot(
-                        x,
-                        y_plot,
-                        label=label,
-                        linewidth=2,
-                    )
-
-                # Get y values for filling
-                if i == fill_first:
-                    y_first = y_plot
-
-                elif i == len(self.intensities) + fill_last:
-                    y_last = y_plot
-
-            # Generate a bolded horizontal line at y_zero to highlight background
+        for (i, y), x, scan_index in zip(
+            enumerate(self.intensities),
+            x_axis,
+            self.scan_indices
+        ):
+            # Remove background
             try:
-                plt.axhline(y=y_zero, color='black', linewidth=1, alpha=0.5)
-            except:
-                pass
+                # indices of x for which the value is defined on the background x
+                idx = (x < max(self.bck[0])) * (x > min(self.bck[0]))
 
-            # Generate a bolded vertical line at x = 0 to highlight origin
-            plt.axvline(x=0, color='black', linewidth=1, alpha=0.5)
+                x = x[idx]
+                y = y[idx]
 
-            if critical_angles:
-                print("\nCritical angles position is angular (theta).\n")
-                # Generate a bolded vertical line at x = 0.24 to highlightcritical angle of Pt
-                # 0.2538
-                plt.axvline(
-                    x=2*0.2540 if x_axis == "gamma" else 0.2540,
-                    color='red',
-                    linewidth=2,
-                    alpha=1,
-                    label="$\\alpha_c$ Pt",
-                    linestyle="--"
+                # create ticks
+                f = interpolate.interp1d(self.bck[0], self.bck[1])
+
+                # create new bck
+                new_bck = f(x)
+
+                y_plot = np.where(
+                    (y-new_bck < self.background_bottom),
+                    self.background_bottom, y-new_bck
                 )
 
-                # Generate a bolded vertical line at x = 0.12 to highlightcritical angle of Al2O3
-                # plt.axvline(
-                #     x=2*0.130261 if x_axis == "gamma" else 0.130261,
-                #     color='black',
-                #     linewidth=1,
-                #     alpha=1,
-                #     label="$\\alpha_c$ $Al_2O_3$",
-                #     linestyle="--"
-                # )
+            except TypeError:
+                y_plot = y
 
-            if miller:
-                if self.data_format == "hdf5" and self.data_type == "qxqyqz":
-                    Pt_pos = self.q_bragg_pos_Pt[:1]
-                    BN_pos = self.q_bragg_pos_BN
-                    Al2P3_pos = self.q_bragg_pos_Al2O3
-                    plot_peaks = True
+            # Add label from conf file
+            try:
+                plt.plot(
+                    x,
+                    y_plot,
+                    color=getattr(self, color_dict)[scan_index],
+                    linewidth=2,
+                )
 
-                elif self.data_format == "hdf5" and self.data_type == "qparqper":
-                    Pt_pos = self.q_bragg_pos_Pt[:1]
-                    BN_pos = self.q_bragg_pos_BN
-                    Al2P3_pos = self.q_bragg_pos_Al2O3
-                    plot_peaks = True
+            except:
+                label = labels[i] if labels else scan_index
 
-                elif self.data_format == "hdf5" and self.data_type == "ang":
-                    Pt_pos = self.theta_bragg_pos_Pt[:1]
-                    BN_pos = self.theta_bragg_pos_BN
-                    Al2P3_pos = self.theta_bragg_pos_Al2O3
-                    plot_peaks = True
+                plt.plot(
+                    x,
+                    y_plot,
+                    label=label,
+                    linewidth=2,
+                )
 
-                elif self.data_format == "nxs" and x_axis in "qparqper":
-                    Pt_pos = self.q_bragg_pos_Pt[:1]
-                    BN_pos = self.q_bragg_pos_BN
-                    Al2P3_pos = self.q_bragg_pos_Al2O3
-                    plot_peaks = True
-                    print("Careful, peak position in q.")
+            # Get y values for filling
+            if i == fill_first:
+                y_first = y_plot
 
-                elif self.data_format == "nxs" and x_axis == "mu":
-                    Pt_pos = self.theta_bragg_pos_Pt[:1]
-                    BN_pos = self.theta_bragg_pos_BN
-                    Al2P3_pos = self.theta_bragg_pos_Al2O3
-                    plot_peaks = True
+            elif i == len(self.intensities) + fill_last:
+                y_last = y_plot
 
-                elif self.data_format == "nxs" and x_axis == "gamma":
-                    print("Shift of 0.5 in gamma")
-                    Pt_pos = [(a, 2*b + 0.5)
-                              for (a, b) in self.theta_bragg_pos_Pt[:1]]
-                    BN_pos = [(a, 2*b + 0.5)
-                              for (a, b) in self.theta_bragg_pos_BN]
-                    Al2P3_pos = [(a, 2*b + 0.5)
-                                 for (a, b) in self.theta_bragg_pos_Al2O3]
-                    plot_peaks = True
+        # Generate a bolded horizontal line at y_zero to highlight background
+        try:
+            plt.axhline(y=y_zero, color='black', linewidth=1, alpha=0.5)
+        except:
+            pass
 
-                else:
-                    print("Positions only in angle or q.")
-                    plot_peaks = False
+        # Generate a bolded vertical line at x = 0 to highlight origin
+        plt.axvline(x=0, color='black', linewidth=1, alpha=0.5)
 
-                if plot_peaks:
-                    if "pt" in [z.lower() for z in miller]:
-                        # Highlight Bragg peaks of Pt
+        if critical_angles:
+            print("\nCritical angles position is angular (theta).\n")
+            # Generate a bolded vertical line at x = 0.24 to highlightcritical angle of Pt
+            # 0.2538
+            plt.axvline(
+                x=2*0.2540 if x_axis == "gamma" else 0.2540,
+                color='red',
+                linewidth=2,
+                alpha=1,
+                label="$\\alpha_c$ Pt",
+                linestyle="--"
+            )
 
-                        for i, (miller_indices, bragg_angle) in enumerate(Pt_pos):
-                            if bragg_angle > self.x_min and bragg_angle < self.x_max:
-                                plt.axvline(x=bragg_angle,
-                                            # label ="Pt",
-                                            color=self.BP_colors["Pt"], linewidth=1, alpha=.5)
-                                plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Pt"],
+            # Generate a bolded vertical line at x = 0.12 to highlightcritical angle of Al2O3
+            # plt.axvline(
+            #     x=2*0.130261 if x_axis == "gamma" else 0.130261,
+            #     color='black',
+            #     linewidth=1,
+            #     alpha=1,
+            #     label="$\\alpha_c$ $Al_2O_3$",
+            #     linestyle="--"
+            # )
+
+        if miller:
+            if self.data_format == "hdf5" and self.data_type == "qxqyqz":
+                Pt_pos = self.q_bragg_pos_Pt[:1]
+                BN_pos = self.q_bragg_pos_BN
+                Al2P3_pos = self.q_bragg_pos_Al2O3
+                plot_peaks = True
+
+            elif self.data_format == "hdf5" and self.data_type == "qparqper":
+                Pt_pos = self.q_bragg_pos_Pt[:1]
+                BN_pos = self.q_bragg_pos_BN
+                Al2P3_pos = self.q_bragg_pos_Al2O3
+                plot_peaks = True
+
+            elif self.data_format == "hdf5" and self.data_type == "ang":
+                Pt_pos = self.theta_bragg_pos_Pt[:1]
+                BN_pos = self.theta_bragg_pos_BN
+                Al2P3_pos = self.theta_bragg_pos_Al2O3
+                plot_peaks = True
+
+            elif self.data_format == "nxs" and x_axis in "qparqper":
+                Pt_pos = self.q_bragg_pos_Pt[:1]
+                BN_pos = self.q_bragg_pos_BN
+                Al2P3_pos = self.q_bragg_pos_Al2O3
+                plot_peaks = True
+                print("Careful, peak position in q.")
+
+            elif self.data_format == "nxs" and x_axis == "mu":
+                Pt_pos = self.theta_bragg_pos_Pt[:1]
+                BN_pos = self.theta_bragg_pos_BN
+                Al2P3_pos = self.theta_bragg_pos_Al2O3
+                plot_peaks = True
+
+            elif self.data_format == "nxs" and x_axis == "gamma":
+                print("Shift of 0.5 in gamma")
+                Pt_pos = [(a, 2*b + 0.5)
+                          for (a, b) in self.theta_bragg_pos_Pt[:1]]
+                BN_pos = [(a, 2*b + 0.5)
+                          for (a, b) in self.theta_bragg_pos_BN]
+                Al2P3_pos = [(a, 2*b + 0.5)
+                             for (a, b) in self.theta_bragg_pos_Al2O3]
+                plot_peaks = True
+
+            else:
+                print("Positions only in angle or q.")
+                plot_peaks = False
+
+            if plot_peaks:
+                if "pt" in [z.lower() for z in miller]:
+                    # Highlight Bragg peaks of Pt
+
+                    for i, (miller_indices, bragg_angle) in enumerate(Pt_pos):
+                        if bragg_angle > self.x_min and bragg_angle < self.x_max:
+                            plt.axvline(x=bragg_angle,
+                                        # label ="Pt",
+                                        color=self.BP_colors["Pt"], linewidth=1, alpha=.5)
+                            plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Pt"],
+                                     weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+
+                if "al2o3" in [z.lower() for z in miller]:
+                    # Highlight Bragg peaks of Al2O3
+
+                    for i, (miller_indices, bragg_angle) in enumerate(Al2P3_pos):
+                        if bragg_angle > self.x_min and bragg_angle < self.x_max:
+                            if i == 0:
+                                plt.axvline(x=bragg_angle, color=self.BP_colors["Al2O3"],
+                                            linewidth=1, alpha=.5, label=("Al2O3"))
+                                plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Al2O3"],
+                                         weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+                            else:
+                                plt.axvline(x=bragg_angle, color=self.BP_colors["Al2O3"],
+                                            linewidth=1, alpha=.5)
+                                plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Al2O3"],
                                          weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
 
-                    if "al2o3" in [z.lower() for z in miller]:
-                        # Highlight Bragg peaks of Al2O3
+                if "bn" in [z.lower() for z in miller]:
+                    # Highlight Bragg peaks of BN
 
-                        for i, (miller_indices, bragg_angle) in enumerate(Al2P3_pos):
-                            if bragg_angle > self.x_min and bragg_angle < self.x_max:
-                                if i == 0:
-                                    plt.axvline(x=bragg_angle, color=self.BP_colors["Al2O3"],
-                                                linewidth=1, alpha=.5, label=("Al2O3"))
-                                    plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Al2O3"],
-                                             weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
-                                else:
-                                    plt.axvline(x=bragg_angle, color=self.BP_colors["Al2O3"],
-                                                linewidth=1, alpha=.5)
-                                    plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Al2O3"],
-                                             weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+                    for i, (miller_indices, bragg_angle) in enumerate(BN_pos):
+                        if bragg_angle > self.x_min and bragg_angle < self.x_max:
+                            if i == 0:
+                                plt.axvline(x=bragg_angle, color=self.BP_colors["BN"],
+                                            linewidth=1, alpha=.5, label=("Boron nitride"))
+                                plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["BN"],
+                                         weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+                            else:
+                                plt.axvline(x=bragg_angle, color=self.BP_colors["BN"],
+                                            linewidth=1, alpha=.5)
+                                plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["BN"],
+                                         weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
 
-                    if "bn" in [z.lower() for z in miller]:
-                        # Highlight Bragg peaks of BN
+        # Ticks
+        plt.xticks(
+            # np.arange(
+            # (self.x_min//x_tick_step)*x_tick_step,
+            # (self.x_max // x_tick_step)*x_tick_step,
+            # x_tick_step),
+            fontsize=self.fontsize
+        )
+        plt.yticks(
+            #     np.arange(
+            #         (self.y_min//y_tick_step)*y_tick_step,
+            #         (self.y_max // y_tick_step)*y_tick_step,
+            #         y_tick_step),
+            fontsize=self.fontsize
+        )
 
-                        for i, (miller_indices, bragg_angle) in enumerate(BN_pos):
-                            if bragg_angle > self.x_min and bragg_angle < self.x_max:
-                                if i == 0:
-                                    plt.axvline(x=bragg_angle, color=self.BP_colors["BN"],
-                                                linewidth=1, alpha=.5, label=("Boron nitride"))
-                                    plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["BN"],
-                                             weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
-                                else:
-                                    plt.axvline(x=bragg_angle, color=self.BP_colors["BN"],
-                                                linewidth=1, alpha=.5)
-                                    plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["BN"],
-                                             weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+        # Range
+        # Get axes limits
+        if x_min:
+            self.x_min = x_min
+            plt.xlim(left=self.x_min)
 
-            # Ticks
-            plt.xticks(
-                # np.arange(
-                # (self.x_min//x_tick_step)*x_tick_step,
-                # (self.x_max // x_tick_step)*x_tick_step,
-                # x_tick_step),
-                fontsize=self.fontsize
-            )
-            plt.yticks(
-                #     np.arange(
-                #         (self.y_min//y_tick_step)*y_tick_step,
-                #         (self.y_max // y_tick_step)*y_tick_step,
-                #         y_tick_step),
-                fontsize=self.fontsize
-            )
+        if x_max:
+            self.x_max = x_max
+            plt.xlim(right=self.x_max)
 
-            # Range
-            # Get axes limits
-            if x_min:
-                self.x_min = x_min
-                plt.xlim(left=self.x_min)
+        if y_min:
+            self.y_min = y_min
+            plt.ylim(bottom=self.y_min)
 
-            if x_max:
-                self.x_max = x_max
-                plt.xlim(right=self.x_max)
+        if y_max:
+            self.y_max = y_max
+            plt.ylim(top=self.y_max)
 
-            if y_min:
-                self.y_min = y_min
-                plt.ylim(bottom=self.y_min)
+        if fill:
+            try:
+                # Add filling
+                plt.fill_between(x_axis, y_first, y_last, alpha=0.1)
+            except:
+                print("Could not add filling.")
 
-            if y_max:
-                self.y_max = y_max
-                plt.ylim(top=self.y_max)
+        # Legend and axis labels
+        plt.legend(fontsize=self.fontsize, ncol=ncol)
 
-            if fill:
-                try:
-                    # Add filling
-                    plt.fill_between(x_axis, y_first, y_last, alpha=0.1)
-                except:
-                    print("Could not add filling.")
+        if self.data_format == "hdf5" and self.var == "hkl":
+            plt.xlabel("L", fontsize=self.fontsize)
+        elif self.data_format == "hdf5" and self.var == "qparqper":
+            plt.xlabel("qper", fontsize=self.fontsize)
+        elif self.data_format == "hdf5" and self.var == "qxqyqz":
+            plt.xlabel("qz", fontsize=self.fontsize)
+        elif self.data_format == "hdf5" and self.var == "qxqyqz":
+            plt.xlabel("qz", fontsize=self.fontsize)
+        elif self.data_format == "nxs":
+            plt.xlabel(x_var, fontsize=self.fontsize)
 
-            # Legend and axis labels
-            plt.legend(fontsize=self.fontsize, ncol=ncol)
-
-            if self.data_format == "hdf5" and self.var == "hkl":
-                plt.xlabel("L", fontsize=self.fontsize)
-            elif self.data_format == "hdf5" and self.var == "qparqper":
-                plt.xlabel("qper", fontsize=self.fontsize)
-            elif self.data_format == "hdf5" and self.var == "qxqyqz":
-                plt.xlabel("qz", fontsize=self.fontsize)
-            elif self.data_format == "hdf5" and self.var == "qxqyqz":
-                plt.xlabel("qz", fontsize=self.fontsize)
-            elif self.data_format == "nxs":
-                plt.xlabel(x_var, fontsize=self.fontsize)
-
-            plt.ylabel("Intensity (a.u.)", fontsize=self.fontsize)
-            if isinstance(title, str):
-                plt.title(f"{title}.png", fontsize=20)
+        plt.ylabel("Intensity (a.u.)", fontsize=self.fontsize)
+        if isinstance(title, str):
+            plt.title(f"{title}.png", fontsize=20)
 
         plt.tight_layout()
 
