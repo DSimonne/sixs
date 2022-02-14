@@ -30,6 +30,15 @@ class XCAT():
 
     def __init__(self, configuration_file=False):
         """Initialize the module with a configuration file
+        Typical workflow after init (Class methods):
+        * load_mass_flow_controller_file()
+        * separate_mass_flow_dataframes()
+        * load_mass_spectrometer_file()
+        * truncate_mass_flow_df()
+        * interpolate_mass_flow_df()
+        * plot_mass_flow_entry()
+        * plot_mass_flow_valves()
+        * plot_mass_spec()
 
         :param configuration_file: .yml file,
          stores metadata specific to the reaction
@@ -97,13 +106,17 @@ class XCAT():
         time_columns=None,
     ):
         """Initialize the module with a log file, output from XCAT
+        Automatically runs self.separate_mass_flow_dataframes()
 
         :param mass_flow_file: .txt, file from the mass flow controller
-        :param MRS_pos: Meaning of the positions of the MRS valve
-        :param MIX_pos: Meaning of the positions of the MIX valve
-        :param mass_flow_file_columns: Columns of the mass flow file to rename.
-        :param time_columns: Columns on the mass flow that give the time
-
+        :param MRS_pos: Meaning of the positions of the MRS valve, default
+         values are printed on execution.
+        :param MIX_pos: Meaning of the positions of the MIX valve, default
+         values are printed on execution.
+        :param mass_flow_file_columns: Columns of the mass flow file to rename,
+         default values are printed on execution.
+        :param time_columns: Columns on the mass flow that give the time,
+         default value is printed on execution.
         """
         self.mass_flow_file = mass_flow_file
         print(f"Using {self.mass_flow_file} as filename for data frame input.")
@@ -543,14 +556,17 @@ class XCAT():
             fig, axes = plt.subplots(2, 1, figsize=figsize)
 
             # Get dataframe
-            if df == "interpolated":
-                plot_df = getattr(self, f"{entry}_df_interpolated").copy()
+            try:
+                if df == "interpolated":
+                    plot_df = getattr(self, f"{entry}_df_interpolated").copy()
 
-            elif df == "truncated":
-                plot_df = getattr(self, f"{entry}_df_truncated").copy()
+                elif df == "truncated":
+                    plot_df = getattr(self, f"{entry}_df_truncated").copy()
 
-            else:
-                raise NameError("Wrong df.")
+                else:
+                    plot_df = getattr(self, f"{entry}_df").copy()
+            except AttributeError:
+                raise NameError("This DataFrame does not exist yet. Try df=\"default\"")
 
             # Change to hours
             if hours:

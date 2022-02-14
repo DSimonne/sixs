@@ -25,6 +25,7 @@ import xrayutilities as xu
 from lmfit import minimize, Parameters, Parameter
 from lmfit.models import *
 
+
 class reflecto:
     """Contains methods to load reflectometry data collected at SixS"""
 
@@ -117,7 +118,7 @@ class reflecto:
                  for f in sorted(glob.glob(f"{folder}/*.{data_format}"))]
         print(f"Detected files in {folder}:")
         for f in files:
-            print("\t",f)
+            print("\t", f)
 
         # Get files of interest based on scan_indices
         if self.data_type == "hkl" and self.data_format == "hdf5":
