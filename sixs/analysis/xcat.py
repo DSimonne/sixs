@@ -707,14 +707,17 @@ class XCAT():
         fig, axes = plt.subplots(2, 1, figsize=figsize)
 
         # Get dataframe
-        if df == "interpolated":
-            plot_df = getattr(self, f"valve_df_interpolated").copy()
+        try:
+            if df == "interpolated":
+                plot_df = getattr(self, f"{entry}_df_interpolated").copy()
 
-        elif df == "truncated":
-            plot_df = getattr(self, f"valve_df_truncated").copy()
+            elif df == "truncated":
+                plot_df = getattr(self, f"{entry}_df_truncated").copy()
 
-        else:
-            raise NameError("Wrong df.")
+            else:
+                plot_df = getattr(self, f"{entry}_df").copy()
+        except AttributeError:
+            raise NameError("This DataFrame does not exist yet. Try df=\"default\"")
 
         # Change to hours
         if hours:
