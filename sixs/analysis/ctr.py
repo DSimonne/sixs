@@ -1,61 +1,129 @@
-from matplotlib.colors import LogNorm
-import warnings
-from importlib import reload
-import tables as tb
-import matplotlib.pyplot as plt
 import numpy as np
+import tables as tb
 import pandas as pd
 import glob
-from sixs_nxsread import ReadNxs4 as rn
+import os
+import inspect
+import yaml
+
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+
 from scipy import interpolate
 
+import sixs
+from sixs_nxsread import ReadNxs4 as rn4
 
-class Map(object):
-    """docstring for Map"""
 
-    def __init__(self, folder, scan_indices):
+class Map:
+    """
+    Loads a Map of the reciprocal space created via binoculars, and provides
+    integration methods to analyse the diffracted intensity.
+    """
 
-        super(Map, self).__init__()
+    def __init__(
+        self,
+        folder,
+        scan_indices,
+        configuration_file=False,
+    ):
+        """
+        Loads .hdf5 files in param folder that are included in param
+        scan_indices.
+        :param folder: path to data folder
+        :param scan_indices: indices of maps scans, list
+        :param configuration_file: False, .yml file that stores metadata
+         specific to the reaction, if False, default to
+         self.path_package + "experiments/ammonia.yml"
+        """
 
-        # class arguments
+        self.path_package = inspect.getfile(sixs).split("__")[0]
+
+        # Load configuration file
+        print("###########################################################")
+        try:
+            if os.path.isfile(configuration_file):
+                self.configuration_file = configuration_file
+            else:
+                self.configuration_file = self.path_package + "experiments/ammonia.yml"
+                print("Could not find configuration file.")
+                print("Defaulted to ammonia configuration.")
+
+        except TypeError:
+            self.configuration_file = self.path_package + "experiments/ammonia.yml"
+            print("Defaulted to ammonia configuration.")
+
+        finally:
+            with open(self.configuration_file) as filepath:
+                yaml_parsed_file = yaml.load(
+                    filepath,
+                    Loader=yaml.FullLoader
+                )
+
+                for key in yaml_parsed_file:
+                    setattr(self, key, yaml_parsed_file[key])
+                print("Loaded configuration file.")
+                print("###########################################################\n")
+
+        # Load data
         self.folder = folder
         self.scan_indices = [str(s) for s in scan_indices]
 
-        all_files = [f.split("/")[-1] for f in glob.glob(f"{folder}/*.hdf5")]
+        # Get all hdf5 files first
+        files = [f.split("/")[-1]
+                 for f in sorted(glob.glob(f"{folder}/*.hdf5"))]
+        print(f"Detected files in {folder}:")
+        for f in files:
+            print("\t", f)
 
-        # self.scan_list = [f for f in all_files if any(["_" + n + ".hdf5" in f for n in self.scan_indices])]
-
-        # Out of plane maps
-        self.scan_list = [f for f in all_files if any(
+        # Get scans specified with scan_indices
+        self.scan_list = [f for f in files if any(
             ["-" + n + ".hdf5" in f for n in self.scan_indices])]
 
-        # plotting variables
-        self.linewidth = 2
-        self.linewidth_hline = 1.3
-        self.linewidth_vline = 1.3
-        self.alpha_hline = 0.7
-        self.alpha_vline = 0.7
-        self.color_hline = "black"
-        self.color_vline = "black"
+        print("\n###########################################################")
+        print("Working on the following files:")
+        for f in self.scan_list:
+            print("\t", f)
+        print("###########################################################\n")
 
-        self.filling_alpha = 0.2
+    def prep_data(
+        self,
+        save_name,
+        interpol_L_step=0.01,
+        CTR_width_H=0.02,
+        CTR_width_K=0.02,
+        background_width_H=0.01,
+        background_width_K=0.01,
+        HK_peak=[-1, 1],
+        center_background=[-1, 1],
+        verbose=False,
+    ):
+        """
+        Prepare the data for plots by interpolating on the smallest common range
+        If center_background is different from HK_peak, the goal is to avoid
+        summing the CTR intensity at the same time as the diffraction rings
 
-        self.fontsize = 20
+        Saves the result as a numpy array on disk.
 
-        self.y_og = 0
-
-        self.title_fontsize = 26
-
-    @classmethod
-    def get_class_name(cls):
-        print(cls.__name__)
-        return cls.__name__
-
-    def prep_data(self, constant, variable, interpol_L_step=0.01, CTR_width_H=0.02, CTR_width_K=0.02,
-                  background_width_H=0.01, background_width_K=0.01, HK_peak=[-1, 1], center_background=[-1, 1]):
-        """Prepare the data for plots by interpolating on the smallest common range
-        If center_background is different from HK_peak, the goal is to avoid summing the CTR intensity at the same time 
-        as the diffraction rings """
+        :param save_name: name of file in which the results are saved, saved in
+         self.folder.
+        :param interpol_L_step: step size in interpolation along L, to avoid
+         problem with analysing CTR with different steps.
+        :param CTR_width_H: width in h of CTR in reciprocal space, default is
+         0.02.
+        :param CTR_width_K: width in k of CTR in reciprocal space, default is
+         0.02.
+        :param background_width_H: width in h of background region taken in
+         reciprocal space, default is 0.01.
+        :param background_width_K: width in k of background region taken in
+         reciprocal space, default is 0.01.
+        :param HK_peak: node in reciprocal space around which the CTR is taken,
+         default is [-1, 1].
+        :param center_background: node in reciprocal space around which the
+         background is taken, default is [-1, 1]. If equal to HK_peak, the
+         background width is added to the width of the CTR.
+        :param verbose: if True, print more details.
+        """
 
         # Parameters of rod
         self.HK_peak = HK_peak
@@ -63,10 +131,14 @@ class Map(object):
         self.CTR_width_H = CTR_width_H
         self.CTR_width_K = CTR_width_K
 
-        self.CTR_range_H = [self.HK_peak[0] -
-                            self.CTR_width_H, self.HK_peak[0] + self.CTR_width_H]
-        self.CTR_range_K = [self.HK_peak[1] -
-                            self.CTR_width_H, self.HK_peak[1] + self.CTR_width_K]
+        self.CTR_range_H = [
+            self.HK_peak[0] - self.CTR_width_H,
+            self.HK_peak[0] + self.CTR_width_H
+        ]
+        self.CTR_range_K = [
+            self.HK_peak[1] - self.CTR_width_K,
+            self.HK_peak[1] + self.CTR_width_K
+        ]
 
         # Background parameter
         self.center_background = center_background
@@ -76,35 +148,49 @@ class Map(object):
             self.background_width_K = CTR_width_K + background_width_K
 
             self.background_range_H = [
-                self.HK_peak[0] - self.background_width_H, self.HK_peak[0] + self.background_width_H]
+                self.HK_peak[0] - self.background_width_H,
+                self.HK_peak[0] + self.background_width_H
+            ]
             self.background_range_K = [
-                self.HK_peak[1] - self.background_width_K, self.HK_peak[1] + self.background_width_K]
+                self.HK_peak[1] - self.background_width_K,
+                self.HK_peak[1] + self.background_width_K
+            ]
 
         else:
             self.background_width_H = background_width_H
             self.background_width_K = background_width_K
 
             self.background_range_H = [
-                self.center_background[0] - self.background_width_H, self.center_background[0] + self.background_width_H]
+                self.center_background[0] - self.background_width_H,
+                self.center_background[0] + self.background_width_H
+            ]
             self.background_range_K = [
-                self.center_background[1] - self.background_width_K, self.center_background[1] + self.background_width_K]
+                self.center_background[1] - self.background_width_K,
+                self.center_background[1] + self.background_width_K
+            ]
 
+        # Start interpolation
+        print("###########################################################")
         print("Finding smallest common range in L, careful, depends on the input of the initial map.")
-
-        self.constant = constant
-        self.variable = variable
+        print("###########################################################")
 
         for i, fname in enumerate(self.scan_list):
 
             with tb.open_file(self.folder + fname, "r") as f:
-                # print(f"\nOpening file {fname} ...")
-                # H = f.root.binoculars.axes.H[:]
-                # K = f.root.binoculars.axes.K[:]
+                H = f.root.binoculars.axes.H[:]
+                K = f.root.binoculars.axes.K[:]
                 L = f.root.binoculars.axes.L[:]
 
-            # print("Range and stepsize in H: [{0:.3f}: {1:.3f}: {2:.3f}]".format(f.H[1], f.H[2], f.H[3]))
-            # print("Range and stepsize in K: [{0:.3f}: {1:.3f}: {2:.3f}]".format(f.K[1], f.K[2], f.K[3]))
-            # print("Range and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(f.L[1], f.L[2], f.L[3]))
+            if verbose:
+                print("\n###########################################################")
+                print(f"Opening file {fname} ...")
+                print("\tRange and stepsize in H: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                    H[1], H[2], H[3]))
+                print("\tRange and stepsize in K: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                    K[1], K[2], K[3]))
+                print("\tRange and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                    L[1], L[2], L[3]))
+                print("###########################################################")
 
             if i == 0:
                 l_min = L[1]
@@ -113,26 +199,28 @@ class Map(object):
                 l_min = min(l_min, L[1])
                 l_max = max(l_max, L[2])
 
-        print(f"\nSmallest common range is [{l_min} : {l_max}]")
-        self.interpol_L_step = interpol_L_step
+        # Determine interpolation range
+        print("\n###########################################################")
+        print(f"Smallest common range is [{l_min} : {l_max}]")
+        print("###########################################################")
 
+        self.interpol_L_step = interpol_L_step
         self.l_axe = np.arange(l_min, l_max, self.interpol_L_step)
 
         # Round future plot limits to  actual stepsize
         # self.x_min = self.l_axe[0] // self.x_tick_step * self.x_tick_step
         # self.x_max = self.l_axe[-1] // self.x_tick_step * self.x_tick_step
 
-        # Store name of each file
-        self.names = []
-
-        # Save as numpy array
+        # Save final data as numpy array
         span_data = np.empty((len(self.scan_list), 2, (len(self.l_axe))))
 
-        # For each file
-        for i, scan in enumerate(self.scan_list):
+        # Iterate on each file
+        for i, fname in enumerate(self.scan_list):
+            if verbose:
+                print("\n###########################################################")
+                print(f"Opening file {fname} ...")
 
-            with tb.open_file(self.folder + scan, "r") as f:
-                print(f"\nOpening file {scan} ...")
+            with tb.open_file(self.folder + fname, "r") as f:
 
                 ct = f.root.binoculars.counts[:]
                 cont = f.root.binoculars.contributions[:]
@@ -146,100 +234,149 @@ class Map(object):
                 K = f.root.binoculars.axes.K[:]
                 L = f.root.binoculars.axes.L[:]
 
-                scan_h_axe = np.linspace(
-                    H[1], H[2], 1 + int(H[5] - H[4]))  # xaxe
-                scan_k_axe = np.linspace(
-                    K[1], K[2], 1 + int(K[5] - K[4]))  # yaxe
+                scan_h_axe = np.round(np.linspace(
+                    H[1], H[2], 1 + int(H[5] - H[4])), 3)  # xaxe
+                scan_k_axe = np.round(np.linspace(
+                    K[1], K[2], 1 + int(K[5] - K[4])), 3)  # yaxe
                 # scan_l_axe = np.round(np.linspace(L[1], L[2], 1 + int(L[5] - L[4])), 3) #zaxe
-                scan_l_axe = np.linspace(
-                    L[1], L[2], 1 + int(L[5] - L[4]))  # zaxe
+                scan_l_axe = np.round(np.linspace(
+                    L[1], L[2], 1 + int(L[5] - L[4])), 3)  # zaxe
 
-                # print("Range and stepsize in H: [{0:.3f}: {1:.3f}: {2:.3f}]".format(H[1], H[2], H[3]))
-                # print("Range and stepsize in K: [{0:.3f}: {1:.3f}: {2:.3f}]".format(K[1], K[2], K[3]))
-                # print("Range and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(L[1], L[2], L[3]))
+                if verbose:
+                    print(
+                        "Range and stepsize in H: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                            H[1], H[2], H[3]))
+                    print(
+                        "Range and stepsize in K: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                            K[1], K[2], K[3]))
+                    print(
+                        "Range and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                            L[1], L[2], L[3]))
 
                 # CTR intensity, define roi indices
-                st_H_roi = ut3.find_nearest(scan_h_axe, self.CTR_range_H[0])[0]
-                end_H_roi = ut3.find_nearest(
-                    scan_h_axe, self.CTR_range_H[1])[0]
+                st_H_roi = self.find_nearest(
+                    scan_h_axe, self.CTR_range_H[0])[1]
+                end_H_roi = self.find_nearest(
+                    scan_h_axe, self.CTR_range_H[1])[1]
 
-                st_K_roi = ut3.find_nearest(scan_k_axe, self.CTR_range_K[0])[0]
-                end_K_roi = ut3.find_nearest(
-                    scan_k_axe, self.CTR_range_K[1])[0]
+                st_K_roi = self.find_nearest(
+                    scan_k_axe, self.CTR_range_K[0])[1]
+                end_K_roi = self.find_nearest(
+                    scan_k_axe, self.CTR_range_K[1])[1]
 
-                print(st_H_roi, end_H_roi)
-                print(st_K_roi, end_K_roi)
+                if verbose:
+                    print(
+                        f"Data ROI = [{st_H_roi}, {end_H_roi}, {st_K_roi}, {end_K_roi}]")
 
-                print("roi 2D")
+                # Get data only in specific ROI
                 roi_2D = raw_data[st_H_roi:end_H_roi, st_K_roi:end_K_roi, :]
 
                 # Interpolate over common l axis
                 tck = interpolate.splrep(
-                    scan_l_axe, roi_2D.sum(axis=(0, 1)), s=0)
+                    scan_l_axe, roi_2D.sum(axis=(0, 1)))
                 span_data[i, 0, :] = interpolate.splev(self.l_axe, tck)
 
+                # Get background
                 if center_background == HK_peak:
                     # Background intensity, define roi indices
-                    st_H_background = ut3.find_nearest(
-                        scan_h_axe, self.background_range_H[0])[0]
-                    end_H_background = ut3.find_nearest(
-                        scan_h_axe, self.background_range_H[1])[0]
+                    st_H_background = self.find_nearest(
+                        scan_h_axe, self.background_range_H[0])[1]
+                    end_H_background = self.find_nearest(
+                        scan_h_axe, self.background_range_H[1])[1]
 
-                    st_K_background = ut3.find_nearest(
-                        scan_k_axe, self.background_range_K[0])[0]
-                    end_K_background = ut3.find_nearest(
-                        scan_k_axe, self.background_range_K[1])[0]
+                    st_K_background = self.find_nearest(
+                        scan_k_axe, self.background_range_K[0])[1]
+                    end_K_background = self.find_nearest(
+                        scan_k_axe, self.background_range_K[1])[1]
+
+                    if verbose:
+                        print(
+                            f"Background ROI = [{st_H_background}, {end_H_background}, {st_K_background}, {end_K_background}]")
+                        print(
+                            "###########################################################")
 
                     background_H = raw_data[st_H_background:end_H_background,
-                                            st_K_roi:end_K_roi, :]
+                                            st_K_roi:end_K_roi,
+                                            :  # all data in L
+                                            ]
                     background_K = raw_data[st_H_roi:end_H_roi,
-                                            st_K_background:end_K_background, :]
-
-                    print(st_H_background, end_H_background)
-                    print(st_K_background, end_K_background)
+                                            st_K_background:end_K_background,
+                                            :  # all data in L
+                                            ]
 
                     # Interpolate
                     tck_H = interpolate.splrep(
-                        scan_l_axe, background_H.sum(axis=(0, 1)), s=0)
+                        scan_l_axe, background_H.sum(axis=(0, 1)))
                     tck_K = interpolate.splrep(
-                        scan_l_axe, background_K.sum(axis=(0, 1)), s=0)
+                        scan_l_axe, background_K.sum(axis=(0, 1)))
 
+                    # Subtract twice here because we are using two rectangles
+                    # that overlap our data
                     span_data[i, 1, :] = interpolate.splev(
                         self.l_axe, tck_H) + interpolate.splev(self.l_axe, tck_K) - 2 * span_data[i, 1, :]
 
                 else:
-                    print("background")
                     # Background intensity, define roi indices
-                    st_H_background = ut3.find_nearest(
-                        scan_h_axe, self.background_range_H[0])[0]
-                    end_H_background = ut3.find_nearest(
-                        scan_h_axe, self.background_range_H[1])[0]
+                    st_H_background = self.find_nearest(
+                        scan_h_axe, self.background_range_H[0])[1]
+                    end_H_background = self.find_nearest(
+                        scan_h_axe, self.background_range_H[1])[1]
 
-                    st_K_background = ut3.find_nearest(
-                        scan_k_axe, self.background_range_K[0])[0]
-                    end_K_background = ut3.find_nearest(
-                        scan_k_axe, self.background_range_K[1])[0]
+                    st_K_background = self.find_nearest(
+                        scan_k_axe, self.background_range_K[0])[1]
+                    end_K_background = self.find_nearest(
+                        scan_k_axe, self.background_range_K[1])[1]
+
+                    if verbose:
+                        print(
+                            f"Background ROI = [{st_H_background}, {end_H_background}, {st_K_background}, {end_K_background}]")
+                        print(
+                            "###########################################################")
 
                     background_2D = raw_data[st_H_background:end_H_background,
-                                             st_K_background:end_K_background, :]
+                                             st_K_background:end_K_background,
+                                             :
+                                             ]
 
                     # Interpolate
                     tck_2D = interpolate.splrep(
-                        scan_l_axe, background_2D.sum(axis=(0, 1)), s=0)
+                        scan_l_axe, background_2D.sum(axis=(0, 1)))
 
+                    # Only subtract once bc not on the peak
                     span_data[i, 1, :] = interpolate.splev(self.l_axe, tck_2D)
 
-                self.names.append(scan.split(".hdf5")[
-                                  0].split("_")[-1].replace("-", ":"))
+        # Saving
+        print("\n###########################################################")
+        print(f"Saving data as: {self.folder}{save_name}.npy")
+        print("###########################################################")
 
-        self.names = [x for _, x in sorted(
-            zip([int(f.split(":")[-1]) for f in self.names], self.names))]
-        np.save(self.folder + self.constant +
-                self.variable + ".npy", span_data)
+        np.save(self.folder + save_name, span_data)
 
-    def prep_data_fitaid(self, constant, variable, data_type="nisf", CTR_width_H=0.02, CTR_width_K=0.02,
-                         background_width_H=0.02, background_width_K=0.01, HK_peak=[-1, 1], interpol_L_step=0.03):
-        """Load data prepared with fitaid"""
+    def prep_data_fitaid(
+        self,
+        constant,
+        variable,
+        data_type="nisf",
+        CTR_width_H=0.02,
+        CTR_width_K=0.02,
+        background_width_H=0.02,
+        background_width_K=0.01,
+        HK_peak=[-1, 1],
+        interpol_L_step=0.03
+    ):
+        """
+        Load data prepared with fitaid (nisf data)
+
+        :param constant:
+        :param variable:
+        :param data_type:
+        :param CTR_width_H:
+        :param CTR_width_K:
+        :param background_width_H:
+        :param background_width_K:
+        :param HK_peak:
+        :param interpol_L_step:
+        """
 
         # Parameters of rod
         self.CTR_width_H = CTR_width_H
@@ -264,17 +401,9 @@ class Map(object):
 
         print("Finding smallest common range in L, careful, depends on the input of the initial map.")
 
-        self.constant = constant
-        self.variable = variable
+        for i, fname in enumerate(self.scan_list):
 
-        # store name of each file
-        self.names = []
-
-        for i, scan in enumerate(self.scan_list):
-            self.names.append(scan.split(".txt")[0].split(
-                "_")[-1].replace("-", ":"))
-
-            fname = self.folder + data_type + "_" + scan
+            fname = self.folder + data_type + "_" + fname
 
             data = np.loadtxt(fname)
 
@@ -300,9 +429,9 @@ class Map(object):
 
         # background already subtracted; but still in big array for plotting function, just equal to zeros
 
-        for i, scan in enumerate(self.scan_list):
+        for i, fname in enumerate(self.scan_list):
 
-            fname = self.folder + data_type + "_" + scan
+            fname = self.folder + data_type + "_" + fname
 
             data = np.loadtxt(fname)
             scan_l_axe = data[:, 0]
@@ -312,11 +441,32 @@ class Map(object):
             self.span_data[i, 0, :] = self.l_axe
 
             # Interpolate
-            tck = interpolate.splrep(scan_l_axe, ctr_data, s=0)
+            tck = interpolate.splrep(scan_l_axe, ctr_data)
             self.span_data[i, 1, :] = interpolate.splev(self.l_axe, tck)
 
-    def plot_CTR(self, scan_gas_dict, scan_temp_dict, figsize=(18, 6), fill_first=0, fill_last=-1, zoom=[None, None, None, None], title="CTR", save_as="CTR.png"):
-        """Variable is gas or temp"""
+    def plot_CTR(
+        self,
+        scan_gas_dict,
+        scan_temp_dict,
+        figsize=(18, 6),
+        fill_first=0,
+        fill_last=-1,
+        zoom=[None, None, None, None],
+        title="CTR",
+        save_as="CTR.png"
+    ):
+        """
+        Variable is gas or temp
+
+        :param scan_gas_dict:
+        :param scan_temp_dict:
+        :param figsize:
+        :param fill_first:
+        :param fill_last:
+        :param zoom:
+        :param title:
+        :param save_as:
+        """
 
         if self.variable == "temp":
             self.labels = {
@@ -409,6 +559,13 @@ class Map(object):
         plt.savefig(f"Images/ctr/{save_as}", bbox_inches='tight')
         print(f"Saved as Images/ctr/{save_as}")
         plt.show()
+
+    @staticmethod
+    def find_nearest(array, value,):
+        mask = np.where(array == value)
+        if len(mask) == 1:
+            mask = mask[0][0]
+        return array[mask], mask
 
     # def hdf2png(self, scan_index, axe, plot = 'YES', save = 'NO', axerange = None):
     #     """2D plotting tool"""

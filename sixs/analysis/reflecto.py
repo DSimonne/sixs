@@ -50,7 +50,6 @@ class reflecto:
         self.path_package = inspect.getfile(sixs).split("__")[0]
 
         # Load configuration file
-
         print("###########################################################")
         try:
             if os.path.isfile(configuration_file):
@@ -639,7 +638,7 @@ class reflecto:
                     self.background_bottom, y-new_bck
                 )
 
-            except (AttributeError,TypeError):
+            except (AttributeError, TypeError):
                 y_plot = y
 
             # Add label
@@ -678,7 +677,7 @@ class reflecto:
                     )
                 except Exception as e:
                     raise e
-            except TypeError: # No special colour
+            except TypeError:  # No special colour
                 plt.plot(
                     x,
                     y_plot,

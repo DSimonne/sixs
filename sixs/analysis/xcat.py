@@ -571,7 +571,8 @@ class XCAT():
                 else:
                     plot_df = getattr(self, f"{entry}_df").copy()
             except AttributeError:
-                raise NameError("This DataFrame does not exist yet. Try df=\"default\"")
+                raise NameError(
+                    "This DataFrame does not exist yet. Try df=\"default\"")
 
             # Change to hours
             if hours:
@@ -722,7 +723,8 @@ class XCAT():
             else:
                 plot_df = getattr(self, f"valve_df").copy()
         except AttributeError:
-            raise NameError("This DataFrame does not exist yet. Try df=\"default\"")
+            raise NameError(
+                "This DataFrame does not exist yet. Try df=\"default\"")
 
         # Change to hours
         if hours:
