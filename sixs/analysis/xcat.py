@@ -319,27 +319,28 @@ class XCAT():
                     # Get mass spectrometer channels
                     elif line[:3] in channel_index:
                         channels.append(line[25:35].replace(" ", ""))
-
+            print("\n#######################################################")
             print(
                 f"Mass spec. starting time: {self.mass_spec_start_time_epoch} (unix epoch), {self.mass_spec_start_time}.")
 
-        except Exception as E:
+        except TypeError:
             self.mass_spec_start_time_epoch = None
             self.mass_spec_start_time = None
-            raise E  # TODO
+            print("\n#######################################################")
+            print("""
+                \nCould not interpolate the rga data.
+                \nPlay with the amount of columns names and the amount of rows skipped.")
+                """)
+            print("#######################################################\n")
 
         # Create DataFrame
-        try:
-            self.rga_data = pd.read_csv(
-                mass_spec_file,
-                delimiter=',',
-                index_col=False,
-                names=channels,
-                skiprows=skiprows
-            )
-
-        except OSError:
-            raise OSError
+        self.rga_data = pd.read_csv(
+            mass_spec_file,
+            delimiter=',',
+            index_col=False,
+            names=channels,
+            skiprows=skiprows
+        )
 
         # Interpolate the data of the mass spectrometer in seconds
         try:
@@ -361,6 +362,7 @@ class XCAT():
             print(
                 f"Mass spec. end time: {self.mass_spec_end_time_epoch} (unix epoch), {self.mass_spec_end_time}.")
             print("Careful, there are two hours added regarding utc time.")
+            print("#######################################################")
 
             # Create new time column in integer seconds
             new_time_column = np.round(np.linspace(
@@ -383,8 +385,10 @@ class XCAT():
 
             # Save
             setattr(self, "rga_df_interpolated", interpolated_df)
+            print("\n#######################################################")
             print(
                 f"New DataFrame created for RGA, interpolated on its time range (in s).")
+            print("#######################################################\n")
 
             display(self.rga_df_interpolated.head())
             display(self.rga_df_interpolated.tail())
@@ -408,13 +412,14 @@ class XCAT():
         # Directly truncate df to avoid errors if forgotten
         self.truncate_mass_flow_df()
 
+        # Directly interpolate the data of the mass flow spectrometer
         self.interpolate_mass_flow_df()
 
     def truncate_mass_flow_df(self):
         """Truncate mass-specific mass flow DataFrame based on timestamp and
          time range if given (otherwise from timestamp to end).
         """
-
+        print("\n#######################################################")
         try:
             # Iterate on mass
             for mass in self.mass_list:
@@ -441,13 +446,12 @@ class XCAT():
 
         except Exception as e:
             raise e
-
-        # Directly interpolate the data of the mass flow spectrometer
-        self.interpolate_mass_flow_df()
+        print("#######################################################\n")
 
     def interpolate_mass_flow_df(self):
         """Interpolate the data in seconds."""
 
+        print("\n#######################################################")
         try:
             for mass in self.mass_list:
 
@@ -498,6 +502,7 @@ class XCAT():
 
         except Exception as e:
             raise e
+        print("#######################################################\n")
 
     def plot_mass_flow_entry(
         self,
@@ -709,13 +714,13 @@ class XCAT():
         # Get dataframe
         try:
             if df == "interpolated":
-                plot_df = getattr(self, f"{entry}_df_interpolated").copy()
+                plot_df = getattr(self, f"valve_df_interpolated").copy()
 
             elif df == "truncated":
-                plot_df = getattr(self, f"{entry}_df_truncated").copy()
+                plot_df = getattr(self, f"valve_df_truncated").copy()
 
             else:
-                plot_df = getattr(self, f"{entry}_df").copy()
+                plot_df = getattr(self, f"valve_df").copy()
         except AttributeError:
             raise NameError("This DataFrame does not exist yet. Try df=\"default\"")
 

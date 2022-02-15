@@ -142,6 +142,12 @@ class reflecto:
             self.scan_list = [f for f in files if any(
                 [n + ".nxs" in f for n in self.scan_indices])]
 
+        print("\n###########################################################")
+        print("Working on the following files:")
+        for f in self.scan_list:
+            print("\t", f)
+        print("###########################################################\n")
+
     def prep_nxs_data(
         self,
         roi,
@@ -542,7 +548,7 @@ class reflecto:
         filename=None,
         figsize=(18, 9),
         ncol=2,
-        color_dict="gas_colors",
+        color_dict=None,
         labels=False,
         y_zero=0,
         y_max=False,
@@ -567,7 +573,7 @@ class reflecto:
         :param ncol: columns in label, default is 2
         :param color_dict: dict used for labels, keys are scan index, values are
          colours for matplotlib.
-        :param labels: list of labels to use, if no color_dict
+        :param labels: list of labels to use, defaulted to scan index if False
         :param y_zero: Generate a bolded horizontal line at y_zero to highlight
          background, default is 0
         :param y_max: value used for plot range, default is False
@@ -633,21 +639,46 @@ class reflecto:
                     self.background_bottom, y-new_bck
                 )
 
-            except TypeError:
+            except (AttributeError,TypeError):
                 y_plot = y
 
-            # Add label from conf file
+            # Add label
+            if isinstance(labels, list):
+                label = labels[i]
+            elif isinstance(labels, dict):
+                try:
+                    label = labels[scan_index]
+                except KeyError:
+                    label = labels[int(scan_index)]
+                except:
+                    print("Dict not valid for labels, used scan_index")
+                    label = scan_index
+            else:
+                label = scan_index
+
+            # Add colour
             try:
                 plt.plot(
                     x,
                     y_plot,
-                    color=getattr(self, color_dict)[scan_index],
+                    color=color_dict[int(scan_index)],
+                    label=label,
                     linewidth=2,
                 )
 
-            except:
-                label = labels[i] if labels else scan_index
-
+            except KeyError:
+                # Take int(scan_index) in case keys are not strings in the dict
+                try:
+                    plt.plot(
+                        x,
+                        y_plot,
+                        color=color_dict[scan_index],
+                        label=label,
+                        linewidth=2,
+                    )
+                except Exception as e:
+                    raise e
+            except TypeError: # No special colour
                 plt.plot(
                     x,
                     y_plot,
