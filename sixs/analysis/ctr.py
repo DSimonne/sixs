@@ -9,7 +9,7 @@ import yaml
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
-from scipy import interpolate
+from scipy.interpolate import splrep, splev
 
 import sixs
 from sixs_nxsread import ReadNxs4 as rn4
@@ -89,7 +89,7 @@ class Map:
     def prep_data(
         self,
         save_name,
-        interpol_L_step=0.01,
+        interpol_step=False,
         CTR_width_H=0.02,
         CTR_width_K=0.02,
         background_width_H=0.01,
@@ -107,8 +107,9 @@ class Map:
 
         :param save_name: name of file in which the results are saved, saved in
          self.folder.
-        :param interpol_L_step: step size in interpolation along L, to avoid
-         problem with analysing CTR with different steps.
+        :param interpol_step: step size in interpolation along L, to avoid
+         problem with analysing CTR with different steps. No interpolation if
+         False, default.
         :param CTR_width_H: width in h of CTR in reciprocal space, default is
          0.02.
         :param CTR_width_K: width in k of CTR in reciprocal space, default is
@@ -140,6 +141,11 @@ class Map:
             self.HK_peak[1] + self.CTR_width_K
         ]
 
+        print("\n###########################################################")
+        print(f"Range in H is [{self.CTR_range_H[0]} : {self.CTR_range_H[1]}]")
+        print(f"Range in K is [{self.CTR_range_K[0]} : {self.CTR_range_K[1]}]")
+        print("###########################################################")
+
         # Background parameter
         self.center_background = center_background
 
@@ -156,7 +162,14 @@ class Map:
                 self.HK_peak[1] + self.background_width_K
             ]
 
-        else:
+            print("\n###########################################################")
+            print(
+                f"Background range in H is [{self.background_range_H[0]} : {self.background_range_H[1]}]")
+            print(
+                f"Background range in K is [{self.background_range_K[0]} : {self.background_range_K[1]}]")
+            print("###########################################################")
+
+        elif isinstance(center_background, list) and center_background != HK_peak:
             self.background_width_H = background_width_H
             self.background_width_K = background_width_K
 
@@ -169,10 +182,24 @@ class Map:
                 self.center_background[1] + self.background_width_K
             ]
 
-        # Start interpolation
-        print("###########################################################")
-        print("Finding smallest common range in L, careful, depends on the input of the initial map.")
-        print("###########################################################")
+            print("\n###########################################################")
+            print(
+                f"Background range in H is [{self.background_range_H[0]} : {self.background_range_H[1]}]")
+            print(
+                f"Background range in K is [{self.background_range_K[0]} : {self.background_range_K[1]}]")
+            print("###########################################################")
+
+        # Start iterating on file to see the shape
+        if isinstance(interpol_step, float):
+            print("\n###########################################################")
+            print("Finding smallest common range in L")
+            print("Depends on the config file in binoculars-process.")
+            print("###########################################################")
+        else:
+            # No interpolation, we assume that all the scan have the same l axis
+            print("\n###########################################################")
+            print("No interpolation")
+            print("###########################################################")
 
         for i, fname in enumerate(self.scan_list):
 
@@ -182,7 +209,8 @@ class Map:
                 L = f.root.binoculars.axes.L[:]
 
             if verbose:
-                print("\n###########################################################")
+                print(
+                    "\n###########################################################")
                 print(f"Opening file {fname} ...")
                 print("\tRange and stepsize in H: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
                     H[1], H[2], H[3]))
@@ -195,24 +223,29 @@ class Map:
             if i == 0:
                 l_min = L[1]
                 l_max = L[2]
+                l_shape = 1 + int(L[5] - L[4])
             else:
                 l_min = min(l_min, L[1])
                 l_max = max(l_max, L[2])
+                l_shape = max(l_shape, 1 + int(L[5] - L[4]))
 
-        # Determine interpolation range
-        print("\n###########################################################")
-        print(f"Smallest common range is [{l_min} : {l_max}]")
-        print("###########################################################")
+        if isinstance(interpol_step, float):
+            # Determine interpolation range
+            print("\n###########################################################")
+            print(f"Smallest common range in L is [{l_min} : {l_max}]")
+            print("###########################################################")
 
-        self.interpol_L_step = interpol_L_step
-        self.l_axe = np.arange(l_min, l_max, self.interpol_L_step)
+            self.interpol_step = interpol_step
+            self.l_axe = np.arange(l_min, l_max, self.interpol_step)
 
-        # Round future plot limits to  actual stepsize
-        # self.x_min = self.l_axe[0] // self.x_tick_step * self.x_tick_step
-        # self.x_max = self.l_axe[-1] // self.x_tick_step * self.x_tick_step
-
-        # Save final data as numpy array
-        span_data = np.empty((len(self.scan_list), 2, (len(self.l_axe))))
+            # Save final data as numpy array
+            # 0 is x axis, 1 is data, 2 is background
+            data = np.nan * \
+                np.empty((len(self.scan_list), 3, (len(self.l_axe))))
+        else:
+            # Save final data as numpy array
+            # 0 is x axis, 1 is data, 2 is background
+            data = np.nan * np.empty((len(self.scan_list), 3, l_shape))
 
         # Iterate on each file
         for i, fname in enumerate(self.scan_list):
@@ -226,9 +259,6 @@ class Map:
                 cont = f.root.binoculars.contributions[:]
 
                 raw_data = np.divide(ct, cont, where=cont != 0)
-
-                # swap axes for hkl indices to follow miller convention (h,k,l)
-                # self.hkl_data = np.swapaxes(self.raw_data, 0, 2)
 
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
@@ -272,9 +302,21 @@ class Map:
                 roi_2D = raw_data[st_H_roi:end_H_roi, st_K_roi:end_K_roi, :]
 
                 # Interpolate over common l axis
-                tck = interpolate.splrep(
-                    scan_l_axe, roi_2D.sum(axis=(0, 1)))
-                span_data[i, 0, :] = interpolate.splev(self.l_axe, tck)
+                if isinstance(interpol_step, float):
+                    # Save x axis
+                    data[i, 0, :] = self.l_axe
+
+                    # Save intensities
+                    tck = splrep(scan_l_axe, roi_2D.sum(axis=(0, 1)), s=0)
+                    roi_2D_sum = splev(self.l_axe, tck)
+                    data[i, 1, :] = roi_2D_sum
+                else:
+                    # Save x axis
+                    data[i, 0, :len(scan_l_axe)] = scan_l_axe
+
+                    # Save intensities
+                    roi_2D_sum = roi_2D.sum(axis=(0, 1))
+                    data[i, 1, :len(scan_l_axe)] = roi_2D_sum
 
                 # Get background
                 if center_background == HK_peak:
@@ -305,17 +347,29 @@ class Map:
                                             ]
 
                     # Interpolate
-                    tck_H = interpolate.splrep(
-                        scan_l_axe, background_H.sum(axis=(0, 1)))
-                    tck_K = interpolate.splrep(
-                        scan_l_axe, background_K.sum(axis=(0, 1)))
+                    if isinstance(interpol_step, float):
+                        tck_H = splrep(
+                            scan_l_axe, background_H.sum(axis=(0, 1)), s=0)
+                        tck_K = splrep(
+                            scan_l_axe, background_K.sum(axis=(0, 1)), s=0)
 
-                    # Subtract twice here because we are using two rectangles
-                    # that overlap our data
-                    span_data[i, 1, :] = interpolate.splev(
-                        self.l_axe, tck_H) + interpolate.splev(self.l_axe, tck_K) - 2 * span_data[i, 1, :]
+                        background_H_sum = splev(self.l_axe, tck_H)
+                        background_K_sum = splev(self.l_axe, tck_K)
 
-                else:
+                        # Save background
+                        # Subtract twice here because we are using two rectangles
+                        # that overlap our data
+                        data[i, 2, :] = background_H_sum + \
+                            background_K_sum - 2 * data[i, 1, :]
+                    else:
+                        background_H_sum = background_H.sum(axis=(0, 1))
+                        background_K_sum = background_K.sum(axis=(0, 1))
+
+                        # Save background
+                        data[i, 2, :len(scan_l_axe)] = background_H_sum + \
+                            background_K_sum - 2 * data[i, 1, :len(scan_l_axe)]
+
+                elif isinstance(center_background, list) and center_background != HK_peak:
                     # Background intensity, define roi indices
                     st_H_background = self.find_nearest(
                         scan_h_axe, self.background_range_H[0])[1]
@@ -339,18 +393,29 @@ class Map:
                                              ]
 
                     # Interpolate
-                    tck_2D = interpolate.splrep(
-                        scan_l_axe, background_2D.sum(axis=(0, 1)))
+                    if isinstance(interpol_step, float):
+                        tck_2D = splrep(
+                            scan_l_axe, background_2D.sum(axis=(0, 1)), s=0)
+                        background_2D_sum = splev(self.l_axe, tck_2D)
 
-                    # Only subtract once bc not on the peak
-                    span_data[i, 1, :] = interpolate.splev(self.l_axe, tck_2D)
+                        # Save background
+                        data[i, 2, :] = background_2D_sum
+                    else:
+                        background_2D_sum = background_2D.sum(axis=(0, 1))
+
+                        # Save background
+                        data[i, 2, :len(scan_l_axe)] = background_2D_sum
+
+                else:
+                    print("No background subtracted")
+                    print("###########################################################")
 
         # Saving
+        self.save_name = save_name
         print("\n###########################################################")
-        print(f"Saving data as: {self.folder}{save_name}.npy")
+        print(f"Saving data as: {self.folder}{self.save_name}.npy")
         print("###########################################################")
-
-        np.save(self.folder + save_name, span_data)
+        np.save(self.folder + self.save_name, data)
 
     def prep_data_fitaid(
         self,
@@ -362,7 +427,7 @@ class Map:
         background_width_H=0.02,
         background_width_K=0.01,
         HK_peak=[-1, 1],
-        interpol_L_step=0.03
+        interpol_step=0.03
     ):
         """
         Load data prepared with fitaid (nisf data)
@@ -375,7 +440,7 @@ class Map:
         :param background_width_H:
         :param background_width_K:
         :param HK_peak:
-        :param interpol_L_step:
+        :param interpol_step:
         """
 
         # Parameters of rod
@@ -397,7 +462,7 @@ class Map:
         self.background_range_K = [
             self.HK_peak[1] - self.background_width_K, self.HK_peak[1] + self.background_width_K]
 
-        self.interpol_L_step = interpol_L_step
+        self.interpol_step = interpol_step
 
         print("Finding smallest common range in L, careful, depends on the input of the initial map.")
 
@@ -418,14 +483,14 @@ class Map:
 
         print(f"\nSmallest common range is [{l_min} : {l_max}]")
 
-        self.l_axe = np.arange(l_min, l_max, self.interpol_L_step)
+        self.l_axe = np.arange(l_min, l_max, self.interpol_step)
 
         # round to step
         self.x_min = self.l_axe[0] // self.x_tick_step * self.x_tick_step
         self.x_max = self.l_axe[-1] // self.x_tick_step * self.x_tick_step
 
         # too big so save as numpy array
-        self.span_data = np.zeros((len(self.scan_list), 3, (len(self.l_axe))))
+        self.data = np.zeros((len(self.scan_list), 3, (len(self.l_axe))))
 
         # background already subtracted; but still in big array for plotting function, just equal to zeros
 
@@ -438,85 +503,123 @@ class Map:
             ctr_data = data[:, 1]
 
             # Use 3D arrays
-            self.span_data[i, 0, :] = self.l_axe
+            self.data[i, 0, :] = self.l_axe
 
             # Interpolate
-            tck = interpolate.splrep(scan_l_axe, ctr_data)
-            self.span_data[i, 1, :] = interpolate.splev(self.l_axe, tck)
+            tck = splrep(scan_l_axe, ctr_data, s=0)
+            self.data[i, 1, :] = splev(self.l_axe, tck)
 
     def plot_CTR(
         self,
-        scan_gas_dict,
-        scan_temp_dict,
-        figsize=(18, 6),
+        numpy_array=False,
+        title=None,
+        filename=None,
+        figsize=(18, 9),
+        ncol=2,
+        color_dict=None,
+        labels=False,
+        zoom=[None, None, None, None],
+        fill=False,
         fill_first=0,
         fill_last=-1,
-        zoom=[None, None, None, None],
-        title="CTR",
-        save_as="CTR.png"
+        log_intensities=True,
     ):
         """
-        Variable is gas or temp
-
-        :param scan_gas_dict:
-        :param scan_temp_dict:
-        :param figsize:
-        :param fill_first:
-        :param fill_last:
-        :param zoom:
-        :param title:
-        :param save_as:
+        Plot the CTR together
+        :param numpy_array: False if fitaid data (data is saved as
+         self.scan_data), otherwise path to .npy file on disk.
+        :param title: if string, set to figure title
+        :param filename: if string, figure will be saved to this path.
+        :param figsize: figure size, default is (18, 9)
+        :param ncol: columns in label, default is 2
+        :param color_dict: dict used for labels, keys are scan index, values are
+         colours for matplotlib.
+        :param labels: list of labels to use, defaulted to scan index if False
+        :param zoom: values used for plot range, default is
+         [None, None, None, None], order is left, right, bottom and top.
+        :param fill: if True, add filling between two plots
+        :param fill_first: index of scan to use for filling
+        :param fill_last: index of scan to use for filling
+        :param log_intensities: if True, y axis is logarithmic
         """
 
-        if self.variable == "temp":
-            self.labels = {
-                scan_nb: f"{scan_temp_dict[scan_nb]} °C" for scan_nb in self.names}
-            self.colors = {
-                scan_nb: self.qualitative_colors_2[scan_temp_dict[scan_nb]] for scan_nb in self.names}
-
-        elif self.variable == "gas":
-            self.labels = {
-                scan_nb: f"{scan_gas_dict[scan_nb]}" for scan_nb in self.names}
-            self.colors = {
-                scan_nb: self.fivethirtyeight_colors[scan_gas_dict[scan_nb]] for scan_nb in self.names}
-
-        plt.figure(figsize=figsize, dpi=150)
-        plt.semilogy()
+        # Create figure
+        plt.figure(figsize=figsize)
+        if log_intensities:
+            plt.semilogy()
+        plt.grid()
 
         # Only data saved as attribute if not too big
         try:
-            span_data = self.span_data
-            print("fitaid data")
+            data = self.data
+            print("Loaded self.data")
 
         # Otherwise as np array on disk
         except:
-            span_data = np.load(
-                self.folder + self.constant + self.variable + ".npy")
+            data = np.load(numpy_array)
+            print("Loaded", numpy_array)
 
-        for (i, arr), scan_nb in zip(enumerate(span_data), self.names):
-            # print(arr.shape)
-            # no need really to take l again but still it's better to keep x values in the same array with y
-            l = self.l_axe
-            y = arr[0, :]
-            b = arr[1, :]
+        # Iterate on data
+        for (i, arr), scan_index in zip(enumerate(data), self.scan_indices):
+            # take l again but still or better to keep x values in the same array with y
+            l = arr[0, :]  # x axis
+            y = arr[1, :]  # data
+            b = arr[2, :]  # background
 
-            plt.plot(l,
-                     y,
-                     label=self.labels[scan_nb],
-                     color=self.colors[scan_nb],
-                     linewidth=self.linewidth)
+            # Remove background
+            # y_plot = y-b
+            y_plot = y
 
-            # if i==fill_first:
-            #     y_first = norm_y
+            # Add label
+            if isinstance(labels, list):
+                label = labels[i]
+            elif isinstance(labels, dict):
+                try:
+                    label = labels[scan_index]
+                except KeyError:
+                    label = labels[int(scan_index)]
+                except:
+                    print("Dict not valid for labels, used scan_index")
+                    label = scan_index
+            else:
+                label = scan_index
 
-            # elif i==len(span_data) + fill_last:
-            #     y_last = norm_y
+            # Add colour
+            try:
+                plt.plot(
+                    l,
+                    y_plot,
+                    color=color_dict[int(scan_index)],
+                    label=label,
+                    linewidth=2,
+                )
 
-        # Generate a bolded horizontal line at y = 5 to highlight background
-        # plt.axhline(y = self.y_og, color = self.color_hline, linewidth = self.linewidth_hline, alpha = self.alpha_hline)
+            except KeyError:
+                # Take int(scan_index) in case keys are not strings in the dict
+                try:
+                    plt.plot(
+                        l,
+                        y_plot,
+                        color=color_dict[scan_index],
+                        label=label,
+                        linewidth=2,
+                    )
+                except Exception as e:
+                    raise e
+            except TypeError:  # No special colour
+                plt.plot(
+                    l,
+                    y_plot,
+                    label=label,
+                    linewidth=2,
+                )
 
-        # Generate a bolded vertical line at x = 0 to highlight origin
-        # plt.axvline(x = l[0], color = self.color_vline, linewidth = self.linewidth_vline, alpha = self.alpha_vline)
+            # For filling
+            if i == fill_first:
+                y_first = y_plot
+
+            elif i == len(data) + fill_last:
+                y_last = y_plot
 
         # Ticks
         plt.xticks(fontsize=self.fontsize)
@@ -526,46 +629,47 @@ class Map:
         plt.xlim(left=zoom[0], right=zoom[1])
         plt.ylim(bottom=zoom[2], top=zoom[3])
 
-        # Adding a title and a subtitle
-        plt.title(title, fontsize=self.title_fontsize)
+        # Filling
+        if fill:
+            try:
+                # Add filling
+                plt.fill_between(x_axis, y_first, y_last, alpha=0.1)
+            except:
+                print("Could not add filling.")
 
-        # if self.variable == "temp":
-        #     plt.text(x = self.subtitle_x, y = self.subtitle_y,
-        #         s = f"""Comparison of the integrated CTR intensity under condition {self.constant} at different temperature as a function of the miller index L.
-        #             The intensity is integrated for H $\in$ {self.CTR_range_H} and K $\in$ {self.CTR_range_K}.
-        #             The background is integrated for H $\in$ {self.background_range_H} and K $\in$ {self.background_range_K}, minus the smaller ROI.""",
-        #         fontsize = self.fontsize, alpha = self.subtitle_alpha)
+        # Legend and axis labels
+        plt.legend(fontsize=self.fontsize, ncol=ncol)
 
-        # elif self.variable == "gas":
-        #     plt.text(x = self.subtitle_x, y = self.subtitle_y,
-        #         s = f"""Comparison of the integrated CTR intensity at {self.constant} °C as a function of the miller index L for different gas atmosphere.
-        #             The intensity is integrated for H $\in$ {self.CTR_range_H} and K $\in$ {self.CTR_range_K}.
-        #             The background is integrated for H $\in$ {self.background_range_H} and K $\in$ {self.background_range_K}, minus the smaller ROI.""",
-        #         fontsize = self.fontsize, alpha = self.subtitle_alpha)
-
-        # Add filling
-        # try:
-        #     plt.fill_between(l, y_first, y_last, alpha = self.filling_alpha)
-        # except:
-        #     print('Shapes do not coincide')
-
-        plt.legend(bbox_to_anchor=(1, 1), loc="upper left",
-                   fontsize=self.fontsize)
-
-        plt.ylabel("Normalized Intensity", fontsize=self.fontsize)
         plt.xlabel("L", fontsize=self.fontsize)
+        plt.ylabel("Intensity (a.u.)", fontsize=self.fontsize)
+
+        # Title
+        if isinstance(title, str):
+            plt.title(f"{title}.png", fontsize=20)
+
+        # Save
         plt.tight_layout()
-        # plt.savefig(f"Images/ctr/CTR_{self.constant}.svg")
-        plt.savefig(f"Images/ctr/{save_as}", bbox_inches='tight')
-        print(f"Saved as Images/ctr/{save_as}")
+        if filename != None:
+            plt.savefig(f"{filename}", bbox_inches='tight')
+            print(f"Saved as {filename}")
+
         plt.show()
 
-    @staticmethod
-    def find_nearest(array, value,):
+    # More methods below
+
+    @ staticmethod
+    def find_nearest(array, value):
         mask = np.where(array == value)
         if len(mask) == 1:
-            mask = mask[0][0]
-        return array[mask], mask
+            try:
+                mask = mask[0][0]
+                return array[mask], mask
+            except IndexError:
+                # print("Value is not in array")
+                if all(array < value):
+                    return None, -1
+                elif all(array > value):
+                    return None, 0
 
     # def hdf2png(self, scan_index, axe, plot = 'YES', save = 'NO', axerange = None):
     #     """2D plotting tool"""
@@ -574,11 +678,11 @@ class Map:
     #         img = self.imgr
 
     #     if axe == 'H':
-    #        img = span_data[scan_index, ]
+    #        img = data[scan_index, ]
     #     if axe == 'K':
-    #        img = span_data[scan_index, ]
+    #        img = data[scan_index, ]
     #     if axe == 'L':
-    #        img = span_data[scan_index, ]
+    #        img = data[scan_index, ]
 
     #     if plot == 'YES':
     #         plt.figure(figsize=(16, 9))
