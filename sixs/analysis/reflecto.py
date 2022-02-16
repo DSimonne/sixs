@@ -17,8 +17,6 @@ from scipy import interpolate
 
 import sixs
 from sixs_nxsread import ReadNxs4 as rn4
-# from sixs.binoculars import binUtil3 as bin3
-# from sixs import utilities3 as ut3
 
 import xrayutilities as xu
 
@@ -26,7 +24,7 @@ from lmfit import minimize, Parameters, Parameter
 from lmfit.models import *
 
 
-class reflecto:
+class Reflectivity:
     """Contains methods to load reflectometry data collected at SixS"""
 
     def __init__(
@@ -164,7 +162,7 @@ class reflecto:
         Each one of these parameters is defined FOR THE CENTRAL PIXEL of the
         detector !
 
-        The reflecto may not have the same length, and/ or amount of points
+        The reflectivity may not have the same length, and/ or amount of points
 
         We take the wavelength of the first dataset in the series
 
@@ -550,10 +548,7 @@ class reflecto:
         color_dict=None,
         labels=False,
         y_zero=0,
-        y_max=False,
-        y_min=False,
-        x_min=False,
-        x_max=False,
+        zoom=[None, None, None, None],
         x_tick_step=False,
         fill=False,
         fill_first=0,
@@ -561,6 +556,7 @@ class reflecto:
         miller=False,
         critical_angles=False,
         background=False,
+        log_intensities=True,
     ):
         """
         Plot the reflectivity.
@@ -575,10 +571,8 @@ class reflecto:
         :param labels: list of labels to use, defaulted to scan index if False
         :param y_zero: Generate a bolded horizontal line at y_zero to highlight
          background, default is 0
-        :param y_max: value used for plot range, default is False
-        :param y_min: value used for plot range, default is False
-        :param x_min: value used for plot range, default is False
-        :param x_max: value used for plot range, default is False
+        :param zoom: values used for plot range, default is
+         [None, None, None, None], order is left, right, bottom and top.
         :param x_tick_step: tick step used for x axis, default is False
         :param fill: if True, add filling between two plots
         :param fill_first: index of scan to use for filling
@@ -587,6 +581,7 @@ class reflecto:
         :param critical_angles: if true, plot vertical line at 0.2540° (Pt)
         :param background: path to .npz background file to load and subtract,
          there must a data entry that corresponds to x_axis
+        :param log_intensities: if True, y axis is logarithmic
         """
 
         # Get x axis
@@ -611,7 +606,8 @@ class reflecto:
 
         # Plot
         plt.figure(figsize=figsize)
-        plt.semilogy()
+        if log_intensities:
+            plt.semilogy()
         plt.grid()
 
         for (i, y), x, scan_index in zip(
@@ -815,39 +811,14 @@ class reflecto:
                                          weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
 
         # Ticks
-        plt.xticks(
-            # np.arange(
-            # (self.x_min//x_tick_step)*x_tick_step,
-            # (self.x_max // x_tick_step)*x_tick_step,
-            # x_tick_step),
-            fontsize=self.fontsize
-        )
-        plt.yticks(
-            #     np.arange(
-            #         (self.y_min//y_tick_step)*y_tick_step,
-            #         (self.y_max // y_tick_step)*y_tick_step,
-            #         y_tick_step),
-            fontsize=self.fontsize
-        )
+        plt.xticks(fontsize=self.fontsize)
+        plt.yticks(fontsize=self.fontsize)
 
         # Range
-        # Get axes limits
-        if x_min:
-            self.x_min = x_min
-            plt.xlim(left=self.x_min)
+        plt.xlim(left=zoom[0], right=zoom[1])
+        plt.ylim(bottom=zoom[2], top=zoom[3])
 
-        if x_max:
-            self.x_max = x_max
-            plt.xlim(right=self.x_max)
-
-        if y_min:
-            self.y_min = y_min
-            plt.ylim(bottom=self.y_min)
-
-        if y_max:
-            self.y_max = y_max
-            plt.ylim(top=self.y_max)
-
+        # Filling
         if fill:
             try:
                 # Add filling
@@ -1043,14 +1014,14 @@ class reflecto:
             self.y_range
 
         except:
-            return("You need to run reflecto.prep_nxs_data() before!")
+            return("You need to run Reflectivity.prep_nxs_data() before!")
 
         # Define detector image plotting function
-        def plot2D(a, b, c, d, reflecto, index):
+        def plot2D(a, b, c, d, Refl, index):
             fig, ax = plt.subplots(2, 1, figsize=figsize)
 
             try:
-                data = getattr(reflecto, self.detector)[self.common_mask]
+                data = getattr(Refl, self.detector)[self.common_mask]
             except AttributeError:
                 print("Could not load detector data ...")
 
@@ -1081,7 +1052,7 @@ class reflecto:
             # ax[0].text(x=1.5,
             #            y=-25,
             #            s="Parameters : gamma = {:.3f}, mu = {:.3f}, hkl = ({:.3f}, {:.3f}, {:.3f}), q = {:3f}, qpar, qper = ({:3f}, {:3f})".format(
-            #                reflecto.gamma[index], reflecto.mu[index], reflecto.h[index], reflecto.k[index], reflecto.l[index], reflecto.q[index], reflecto.qPar[index], reflecto.qPer[index]),
+            #                Refl.gamma[index], Refl.mu[index], Refl.h[index], Refl.k[index], Refl.l[index], Refl.q[index], Refl.qPar[index], Refl.qPer[index]),
             #            #color = diverging_colors_1["E"],
             #            weight='bold',
             #            rotation=0,
@@ -1150,7 +1121,7 @@ class reflecto:
                 readout_format='d',
                 style={'description_width': 'initial'},
                 layout=Layout(width="30%")),
-            reflecto=widgets.Select(
+            Refl=widgets.Select(
                 options=[rn4.DataSet(filename=f, directory=self.folder)
                          for f in self.scan_list],
                 description='Scan:',
