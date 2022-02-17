@@ -121,19 +121,23 @@ class Map:
         # Get all hdf5 files first
         files = [f.split("/")[-1]
                  for f in sorted(glob.glob(f"{folder}/*.hdf5"))]
-        print(f"Detected files in {folder}:")
-        for f in files:
-            print("\t", f)
 
         # Get scans specified with scan_indices
         self.scan_files = [f for f in files if any(
             ["-" + n + ".hdf5" in f for n in self.scan_indices])]
 
-        print("\n###########################################################")
-        print("Working on the following files:")
-        for f in self.scan_files:
-            print("\t", f)
-        print("###########################################################\n")
+        if verbose:
+            print("\n###########################################################")
+            print(f"Detected files in {folder}:")
+            for f in files:
+                print("\t", f)
+            print("###########################################################\n")
+
+            print("\n###########################################################")
+            print("Working on the following files:")
+            for f in self.scan_files:
+                print("\t", f)
+            print("###########################################################\n")
 
         # Parameters of rod
         self.HK_peak = HK_peak
@@ -521,19 +525,22 @@ class Map:
         # Get all txt files first
         files = [f.split("/")[-1]
                  for f in sorted(glob.glob(f"{folder}/{data_type}*.txt"))]
-        print(f"Detected files in {folder}:")
-        for f in files:
-            print("\t", f)
 
         # Get scans specified with scan_indices
         self.scan_files = [f for f in files if any(
             ["-" + n + ".txt" in f for n in self.scan_indices])]
+        if verbose:
+            print("\n###########################################################")
+            print(f"Detected files in {folder}:")
+            for f in files:
+                print("\t", f)
+            print("###########################################################\n")
 
-        print("\n###########################################################")
-        print("Working on the following files:")
-        for f in self.scan_files:
-            print("\t", f)
-        print("###########################################################\n")
+            print("\n###########################################################")
+            print("Working on the following files:")
+            for f in self.scan_files:
+                print("\t", f)
+            print("###########################################################\n")
 
         # Iterating on all files to create l axis
         for i, fname in enumerate(self.scan_files):
@@ -605,9 +612,10 @@ class Map:
         print("###########################################################")
         np.save(folder + save_name, data)
 
+    @ staticmethod
     def plot_CTR(
-        self,
-        numpy_array=False,
+        numpy_array,
+        scan_indices,
         title=None,
         filename=None,
         figsize=(18, 9),
@@ -619,12 +627,14 @@ class Map:
         fill_first=0,
         fill_last=-1,
         log_intensities=True,
+        fontsize=15,
     ):
         """
         Plot the CTRs together
 
-        :param numpy_array: False if fitaid data (data is saved as
-         self.scan_data), otherwise path to .npy file on disk.
+        :param numpy_array: path to .npy file on disk.
+        :param scan_indices: scan indices of files plotted, in order, used for
+         labelling, mandatory because we need to know what we plot!
         :param title: if string, set to figure title
         :param filename: if string, figure will be saved to this path.
         :param figsize: figure size, default is (18, 9)
@@ -638,6 +648,7 @@ class Map:
         :param fill_first: index of scan to use for filling
         :param fill_last: index of scan to use for filling
         :param log_intensities: if True, y axis is logarithmic
+        :param fontsize: fontsize in plots
         """
 
         # Create figure
@@ -651,15 +662,15 @@ class Map:
         print("Loaded", numpy_array)
 
         # Iterate on data
-        for (i, arr), scan_index in zip(enumerate(data), self.scan_indices):
+        for (i, arr), scan_index in zip(enumerate(data), scan_indices):
             # take l again but still or better to keep x values in the same array with y
             l = arr[0, :]  # x axis
             y = arr[1, :]  # data
             b = arr[2, :]  # background
 
             # Remove background
-            # y_plot = y-b
-            y_plot = y
+            # Replace nan by zeroes for background, makes more sense
+            y_plot = y-np.nan_to_num(b)
 
             # Add label
             if isinstance(labels, list):
@@ -713,8 +724,8 @@ class Map:
                 y_last = y_plot
 
         # Ticks
-        plt.xticks(fontsize=self.fontsize)
-        plt.yticks(fontsize=self.fontsize)
+        plt.xticks(fontsize=fontsize)
+        plt.yticks(fontsize=fontsize)
 
         # Range
         plt.xlim(left=zoom[0], right=zoom[1])
@@ -729,10 +740,10 @@ class Map:
                 print("Could not add filling.")
 
         # Legend and axis labels
-        plt.legend(fontsize=self.fontsize, ncol=ncol)
+        plt.legend(fontsize=fontsize, ncol=ncol)
 
-        plt.xlabel("L", fontsize=self.fontsize)
-        plt.ylabel("Intensity (a.u.)", fontsize=self.fontsize)
+        plt.xlabel("L", fontsize=fontsize)
+        plt.ylabel("Intensity (a.u.)", fontsize=fontsize)
 
         # Title
         if isinstance(title, str):
@@ -745,8 +756,6 @@ class Map:
             print(f"Saved as {filename}")
 
         plt.show()
-
-    # More methods below
 
     @ staticmethod
     def find_nearest(array, value):
@@ -762,7 +771,13 @@ class Map:
                 elif all(array > value):
                     return array[0], 0
 
-    # def hdf2png(self, scan_index, axe, plot = 'YES', save = 'NO', axerange = None):
+    # def plot_map(
+    #     self,
+    #     scan_index,
+    #     axe,
+    #     save = False,
+    #     axerange = None
+    # ):
     #     """2D plotting tool"""
     #     if axerange != None:
     #         self.prjaxe_range(axe, axerange)
