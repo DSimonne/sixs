@@ -150,7 +150,7 @@ class Reflectivity:
         roi,
         theta="mu",
         two_theta="gamma",
-        detector="xpad140"
+        detector="xpad140",
     ):
         """
         Change the integration roi to see if it has an impact on the data,
@@ -209,12 +209,12 @@ class Reflectivity:
             "basepitch": "basepitch",
         }
 
-        # Second loop
+        # Iterate on all scans
         for j, f in enumerate(self.scan_list):
             print("\n###########################################################")
             print("Opening " + f)
 
-            # Keep andrea's script because it corrects for attenuation
+            # Andrea's script it corrects for attenuation
             data = rn4.DataSet(filename=f, directory=self.folder)
 
             if isinstance(roi, int):
@@ -557,6 +557,7 @@ class Reflectivity:
         critical_angles=False,
         background=False,
         log_intensities=True,
+        normalisation_range=False,
     ):
         """
         Plot the reflectivity.
@@ -582,6 +583,7 @@ class Reflectivity:
         :param background: path to .npz background file to load and subtract,
          there must a data entry that corresponds to x_axis
         :param log_intensities: if True, y axis is logarithmic
+        :param normalisation_range: normalizse by maximum on this range
         """
 
         # Get x axis
@@ -636,6 +638,16 @@ class Reflectivity:
 
             except (AttributeError, TypeError):
                 y_plot = y
+
+            # Normalize data
+            if isinstance(normalisation_range, list) or isinstance(normalisation_range, tuple):
+                print("\nScan index:", scan_index)
+                start = self.find_nearest(x, normalisation_range[0])[1]
+                end = self.find_nearest(x, normalisation_range[1])[1]
+                max_ref = max(y_plot[start:end])
+                print(f"\tmax(y[{start}: {end}])={max_ref}")
+                y_plot = y_plot/max_ref
+                print("\tNormalized the data by maximum on normalisation range.\n")
 
             # Add label
             if isinstance(labels, list):
@@ -842,7 +854,7 @@ class Reflectivity:
 
         plt.ylabel("Intensity (a.u.)", fontsize=self.fontsize)
         if isinstance(title, str):
-            plt.title(f"{title}.png", fontsize=20)
+            plt.title(f"{title}", fontsize=20)
 
         plt.tight_layout()
 
@@ -993,6 +1005,7 @@ class Reflectivity:
         central_pixel_x=94,
         central_pixel_y=278,
         figsize=(16, 9),
+        data_range=300,
     ):
         """
         Widget function to assess the quality of the roi on the .nxs file.
@@ -1021,7 +1034,7 @@ class Reflectivity:
             fig, ax = plt.subplots(2, 1, figsize=figsize)
 
             try:
-                data = getattr(Refl, self.detector)[self.common_mask]
+                data = getattr(Refl, self.detector)
             except AttributeError:
                 print("Could not load detector data ...")
 
@@ -1070,7 +1083,7 @@ class Reflectivity:
         _list_widgets = interactive(
             plot2D,
             a=widgets.IntSlider(
-                value=self.roi[0],
+                value=0,
                 min=0,
                 max=self.x_range,
                 step=1,
@@ -1080,7 +1093,7 @@ class Reflectivity:
                 readout=True,
                 readout_format='d'),
             b=widgets.IntSlider(
-                value=self.roi[1],
+                value=0,
                 min=0,
                 max=self.y_range,
                 step=1,
@@ -1090,7 +1103,7 @@ class Reflectivity:
                 readout=True,
                 readout_format='d'),
             c=widgets.IntSlider(
-                value=self.roi[2],
+                value=self.x_range,
                 min=0,
                 max=self.x_range,
                 step=1,
@@ -1100,7 +1113,7 @@ class Reflectivity:
                 readout=True,
                 readout_format='d'),
             d=widgets.IntSlider(
-                value=self.roi[3],
+                value=self.y_range,
                 min=0,
                 max=self.y_range,
                 step=1,
@@ -1112,7 +1125,7 @@ class Reflectivity:
             index=widgets.IntSlider(
                 value=0,
                 min=0,
-                max=np.sum(self.common_mask),
+                max=data_range,
                 step=1,
                 description='Index:',
                 continuous_update=False,
@@ -1134,3 +1147,18 @@ class Reflectivity:
         ])
 
         return window
+
+    @ staticmethod
+    def find_nearest(array, value):
+        X = np.abs(array-value)
+        idx = np.where(X == X.min())
+        if len(idx) == 1:
+            try:
+                idx = idx[0][0]
+                return array[idx], idx
+            except IndexError:
+                # print("Value is not in array")
+                if all(array < value):
+                    return array[-1], -1
+                elif all(array > value):
+                    return array[0], 0

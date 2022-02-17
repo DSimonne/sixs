@@ -23,15 +23,11 @@ class Map:
 
     def __init__(
         self,
-        folder,
-        scan_indices,
         configuration_file=False,
     ):
         """
-        Loads .hdf5 files in param folder that are included in param
-        scan_indices.
-        :param folder: path to data folder
-        :param scan_indices: indices of maps scans, list
+        Init the class with configuration file
+
         :param configuration_file: False, .yml file that stores metadata
          specific to the reaction, if False, default to
          self.path_package + "experiments/ammonia.yml"
@@ -65,29 +61,10 @@ class Map:
                 print("Loaded configuration file.")
                 print("###########################################################\n")
 
-        # Load data
-        self.folder = folder
-        self.scan_indices = [str(s) for s in scan_indices]
-
-        # Get all hdf5 files first
-        files = [f.split("/")[-1]
-                 for f in sorted(glob.glob(f"{folder}/*.hdf5"))]
-        print(f"Detected files in {folder}:")
-        for f in files:
-            print("\t", f)
-
-        # Get scans specified with scan_indices
-        self.scan_list = [f for f in files if any(
-            ["-" + n + ".hdf5" in f for n in self.scan_indices])]
-
-        print("\n###########################################################")
-        print("Working on the following files:")
-        for f in self.scan_list:
-            print("\t", f)
-        print("###########################################################\n")
-
     def prep_data(
         self,
+        folder,
+        scan_indices,
         save_name,
         interpol_step=False,
         CTR_width_H=0.02,
@@ -95,18 +72,30 @@ class Map:
         background_width_H=0.01,
         background_width_K=0.01,
         HK_peak=[-1, 1],
-        center_background=[-1, 1],
+        center_background=False,
         verbose=False,
     ):
         """
         Prepare the data for plots by interpolating on the smallest common range
-        If center_background is different from HK_peak, the goal is to avoid
-        summing the CTR intensity at the same time as the diffraction rings
+        center_background can be different from HK_peak, the goal is to avoid
+        summing the CTR intensity at the same time as the diffraction rings.
+
+        The binocular data is loaded as follow:
+            Divide counts by contribution where cont != 0
+            Swap the h and k axes to have a good convention
+            Flip k axis
+
+        The data is computed as follow:
+            integral = sum of pixels in CTR roi /nb of pixels in CTR roi
+            bckd_per_pixel = sum of pixels in bckd roi /nb of pixels in bckd roi
+            ctr = integral - bckd_per_pixel
 
         Saves the result as a numpy array on disk.
 
+        :param folder: path to data folder
+        :param scan_indices: indices of maps scans, list
         :param save_name: name of file in which the results are saved, saved in
-         self.folder.
+         folder.
         :param interpol_step: step size in interpolation along L, to avoid
          problem with analysing CTR with different steps. No interpolation if
          False, default.
@@ -126,19 +115,40 @@ class Map:
         :param verbose: if True, print more details.
         """
 
+        # Load data
+        self.scan_indices = [str(s) for s in scan_indices]
+
+        # Get all hdf5 files first
+        files = [f.split("/")[-1]
+                 for f in sorted(glob.glob(f"{folder}/*.hdf5"))]
+        print(f"Detected files in {folder}:")
+        for f in files:
+            print("\t", f)
+
+        # Get scans specified with scan_indices
+        self.scan_files = [f for f in files if any(
+            ["-" + n + ".hdf5" in f for n in self.scan_indices])]
+
+        print("\n###########################################################")
+        print("Working on the following files:")
+        for f in self.scan_files:
+            print("\t", f)
+        print("###########################################################\n")
+
         # Parameters of rod
         self.HK_peak = HK_peak
+        self.interpol_step = interpol_step
 
         self.CTR_width_H = CTR_width_H
         self.CTR_width_K = CTR_width_K
 
         self.CTR_range_H = [
-            self.HK_peak[0] - self.CTR_width_H,
-            self.HK_peak[0] + self.CTR_width_H
+            np.round(self.HK_peak[0] - self.CTR_width_H, 3),
+            np.round(self.HK_peak[0] + self.CTR_width_H, 3)
         ]
         self.CTR_range_K = [
-            self.HK_peak[1] - self.CTR_width_K,
-            self.HK_peak[1] + self.CTR_width_K
+            np.round(self.HK_peak[1] - self.CTR_width_K, 3),
+            np.round(self.HK_peak[1] + self.CTR_width_K, 3)
         ]
 
         print("\n###########################################################")
@@ -154,12 +164,12 @@ class Map:
             self.background_width_K = CTR_width_K + background_width_K
 
             self.background_range_H = [
-                self.HK_peak[0] - self.background_width_H,
-                self.HK_peak[0] + self.background_width_H
+                np.round(self.HK_peak[0] - self.background_width_H, 3),
+                np.round(self.HK_peak[0] + self.background_width_H, 3)
             ]
             self.background_range_K = [
-                self.HK_peak[1] - self.background_width_K,
-                self.HK_peak[1] + self.background_width_K
+                np.round(self.HK_peak[1] - self.background_width_K, 3),
+                np.round(self.HK_peak[1] + self.background_width_K, 3)
             ]
 
             print("\n###########################################################")
@@ -190,7 +200,7 @@ class Map:
             print("###########################################################")
 
         # Start iterating on file to see the shape
-        if isinstance(interpol_step, float):
+        if isinstance(self.interpol_step, float):
             print("\n###########################################################")
             print("Finding smallest common range in L")
             print("Depends on the config file in binoculars-process.")
@@ -201,9 +211,9 @@ class Map:
             print("No interpolation")
             print("###########################################################")
 
-        for i, fname in enumerate(self.scan_list):
+        for i, fname in enumerate(self.scan_files):
 
-            with tb.open_file(self.folder + fname, "r") as f:
+            with tb.open_file(folder + fname, "r") as f:
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
                 L = f.root.binoculars.axes.L[:]
@@ -229,285 +239,371 @@ class Map:
                 l_max = max(l_max, L[2])
                 l_shape = max(l_shape, 1 + int(L[5] - L[4]))
 
-        if isinstance(interpol_step, float):
+        if isinstance(self.interpol_step, float):
             # Determine interpolation range
             print("\n###########################################################")
             print(f"Smallest common range in L is [{l_min} : {l_max}]")
             print("###########################################################")
 
-            self.interpol_step = interpol_step
-            self.l_axe = np.arange(l_min, l_max, self.interpol_step)
+            l_axe = np.arange(l_min, l_max, self.interpol_step)
 
             # Save final data as numpy array
             # 0 is x axis, 1 is data, 2 is background
             data = np.nan * \
-                np.empty((len(self.scan_list), 3, (len(self.l_axe))))
+                np.empty((len(self.scan_files), 3, (len(l_axe))))
         else:
             # Save final data as numpy array
             # 0 is x axis, 1 is data, 2 is background
-            data = np.nan * np.empty((len(self.scan_list), 3, l_shape))
+            data = np.nan * np.empty((len(self.scan_files), 3, l_shape))
 
         # Iterate on each file
-        for i, fname in enumerate(self.scan_list):
+        for i, fname in enumerate(self.scan_files):
             if verbose:
                 print("\n###########################################################")
                 print(f"Opening file {fname} ...")
 
-            with tb.open_file(self.folder + fname, "r") as f:
+            with tb.open_file(folder + fname, "r") as f:
 
                 ct = f.root.binoculars.counts[:]
                 cont = f.root.binoculars.contributions[:]
 
                 raw_data = np.divide(ct, cont, where=cont != 0)
 
+                # Need to swap the axes
+                raw_data = np.swapaxes(raw_data, 0, 1)
+
+                # Need to flip K axis
+                raw_data = np.flip(raw_data, axis=(0))
+
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
                 L = f.root.binoculars.axes.L[:]
 
-                scan_h_axe = np.round(np.linspace(
-                    H[1], H[2], 1 + int(H[5] - H[4])), 3)  # xaxe
-                scan_k_axe = np.round(np.linspace(
-                    K[1], K[2], 1 + int(K[5] - K[4])), 3)  # yaxe
-                # scan_l_axe = np.round(np.linspace(L[1], L[2], 1 + int(L[5] - L[4])), 3) #zaxe
-                scan_l_axe = np.round(np.linspace(
-                    L[1], L[2], 1 + int(L[5] - L[4])), 3)  # zaxe
+            scan_h_axe = np.round(np.linspace(
+                H[1], H[2], 1 + int(H[5] - H[4])), 3)  # xaxe
+            scan_k_axe = np.round(np.linspace(
+                K[1], K[2], 1 + int(K[5] - K[4])), 3)  # yaxe
+            scan_l_axe = np.round(np.linspace(
+                L[1], L[2], 1 + int(L[5] - L[4])), 3)  # zaxe
+
+            # Need to flip K axis again
+            scan_k_axe = np.flip(scan_k_axe)
+
+            if verbose:
+                print(
+                    "Range and stepsize in H: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                        H[1], H[2], H[3]))
+                print(
+                    "Range and stepsize in K: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                        K[1], K[2], K[3]))
+                print(
+                    "Range and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                        L[1], L[2], L[3]))
+
+            # CTR intensity, define roi indices
+            st_H_roi = self.find_nearest(
+                scan_h_axe, self.CTR_range_H[0])
+            end_H_roi = self.find_nearest(
+                scan_h_axe, self.CTR_range_H[1])
+
+            st_K_roi = self.find_nearest(
+                scan_k_axe, self.CTR_range_K[1])
+            end_K_roi = self.find_nearest(
+                scan_k_axe, self.CTR_range_K[0])
+
+            if verbose:
+                print(
+                    f"""Data ROI: [start_k, end_K, start_H, end_H] = \
+                    \n\t[{st_K_roi[0]}, {end_K_roi[0]}, {st_H_roi[0]}, {end_H_roi[0]}]\
+                    \n\t[{st_K_roi[1]}, {end_K_roi[1]}, {st_H_roi[1]}, {end_H_roi[1]}]\
+                    """)
+                # f"Data ROI: [start_k, end_K, start_H, end_H] = [{st_K_roi}, {end_K_roi}, {st_H_roi}, {end_H_roi}]")
+            # Get data only in specific ROI
+            # CAREFUL WITH THE ORDER OF H AND K HERE
+            roi_2D = raw_data[st_K_roi[1]:end_K_roi[1],
+                              st_H_roi[1]:end_H_roi[1], :]
+            nb_pixel_roi = roi_2D.shape[0] * roi_2D.shape[1]
+
+            # Interpolate over common l axis
+            if isinstance(self.interpol_step, float):
+                # Save x axis
+                data[i, 0, :] = l_axe
+
+                # Save intensities
+                tck = splrep(scan_l_axe, roi_2D.sum(axis=(0, 1)), s=0)
+                roi_2D_sum = splev(l_axe, tck)
+                data[i, 1, :] = roi_2D_sum / nb_pixel_roi
+            else:
+                # Save x axis
+                data[i, 0, :len(scan_l_axe)] = scan_l_axe
+
+                # Save intensities
+                roi_2D_sum = roi_2D.sum(axis=(0, 1))
+                data[i, 1, :len(scan_l_axe)] = roi_2D_sum / nb_pixel_roi
+
+            # Get background
+            if center_background == HK_peak:
+                # Background intensity, define roi indices
+                st_H_background = self.find_nearest(
+                    scan_h_axe, self.background_range_H[0])
+                end_H_background = self.find_nearest(
+                    scan_h_axe, self.background_range_H[1])
+
+                st_K_background = self.find_nearest(
+                    scan_k_axe, self.background_range_K[0])
+                end_K_background = self.find_nearest(
+                    scan_k_axe, self.background_range_K[1])
 
                 if verbose:
                     print(
-                        "Range and stepsize in H: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                            H[1], H[2], H[3]))
+                        f"Background ROI = [{st_H_background[1]}, {end_H_background[1]}, {st_K_background[1]}, {end_K_background[1]}]")
                     print(
-                        "Range and stepsize in K: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                            K[1], K[2], K[3]))
-                    print(
-                        "Range and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                            L[1], L[2], L[3]))
+                        "###########################################################")
 
-                # CTR intensity, define roi indices
-                st_H_roi = self.find_nearest(
-                    scan_h_axe, self.CTR_range_H[0])[1]
-                end_H_roi = self.find_nearest(
-                    scan_h_axe, self.CTR_range_H[1])[1]
+                # CAREFUL WITH THE ORDER OF H AND K HERE
+                background_H = raw_data[st_K_roi[1]:end_K_roi[1],
+                                        st_H_background[1]:end_H_background[1],
+                                        :  # all data in L
+                                        ]
+                nb_pixel_background_H = background_H.shape[0] * \
+                    background_H.shape[1]
 
-                st_K_roi = self.find_nearest(
-                    scan_k_axe, self.CTR_range_K[0])[1]
-                end_K_roi = self.find_nearest(
-                    scan_k_axe, self.CTR_range_K[1])[1]
+                background_K = raw_data[st_K_background[1]:end_K_background[1],
+                                        st_H_roi[1]:end_H_roi[1],
+                                        :  # all data in L
+                                        ]
+                nb_pixel_background_K = background_H.shape[0] * \
+                    background_H.shape[1]
+
+                # Interpolate
+                if isinstance(self.interpol_step, float):
+                    tck_H = splrep(
+                        scan_l_axe, background_H.sum(axis=(0, 1)), s=0)
+                    tck_K = splrep(
+                        scan_l_axe, background_K.sum(axis=(0, 1)), s=0)
+
+                    background_H_sum = splev(l_axe, tck_H)
+                    background_K_sum = splev(l_axe, tck_K)
+
+                    # Save background
+                    # Subtract twice here because we are using two rectangles
+                    # that overlap our data
+                    # Need to divide by nb of pixels
+                    data[i, 2, :] = background_H_sum / nb_pixel_background_H + \
+                        background_K_sum / nb_pixel_background_K - \
+                        2 * data[i, 1, :]
+                else:
+                    background_H_sum = background_H.sum(axis=(0, 1))
+                    background_K_sum = background_K.sum(axis=(0, 1))
+
+                    # Save background
+                    data[i, 2, :len(scan_l_axe)] = background_H_sum / nb_pixel_background_H + \
+                        background_K_sum / nb_pixel_background_K - \
+                        2 * data[i, 1, :len(scan_l_axe)]
+
+            elif isinstance(center_background, list) and center_background != HK_peak:
+                # Background intensity, define roi indices
+                st_H_background = self.find_nearest(
+                    scan_h_axe, self.background_range_H[0])
+                end_H_background = self.find_nearest(
+                    scan_h_axe, self.background_range_H[1])
+
+                st_K_background = self.find_nearest(
+                    scan_k_axe, self.background_range_K[0])
+                end_K_background = self.find_nearest(
+                    scan_k_axe, self.background_range_K[1])
 
                 if verbose:
                     print(
-                        f"Data ROI = [{st_H_roi}, {end_H_roi}, {st_K_roi}, {end_K_roi}]")
+                        f"Background ROI = [{st_H_background[1]}, {end_H_background[1]}, {st_K_background[1]}, {end_K_background[1]}]")
+                    print(
+                        "###########################################################")
 
-                # Get data only in specific ROI
-                roi_2D = raw_data[st_H_roi:end_H_roi, st_K_roi:end_K_roi, :]
+                background_2D = raw_data[st_K_background[1]:end_K_background[1],
+                                         st_H_background[1]:end_H_background[1],
+                                         :
+                                         ]
+                nb_pixel_background_2D = background_2D.shape[0] * \
+                    background_2D.shape[1]
 
-                # Interpolate over common l axis
-                if isinstance(interpol_step, float):
-                    # Save x axis
-                    data[i, 0, :] = self.l_axe
+                # Interpolate
+                if isinstance(self.interpol_step, float):
+                    tck_2D = splrep(
+                        scan_l_axe, background_2D.sum(axis=(0, 1)), s=0)
+                    background_2D_sum = splev(l_axe, tck_2D)
 
-                    # Save intensities
-                    tck = splrep(scan_l_axe, roi_2D.sum(axis=(0, 1)), s=0)
-                    roi_2D_sum = splev(self.l_axe, tck)
-                    data[i, 1, :] = roi_2D_sum
+                    # Save background
+                    data[i, 2, :] = background_2D_sum / nb_pixel_background_2D
                 else:
-                    # Save x axis
-                    data[i, 0, :len(scan_l_axe)] = scan_l_axe
+                    background_2D_sum = background_2D.sum(axis=(0, 1))
 
-                    # Save intensities
-                    roi_2D_sum = roi_2D.sum(axis=(0, 1))
-                    data[i, 1, :len(scan_l_axe)] = roi_2D_sum
+                    # Save background
+                    data[i, 2, :len(scan_l_axe)] = background_2D_sum / \
+                        nb_pixel_background_2D
 
-                # Get background
-                if center_background == HK_peak:
-                    # Background intensity, define roi indices
-                    st_H_background = self.find_nearest(
-                        scan_h_axe, self.background_range_H[0])[1]
-                    end_H_background = self.find_nearest(
-                        scan_h_axe, self.background_range_H[1])[1]
+            else:
+                print("No background subtracted")
+                print("###########################################################")
 
-                    st_K_background = self.find_nearest(
-                        scan_k_axe, self.background_range_K[0])[1]
-                    end_K_background = self.find_nearest(
-                        scan_k_axe, self.background_range_K[1])[1]
+            # Resume with a plot
+            if verbose:
+                plt.figure()
+                plt.imshow(
+                    np.sum(raw_data, axis=2),
+                    norm=LogNorm(),
+                    cmap="cividis",
+                    extent=(H[1], H[2], K[1], K[2]),
+                )
+                plt.xlabel("H", fontsize=15)
+                plt.ylabel("K", fontsize=15)
+                plt.title("Intensity summed over L", fontsize=15)
 
-                    if verbose:
-                        print(
-                            f"Background ROI = [{st_H_background}, {end_H_background}, {st_K_background}, {end_K_background}]")
-                        print(
-                            "###########################################################")
+                # Plot data ROI
+                plt.axvline(x=st_H_roi[0], color='red', linestyle="--")
+                plt.axvline(x=end_H_roi[0], color='red', linestyle="--")
 
-                    background_H = raw_data[st_H_background:end_H_background,
-                                            st_K_roi:end_K_roi,
-                                            :  # all data in L
-                                            ]
-                    background_K = raw_data[st_H_roi:end_H_roi,
-                                            st_K_background:end_K_background,
-                                            :  # all data in L
-                                            ]
+                plt.axhline(y=st_K_roi[0], color='red', linestyle="--")
+                plt.axhline(y=end_K_roi[0], color='red',
+                            linestyle="--", label="ROI")
 
-                    # Interpolate
-                    if isinstance(interpol_step, float):
-                        tck_H = splrep(
-                            scan_l_axe, background_H.sum(axis=(0, 1)), s=0)
-                        tck_K = splrep(
-                            scan_l_axe, background_K.sum(axis=(0, 1)), s=0)
+                if center_background != False:
+                    # Plot background ROI
+                    plt.axvline(
+                        x=st_H_background[0], color='blue', linestyle="--")
+                    plt.axvline(
+                        x=end_H_background[0], color='blue', linestyle="--")
 
-                        background_H_sum = splev(self.l_axe, tck_H)
-                        background_K_sum = splev(self.l_axe, tck_K)
+                    plt.axhline(
+                        y=st_K_background[0], color='blue', linestyle="--")
+                    plt.axhline(
+                        y=end_K_background[0], color='blue', linestyle="--",
+                        label="Bckd")
 
-                        # Save background
-                        # Subtract twice here because we are using two rectangles
-                        # that overlap our data
-                        data[i, 2, :] = background_H_sum + \
-                            background_K_sum - 2 * data[i, 1, :]
-                    else:
-                        background_H_sum = background_H.sum(axis=(0, 1))
-                        background_K_sum = background_K.sum(axis=(0, 1))
-
-                        # Save background
-                        data[i, 2, :len(scan_l_axe)] = background_H_sum + \
-                            background_K_sum - 2 * data[i, 1, :len(scan_l_axe)]
-
-                elif isinstance(center_background, list) and center_background != HK_peak:
-                    # Background intensity, define roi indices
-                    st_H_background = self.find_nearest(
-                        scan_h_axe, self.background_range_H[0])[1]
-                    end_H_background = self.find_nearest(
-                        scan_h_axe, self.background_range_H[1])[1]
-
-                    st_K_background = self.find_nearest(
-                        scan_k_axe, self.background_range_K[0])[1]
-                    end_K_background = self.find_nearest(
-                        scan_k_axe, self.background_range_K[1])[1]
-
-                    if verbose:
-                        print(
-                            f"Background ROI = [{st_H_background}, {end_H_background}, {st_K_background}, {end_K_background}]")
-                        print(
-                            "###########################################################")
-
-                    background_2D = raw_data[st_H_background:end_H_background,
-                                             st_K_background:end_K_background,
-                                             :
-                                             ]
-
-                    # Interpolate
-                    if isinstance(interpol_step, float):
-                        tck_2D = splrep(
-                            scan_l_axe, background_2D.sum(axis=(0, 1)), s=0)
-                        background_2D_sum = splev(self.l_axe, tck_2D)
-
-                        # Save background
-                        data[i, 2, :] = background_2D_sum
-                    else:
-                        background_2D_sum = background_2D.sum(axis=(0, 1))
-
-                        # Save background
-                        data[i, 2, :len(scan_l_axe)] = background_2D_sum
-
-                else:
-                    print("No background subtracted")
-                    print("###########################################################")
+                # Legend
+                plt.legend()
+                plt.show()
+                plt.close()
 
         # Saving
-        self.save_name = save_name
         print("\n###########################################################")
-        print(f"Saving data as: {self.folder}{self.save_name}.npy")
+        print(f"Saving data as: {folder}{save_name}.npy")
         print("###########################################################")
-        np.save(self.folder + self.save_name, data)
+        np.save(folder + save_name, data)
 
     def prep_data_fitaid(
         self,
-        constant,
-        variable,
+        folder,
+        scan_indices,
+        save_name,
         data_type="nisf",
-        CTR_width_H=0.02,
-        CTR_width_K=0.02,
-        background_width_H=0.02,
-        background_width_K=0.01,
-        HK_peak=[-1, 1],
-        interpol_step=0.03
+        interpol_step=False,
+        verbose=False,
     ):
         """
-        Load data prepared with fitaid (nisf data)
+        Load data prepared with fitaid
 
-        :param constant:
-        :param variable:
-        :param data_type:
-        :param CTR_width_H:
-        :param CTR_width_K:
-        :param background_width_H:
-        :param background_width_K:
-        :param HK_peak:
-        :param interpol_step:
+        :param folder: path to data folder
+        :param scan_indices: indices of maps scans, list
+        :param save_name: name of file in which the results are saved, saved in
+         folder.
+        :param data_type: type of data to load from binoculars, usually the
+         possibilities are "nisf" or "sf". Prefer nisf data, detail here the
+         differences
+        :param interpol_step: step size in interpolation along L, to avoid
+         problem with analysing CTR with different steps. No interpolation if
+         False, default.
+        :param verbose: True for additional informations printed during function
         """
 
-        # Parameters of rod
-        self.CTR_width_H = CTR_width_H
-        self.CTR_width_K = CTR_width_K
+        # Get files
+        self.scan_indices = [str(s) for s in scan_indices]
 
-        self.background_width_H = background_width_H + CTR_width_H
-        self.background_width_K = background_width_K + CTR_width_K
+        # Get all txt files first
+        files = [f.split("/")[-1]
+                 for f in sorted(glob.glob(f"{folder}/{data_type}*.txt"))]
+        print(f"Detected files in {folder}:")
+        for f in files:
+            print("\t", f)
 
-        self.HK_peak = HK_peak
+        # Get scans specified with scan_indices
+        self.scan_files = [f for f in files if any(
+            ["-" + n + ".txt" in f for n in self.scan_indices])]
 
-        self.CTR_range_H = [self.HK_peak[0] -
-                            self.CTR_width_H, self.HK_peak[0] + self.CTR_width_H]
-        self.CTR_range_K = [self.HK_peak[1] -
-                            self.CTR_width_H, self.HK_peak[1] + self.CTR_width_K]
+        print("\n###########################################################")
+        print("Working on the following files:")
+        for f in self.scan_files:
+            print("\t", f)
+        print("###########################################################\n")
 
-        self.background_range_H = [
-            self.HK_peak[0] - self.background_width_H, self.HK_peak[0] + self.background_width_H]
-        self.background_range_K = [
-            self.HK_peak[1] - self.background_width_K, self.HK_peak[1] + self.background_width_K]
+        # Iterating on all files to create l axis
+        for i, fname in enumerate(self.scan_files):
+            # Load data
+            fitaid_data = np.loadtxt(fname)
 
-        self.interpol_step = interpol_step
+            # L axis
+            L = fitaid_data[:, 0]
 
-        print("Finding smallest common range in L, careful, depends on the input of the initial map.")
-
-        for i, fname in enumerate(self.scan_list):
-
-            fname = self.folder + data_type + "_" + fname
-
-            data = np.loadtxt(fname)
-
-            L = data[:, 0]
+            if verbose:
+                print(
+                    "\n###########################################################")
+                print(f"Opening file {fname} ...")
+                print("\tRange and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                    min(L), max(L), len(L)))
+                print("###########################################################")
 
             if i == 0:
-                l_min = L[1]
-                l_max = L[-1]
+                l_min = min(L)
+                l_max = max(L)
+                l_shape = len(L)
             else:
-                l_min = min(l_min, L[1])
-                l_max = max(l_max, L[-1])
+                l_min = min(l_min, min(L))
+                l_max = max(l_max, max(L))
+                l_shape = max(l_shape, len(L))
 
-        print(f"\nSmallest common range is [{l_min} : {l_max}]")
+        print("\n###########################################################")
+        print(f"Smallest common range in L is [{l_min} : {l_max}]")
+        print("###########################################################")
 
-        self.l_axe = np.arange(l_min, l_max, self.interpol_step)
+        # Create new x axis for interpolation
+        self.interpol_step = interpol_step
+        if isinstance(self.interpol_step, float):
+            print(f"\nSmallest common range is [{l_min} : {l_max}]")
+            l_axe = np.arange(l_min, l_max, self.interpol_step)
 
-        # round to step
-        self.x_min = self.l_axe[0] // self.x_tick_step * self.x_tick_step
-        self.x_max = self.l_axe[-1] // self.x_tick_step * self.x_tick_step
+            # Save final data as numpy array
+            # 0 is x axis, 1 is data, 2 is background
+            data = np.nan * \
+                np.empty((len(self.scan_files), 3, (len(l_axe))))
+        else:
+            # Save final data as numpy array
+            # 0 is x axis, 1 is data, 2 is background
+            data = np.nan * np.empty((len(self.scan_files), 3, l_shape))
 
-        # too big so save as numpy array
-        self.data = np.zeros((len(self.scan_list), 3, (len(self.l_axe))))
+        # Background already subtracted, left as nan
+        # Get l axis and CTR intensity for each file
+        for i, fname in enumerate(self.scan_files):
 
-        # background already subtracted; but still in big array for plotting function, just equal to zeros
-
-        for i, fname in enumerate(self.scan_list):
-
-            fname = self.folder + data_type + "_" + fname
-
-            data = np.loadtxt(fname)
-            scan_l_axe = data[:, 0]
-            ctr_data = data[:, 1]
-
-            # Use 3D arrays
-            self.data[i, 0, :] = self.l_axe
+            # Load data
+            fitaid_data = np.loadtxt(fname)
+            scan_l_axe = fitaid_data[:, 0]
+            ctr_data = fitaid_data[:, 1]
 
             # Interpolate
-            tck = splrep(scan_l_axe, ctr_data, s=0)
-            self.data[i, 1, :] = splev(self.l_axe, tck)
+            if isinstance(self.interpol_step, float):
+                data[i, 0, :] = l_axe
+
+                tck = splrep(scan_l_axe, ctr_data, s=0)
+                data[i, 1, :] = splev(l_axe, tck)
+
+            else:
+                data[i, 0, :] = scan_l_axe
+                data[i, 1, :] = ctr_data
+
+        # Saving
+        print("\n###########################################################")
+        print(f"Saving data as: {folder}{save_name}.npy")
+        print("###########################################################")
+        np.save(folder + save_name, data)
 
     def plot_CTR(
         self,
@@ -525,7 +621,8 @@ class Map:
         log_intensities=True,
     ):
         """
-        Plot the CTR together
+        Plot the CTRs together
+
         :param numpy_array: False if fitaid data (data is saved as
          self.scan_data), otherwise path to .npy file on disk.
         :param title: if string, set to figure title
@@ -549,15 +646,9 @@ class Map:
             plt.semilogy()
         plt.grid()
 
-        # Only data saved as attribute if not too big
-        try:
-            data = self.data
-            print("Loaded self.data")
-
-        # Otherwise as np array on disk
-        except:
-            data = np.load(numpy_array)
-            print("Loaded", numpy_array)
+        # Load np array on disk
+        data = np.load(numpy_array)
+        print("Loaded", numpy_array)
 
         # Iterate on data
         for (i, arr), scan_index in zip(enumerate(data), self.scan_indices):
@@ -667,9 +758,9 @@ class Map:
             except IndexError:
                 # print("Value is not in array")
                 if all(array < value):
-                    return None, -1
+                    return array[-1], -1
                 elif all(array > value):
-                    return None, 0
+                    return array[0], 0
 
     # def hdf2png(self, scan_index, axe, plot = 'YES', save = 'NO', axerange = None):
     #     """2D plotting tool"""
