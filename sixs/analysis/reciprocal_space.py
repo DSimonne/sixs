@@ -37,7 +37,7 @@ class Map:
         with tb.open_file(self.file_path) as f:
 
             # Get raw data
-            ct = f.root.binoculars.counts.read()  # ~100 times faster
+            ct = f.root.binoculars.counts.read()
             cont = f.root.binoculars.contributions.read()
             self.raw_data = np.divide(ct, cont, where=cont != 0)
 
@@ -331,7 +331,9 @@ class Map:
         vmin=0.1,
         vmax=2000,
         figsize=(16, 9),
-        save_path=False
+        title=None,
+        cmap="jet",
+        save_path=False,
     ):
         """
         Plot/save a hdf5 map.
@@ -342,6 +344,9 @@ class Map:
         :param vmin: default to 0.1
         :param vmax: default to 2000
         :param figsize: default to (16, 9)
+        :param title: figure title
+        :param cmap: color map used, pick from
+         https://matplotlib.org/stable/tutorials/colors/colormaps.html
         :param save_path: path to save file at
         """
         if axe_range == None:
@@ -395,33 +400,34 @@ class Map:
             axe_name2 = 'Qy'
 
         # Plot
-        plt.figure(figsize=figsize)
+        fig = plt.figure(figsize=figsize)
         plt.imshow(img,
-                   cmap='jet',
+                   cmap=cmap,
                    # interpolation="nearest",
                    origin="lower",
-                   #aspect = 'auto',
+                   # aspect = 'auto',
                    norm=LogNorm(vmin=vmin, vmax=vmax),
                    extent=[axe1.min(), axe1.max(), axe2.min(), axe2.max()]
                    )
-        plt.xlabel(axe_name1, fontsize=30)
-        plt.ylabel(axe_name2, fontsize=30)
-        plt.xticks(fontsize=30)
-        plt.yticks(fontsize=30)
-        cbar = plt.colorbar(
-            # orientation="horizontal",
-            pad=0.1
-        )
+        plt.xlabel(axe_name1, fontsize=20)
+        plt.ylabel(axe_name2, fontsize=20)
+        plt.xticks(fontsize=20)
+        plt.yticks(fontsize=20)
 
-        cbar.ax.tick_params(labelsize=30)
+        # Colorbar
+        cbar = plt.colorbar()
+        cbar.ax.tick_params(labelsize=20)
 
         plt.tight_layout()
+
+        if isinstance(title, str):
+            plt.title(title, fontsize=20)
 
         if save_path:
             plt.savefig(save_path)
 
         plt.show()
-
+        plt.close()
 
 
 class CTR:
@@ -678,8 +684,8 @@ class CTR:
 
             with tb.open_file(folder + fname, "r") as f:
 
-                ct = f.root.binoculars.counts[:]
-                cont = f.root.binoculars.contributions[:]
+                ct = f.root.binoculars.counts.read()
+                cont = f.root.binoculars.contributions.read()
 
                 raw_data = np.divide(ct, cont, where=cont != 0)
 
