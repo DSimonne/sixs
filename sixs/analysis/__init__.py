@@ -6,4 +6,4 @@
 """
 Welcome to sixs.analysis"""
 
-__all__ = ["ctr", "reflectivity", "xcat", "maps"]
+__all__ = ["reciprocal_space", "reflectivity", "xcat"]

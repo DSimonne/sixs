@@ -5,20 +5,430 @@ import glob
 import os
 import inspect
 import yaml
+import sixs
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 from scipy.interpolate import splrep, splev
 
-import sixs
-from sixs_nxsread import ReadNxs4 as rn4
+
+class Map:
+    """
+    Loads an hdf5 file created by binoculars that represents a 3D map of the
+    reciproal space and provides 2D plotting methods.
+    """
+
+    def __init__(self, file_path):
+        """
+        Loads the binoculars file.
+
+        The binocular data is loaded as follow:
+            Divide counts by contribution where cont != 0
+            Swap the h and k axes to be consistent with the indexing
+            [h, k, l], or [Qx, Qy, Qz].
+            Flip k axis
+
+        :param file_path: full path to .hdf5 file
+        """
+
+        self.file_path = file_path
+
+        with tb.open_file(self.file_path) as f:
+
+            # Get raw data
+            ct = f.root.binoculars.counts.read()  # ~100 times faster
+            cont = f.root.binoculars.contributions.read()
+            self.raw_data = np.divide(ct, cont, where=cont != 0)
+
+            # Get which type of projection we are working with
+
+            # HKL
+            try:
+                H = f.list_nodes('/binoculars/')[0].H
+                #K = f.list_nodes('/binoculars/')[0].K
+                #L = f.list_nodes('/binoculars/')[0].L
+                hkl = True
+            except tb.NoSuchNodeError:
+                hkl = False
+
+            #Qpar, Qper
+            try:
+                Qpar = f.list_nodes('/binoculars/')[0].Qpar
+                #K = f.list_nodes('/binoculars/')[0].K
+                #L = f.list_nodes('/binoculars/')[0].L
+                QparQper = True
+            except tb.NoSuchNodeError:
+                QparQper = False
+
+            # Qindex
+            try:
+                Index = f.list_nodes('/binoculars/')[0].Index
+                Qindex = True
+            except tb.NoSuchNodeError:
+                Qindex = False
+
+            # Qphi
+            try:
+                Index = f.list_nodes('/binoculars/')[0].Phi
+                QxQy = False  # also Qphi can have Qz (or Qx, Qy)
+                Qphi = True
+            except tb.NoSuchNodeError:
+                QxQy = True
+                Qphi = False
+
+            if Qphi == False:  # also Qphi can have Qz (or Qx, Qy)
+                try:
+                    Qz = f.list_nodes('/binoculars/')[0].Qz
+                #K = f.list_nodes('/binoculars/')[0].K
+                #L = f.list_nodes('/binoculars/')[0].L
+                except tb.NoSuchNodeError:
+                    QxQy = False
+
+            if Qphi == True:
+                self.data = self.raw_data
+                self.Phi = f.list_nodes('/binoculars/')[0].Phi[:]
+                self.Q = f.list_nodes('/binoculars/')[0].Q[:]
+                try:
+                    self.Qxyz = f.list_nodes('/binoculars/')[0].Qx[:]
+                except:
+                    pass
+                try:
+                    self.Qxyz = f.list_nodes('/binoculars/')[0].Qy[:]
+                except:
+                    pass
+                try:
+                    self.Qxyz = f.list_nodes('/binoculars/')[0].Qz[:]
+                except:
+                    pass
+
+            # Load data
+            if Qindex == True:
+                self.data = self.raw_data
+                self.index = f.list_nodes('/binoculars/')[0].Index[:]
+                self.Q = f.list_nodes('/binoculars/')[0].Q[:]
+
+            if hkl == True:
+                self.data = np.swapaxes(self.raw_data, 0, 2)
+                self.H = f.list_nodes('/binoculars/')[0].H[:]
+                self.K = f.list_nodes('/binoculars/')[0].K[:]
+                self.L = f.list_nodes('/binoculars/')[0].L[:]
+
+            if QxQy == True:
+
+                self.data = self.raw_data
+                self.Z = f.list_nodes('/binoculars/')[0].Qz[:]
+                self.X = f.list_nodes('/binoculars/')[0].Qx[:]
+                self.Y = f.list_nodes('/binoculars/')[0].Qy[:]
+
+            elif QparQper == True:
+                self.data = self.raw_data
+                self.Y = f.list_nodes('/binoculars/')[0].Qper[:]
+                self.X = f.list_nodes('/binoculars/')[0].Qpar[:]
+
+            if Qphi == True:
+                xaxe = np.linspace(self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
+                self.Qaxe = xaxe
+                yaxe = np.linspace(
+                    self.Qxyz[1], self.Qxyz[2], 1+self.Qxyz[5]-self.Qxyz[4])
+                self.Qxyzaxe = yaxe
+                zaxe = np.linspace(
+                    self.Phi[1], self.Phi[2], 1+self.Phi[5]-self.Phi[4])
+                self.Phiaxe = zaxe
+
+            if Qindex == True:
+                self.qaxe = np.linspace(
+                    self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
+                self.indaxe = np.linspace(
+                    self.index[1], self.index[2], 1+self.index[5]-self.index[4])
+
+            if hkl == True:
+                xaxe = np.arange(self.H[1], self.H[2], 1+self.H[5]-self.H[4])
+                self.haxe = np.linspace(
+                    self.H[1], self.H[2], 1 + int(self.H[5] - self.H[4]))  # xaxe
+                yaxe = np.arange(self.K[1], self.K[2], 1+self.K[5]-self.K[4])
+                self.kaxe = np.linspace(
+                    self.K[1], self.K[2], 1 + int(self.K[5] - self.K[4]))  # yaxe
+                zaxe = np.arange(self.L[1], self.L[2], 1+self.L[5]-self.L[4])
+                self.laxe = np.round(np.linspace(
+                    self.L[1], self.L[2], 1 + int(self.L[5] - self.L[4])), 3)  # yaxe
+                # self.laxe = np.round(np.linspace(self.L[1], self.L[2], int((self.L[2] - self.L[1])/self.L[3])), 3) #yaxe
+
+            if QxQy == True:
+                xaxe = np.linspace(
+                    self.X[1], self.X[2], 1 + int(self.X[5]-self.X[4]))
+                self.Qxaxe = xaxe
+                yaxe = np.linspace(
+                    self.Y[1], self.Y[2], 1 + int(self.Y[5]-self.Y[4]))
+                self.Qyaxe = yaxe
+                zaxe = np.linspace(
+                    self.Z[1], self.Z[2], 1 + int(self.Z[5]-self.Z[4]))
+                self.Qzaxe = zaxe
+
+            if QparQper == True:
+                xaxe = np.linspace(self.X[1], self.X[2], 1+self.X[5]-self.X[4])
+                self.Qpar = xaxe
+                yaxe = np.linspace(self.Y[1], self.Y[2], 1+self.Y[5]-self.Y[4])
+                self.Qper = yaxe
+
+            print("\n###########################################################")
+            print("Data shape:", self.data.shape)
+            print("\tHKL data:", hkl)
+            print("\tQxQy data:", QxQy)
+            print("\tQparQper data:", QparQper)
+            print("\tQphi data:", Qphi)
+            print("\tQindex:", Qindex)
+            print("###########################################################")
+
+    def prjaxe(self, axe):
+        """
+        Project on one of the measured axes
+        The result is saved as attribute .img to the Class
+
+        :param axe: string in ("H", "K", "L")
+        """
+
+        datanan = self.data
+        if axe == 'H':
+            axenum = 2
+        if axe == 'K':
+            axenum = 1
+        if axe == 'L':
+            axenum = 0
+
+        if axe == 'Qx':
+            # to be check good for projection along Qx
+            datanan = np.swapaxes(self.raw_data, 1, 2)
+            axenum = 0
+
+        if axe == 'Qy':
+            # to be check good for projection along Qy
+            datanan = np.swapaxes(self.raw_data, 0, 2)
+            axenum = 1
+
+        if axe == 'Qz':
+            # to be check good for projection along Qz
+            datanan = np.swapaxes(self.raw_data, 0, 1)
+            axenum = 2
+
+        self.img = np.nanmean(datanan, axis=axenum)
+
+    def prjaxe_range(self, axe, axe_range):
+        """
+        Project on one of the measured axes
+        The result is added as attribute .imgr to the file
+
+        :param axe: string in ("H", "K", "L")
+        :param axe_range: list or tuple of length two, defines the positions of
+         the value to be used in the array on the desired axe
+        """
+        #datanan = self.data
+
+        if axe == 'H':
+            axenum = 2
+            st = find_nearest(self.haxe, axe_range[0])[0]
+            nd = find_nearest(self.haxe, axe_range[1])[0]
+            datanan = self.data[:, :, st:nd]
+
+        if axe == 'K':
+            axenum = 1
+            st = find_nearest(self.kaxe, axe_range[0])[0]
+            nd = find_nearest(self.kaxe, axe_range[1])[0]
+            datanan = self.data[:, st:nd, :]
+
+        if axe == 'L':
+            axenum = 0
+            st = find_nearest(self.laxe, axe_range[0])[0]
+            nd = find_nearest(self.laxe, axe_range[1])[0]
+            datanan = self.data[st:nd, :, :]
+
+        if axe == 'Qz':
+            axenum = 2
+            # Check if good for projection along Qz
+            swap_data = np.swapaxes(self.raw_data, 0, 1)
+
+            st = find_nearest(self.Qzaxe, axe_range[0])[0]
+            nd = find_nearest(self.Qzaxe, axe_range[1])[0]
+            print(st, nd)
+            datanan = swap_data[:, :, st:nd]
+
+        if axe == 'Qy':
+            axenum = 1
+            # Check if good for projection along Qy
+            swap_data = np.swapaxes(self.raw_data, 0, 2)
+
+            st = find_nearest(self.Qyaxe, axe_range[0])[0]
+            nd = find_nearest(self.Qyaxe, axe_range[1])[0]
+            print(st, nd)
+            datanan = swap_data[:, st:nd, :]
+
+        if axe == 'Qx':
+            axenum = 0
+            # Check if good for projection along Qx
+            swap_data = np.swapaxes(self.raw_data, 1, 2)
+
+            st = find_nearest(self.Qxaxe, axe_range[0])[0]
+            nd = find_nearest(self.Qxaxe, axe_range[1])[0]
+            print(st, nd)
+            datanan = swap_data[st:nd, :, :]
+
+        self.imgr = np.nanmean(datanan, axis=axenum)
+
+    def prjaxes(self, axe1, axe2, axe_range_1=None, axe_range_2=None):
+        """
+        Project on two of the measured axes
+        the result is added as attribute .int2 to the file
+
+        :param axe1: string in ("H", "K", "L")
+        :param axe2: string in ("H", "K", "L", "Phi", "Q", "Qxyz")
+        :param axe_range_1: list or tuple of length two, defines the positions of
+         the value to be used in the array on the desired axe
+        :param axe_range_2: list or tuple of length two, defines the positions of
+         the value to be used in the array on the desired axe
+        """
+        datanan = self.data
+        #axe1num = 10
+        #axe2num = 10
+        #axe3num = 10
+        if axe1 == 'H':
+            axe1num = 2
+        if axe1 == 'K':
+            axe1num = 1
+        if axe1 == 'L':
+            axe1num = 0
+        if axe2 == 'H':
+            axe2num = 2
+        if axe2 == 'K':
+            axe2num = 1
+        if axe2 == 'L':
+            axe2num = 0
+
+        if axe2 == 'Phi':
+            axe2num = 0
+        if axe2 == 'Q':
+            axe2num = 1
+        if axe1 == 'Qxyz':
+            axe1num = 2
+
+        # if ax1 in ['L','Phi'] or ax1 in ['L','Phi']:
+        #     axe1num = 0
+        # if ax1 in ['K','Q'] or ax2 in ['K','Q'] :
+        #     axe2num = 1
+        # if ax1 in ['Qxyz','H'] or ax2 in ['Qxyz','H']:
+        #     axe3num = 2
+
+        if axe2num < axe1num:
+            temp = np.nanmean(datanan, axis=axe1num)
+            self.int2 = np.nanmean(temp, axis=axe2num)
+        if axe2num > axe1num:
+            temp = np.nanmean(datanan, axis=axe2num)
+            self.int2 = np.nanmean(temp, axis=axe1num)
+
+    def hdf2png(
+        self,
+        axe,
+        axe_range=None,
+        vmin=0.1,
+        vmax=2000,
+        figsize=(16, 9),
+        save_path=False
+    ):
+        """
+        Plot/save a hdf5 map.
+
+        :param axe: string in ("H", "K", "L")
+        :param axe_range: list or tuple of length two, defines the positions of
+         the value to be used in the array on the desired axe
+        :param vmin: default to 0.1
+        :param vmax: default to 2000
+        :param figsize: default to (16, 9)
+        :param save_path: path to save file at
+        """
+        if axe_range == None:
+            self.prjaxe(axe)
+            img = self.img
+
+        elif axe_range != None:
+            self.prjaxe_range(axe, axe_range)
+            img = self.imgr
+
+        if axe == 'H':
+            axe1 = self.kaxe
+            axe2 = self.laxe
+            axe_name1 = 'K (rlu)'
+            axe_name2 = 'L (rlu)'
+
+        elif axe == 'K':
+            axe1 = self.haxe
+            axe2 = self.laxe
+            axe_name1 = 'H (rlu)'
+            axe_name2 = 'L (rlu)'
+
+        elif axe == 'L':
+            axe1 = self.haxe
+            axe2 = self.kaxe
+            axe_name1 = 'H (rlu)'
+            axe_name2 = 'K (rlu)'
+
+        elif axe == 'Qxyz':
+            axe1 = self.Qaxe
+            axe2 = self.Phiaxe
+            axe_name1 = 'Q'
+            axe_name2 = 'Phi (deg)'
+
+        elif axe == 'Qx':
+            axe1 = self.Qyaxe
+            axe2 = self.Qzaxe
+            axe_name1 = 'Qy'
+            axe_name2 = 'Qz'
+
+        elif axe == 'Qy':
+            axe1 = self.Qxaxe
+            axe2 = self.Qzaxe
+            axe_name1 = 'Qx'
+            axe_name2 = 'Qz'
+
+        elif axe == 'Qz':
+            axe1 = self.Qxaxe
+            axe2 = self.Qyaxe
+            axe_name1 = 'Qx'
+            axe_name2 = 'Qy'
+
+        # Plot
+        plt.figure(figsize=figsize)
+        plt.imshow(img,
+                   cmap='jet',
+                   # interpolation="nearest",
+                   origin="lower",
+                   #aspect = 'auto',
+                   norm=LogNorm(vmin=vmin, vmax=vmax),
+                   extent=[axe1.min(), axe1.max(), axe2.min(), axe2.max()]
+                   )
+        plt.xlabel(axe_name1, fontsize=30)
+        plt.ylabel(axe_name2, fontsize=30)
+        plt.xticks(fontsize=30)
+        plt.yticks(fontsize=30)
+        cbar = plt.colorbar(
+            # orientation="horizontal",
+            pad=0.1
+        )
+
+        cbar.ax.tick_params(labelsize=30)
+
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path)
+
+        plt.show()
+
 
 
 class CTR:
     """
-    Loads a Map of the reciprocal space created via binoculars, and provides
-    integration methods to analyse the diffracted intensity.
+    Loads an hdf5 file created by binoculars that represents a 3D map of the
+    reciproal space and provides integration methods to analyse the diffracted
+    intensity along one direction.
     """
 
     def __init__(
@@ -305,15 +715,11 @@ class CTR:
                         L[1], L[2], L[3]))
 
             # CTR intensity, define roi indices
-            st_H_roi = self.find_nearest(
-                scan_h_axe, self.CTR_range_H[0])
-            end_H_roi = self.find_nearest(
-                scan_h_axe, self.CTR_range_H[1])
+            st_H_roi = find_nearest(scan_h_axe, self.CTR_range_H[0])
+            end_H_roi = find_nearest(scan_h_axe, self.CTR_range_H[1])
 
-            st_K_roi = self.find_nearest(
-                scan_k_axe, self.CTR_range_K[1])
-            end_K_roi = self.find_nearest(
-                scan_k_axe, self.CTR_range_K[0])
+            st_K_roi = find_nearest(scan_k_axe, self.CTR_range_K[1])
+            end_K_roi = find_nearest(scan_k_axe, self.CTR_range_K[0])
 
             if verbose:
                 print(
@@ -348,14 +754,14 @@ class CTR:
             # Get background
             if center_background == HK_peak:
                 # Background intensity, define roi indices
-                st_H_background = self.find_nearest(
+                st_H_background = find_nearest(
                     scan_h_axe, self.background_range_H[0])
-                end_H_background = self.find_nearest(
+                end_H_background = find_nearest(
                     scan_h_axe, self.background_range_H[1])
 
-                st_K_background = self.find_nearest(
+                st_K_background = find_nearest(
                     scan_k_axe, self.background_range_K[0])
-                end_K_background = self.find_nearest(
+                end_K_background = find_nearest(
                     scan_k_axe, self.background_range_K[1])
 
                 if verbose:
@@ -407,14 +813,14 @@ class CTR:
 
             elif isinstance(center_background, list) and center_background != HK_peak:
                 # Background intensity, define roi indices
-                st_H_background = self.find_nearest(
+                st_H_background = find_nearest(
                     scan_h_axe, self.background_range_H[0])
-                end_H_background = self.find_nearest(
+                end_H_background = find_nearest(
                     scan_h_axe, self.background_range_H[1])
 
-                st_K_background = self.find_nearest(
+                st_K_background = find_nearest(
                     scan_k_axe, self.background_range_K[0])
-                end_K_background = self.find_nearest(
+                end_K_background = find_nearest(
                     scan_k_axe, self.background_range_K[1])
 
                 if verbose:
@@ -757,54 +1163,17 @@ class CTR:
 
         plt.show()
 
-    @ staticmethod
-    def find_nearest(array, value):
-        mask = np.where(array == value)
-        if len(mask) == 1:
-            try:
-                mask = mask[0][0]
-                return array[mask], mask
-            except IndexError:
-                # print("Value is not in array")
-                if all(array < value):
-                    return array[-1], -1
-                elif all(array > value):
-                    return array[0], 0
 
-    # def plot_map(
-    #     self,
-    #     scan_index,
-    #     axe,
-    #     save = False,
-    #     axerange = None
-    # ):
-    #     """2D plotting tool"""
-    #     if axerange != None:
-    #         self.prjaxe_range(axe, axerange)
-    #         img = self.imgr
-
-    #     if axe == 'H':
-    #        img = data[scan_index, ]
-    #     if axe == 'K':
-    #        img = data[scan_index, ]
-    #     if axe == 'L':
-    #        img = data[scan_index, ]
-
-    #     if plot == 'YES':
-    #         plt.figure(figsize=(16, 9))
-
-    #         plt.imshow(img,
-    #             cmap='jet',
-    #             #interpolation="nearest",
-    #             origin="lower",
-    #             #aspect = 'auto',
-    #             norm = LogNorm(vmin = 0.01, vmax = 2000),
-    #             extent=[axe1.min(),axe1.max(),axe2.min(),axe2.max()])
-    #         plt.title(self.fn[-5], fontsize = 20)
-    #         plt.xlabel(axe_name1, fontsize = 20)
-    #         plt.ylabel(axe_name2, fontsize = 20)
-    #         plt.colorbar()
-    #         plt.tight_layout()
-
-    #     if save =='YES':
-    #         plt.savefig(self.directory+self.fn[:-5]+'_prj'+axe+'.png')
+# Common function
+def find_nearest(array, value):
+    mask = np.where(array == value)
+    if len(mask) == 1:
+        try:
+            mask = mask[0][0]
+            return array[mask], mask
+        except IndexError:
+            # print("Value is not in array")
+            if all(array < value):
+                return array[-1], -1
+            elif all(array > value):
+                return array[0], 0
