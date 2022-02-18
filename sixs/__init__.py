@@ -4,6 +4,6 @@
 # In[ ]:
 
 """
-Welcome to phdutils, the package is divided in several modules listed under."""
+Welcome to sixs, the package is divided in several modules listed under."""
 
 __all__ = ["analysis", "experiments", "scripts", "readnxs"]

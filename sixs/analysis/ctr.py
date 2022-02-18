@@ -15,7 +15,7 @@ import sixs
 from sixs_nxsread import ReadNxs4 as rn4
 
 
-class Map:
+class CTR:
     """
     Loads a Map of the reciprocal space created via binoculars, and provides
     integration methods to analyse the diffracted intensity.
@@ -61,7 +61,7 @@ class Map:
                 print("Loaded configuration file.")
                 print("###########################################################\n")
 
-    def prep_data(
+    def prep_CTR_data(
         self,
         folder,
         scan_indices,
@@ -494,7 +494,7 @@ class Map:
         print("###########################################################")
         np.save(folder + save_name, data)
 
-    def prep_data_fitaid(
+    def prep_CTR_data_fitaid(
         self,
         folder,
         scan_indices,

@@ -714,11 +714,18 @@ class Reflectivity:
             # Generate a bolded vertical line at x = 0.24 to highlightcritical angle of Pt
             # 0.2538
             plt.axvline(
-                x=2*0.2540 if x_axis == "gamma" else 0.2540,
+                x=2*0.2495 if x_axis == "gamma" else 0.2495,  # Pt
                 color='red',
                 linewidth=2,
-                alpha=1,
-                label="$\\alpha_c$ Pt",
+                label="$\\alpha_c$ $Pt$",
+                linestyle="--"
+            )
+
+            plt.axvline(
+                x=2*0.193387 if x_axis == "gamma" else 0.193387,  # Pt3O4
+                color='blue',
+                linewidth=2,
+                label="$\\alpha_c$ $Pt_3O_4$",
                 linestyle="--"
             )
 

@@ -4,6 +4,6 @@
 # In[ ]:
 
 """
-Welcome to phdutils.analysis"""
+Welcome to sixs.analysis"""
 
-__all__ = ["ctr", "reflecto", "xcat"]
+__all__ = ["ctr", "reflecto", "xcat", "map"]
