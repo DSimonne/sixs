@@ -957,7 +957,7 @@ class CTR:
         # Iterating on all files to create l axis
         for i, fname in enumerate(self.scan_files):
             # Load data
-            fitaid_data = np.loadtxt(fname)
+            fitaid_data = np.loadtxt(folder + fname)
 
             # L axis
             L = fitaid_data[:, 0]
@@ -1003,7 +1003,7 @@ class CTR:
         for i, fname in enumerate(self.scan_files):
 
             # Load data
-            fitaid_data = np.loadtxt(fname)
+            fitaid_data = np.loadtxt(folder + fname)
             scan_l_axe = fitaid_data[:, 0]
             ctr_data = fitaid_data[:, 1]
 
