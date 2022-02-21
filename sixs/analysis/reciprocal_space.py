@@ -6,6 +6,7 @@ import os
 import inspect
 import yaml
 import sixs
+import decimal
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -655,8 +656,8 @@ class CTR:
                 l_max = L[2]
                 l_shape = 1 + int(L[5] - L[4])
             else:
-                l_min = min(l_min, L[1])
-                l_max = max(l_max, L[2])
+                l_min = max(l_min, L[1])
+                l_max = min(l_max, L[2])
                 l_shape = max(l_shape, 1 + int(L[5] - L[4]))
 
         if isinstance(self.interpol_step, float):
@@ -971,12 +972,12 @@ class CTR:
                 print("###########################################################")
 
             if i == 0:
-                l_min = min(L)
-                l_max = max(L)
+                l_min = np.round(min(L), 3)
+                l_max = np.round(max(L), 3)
                 l_shape = len(L)
             else:
-                l_min = min(l_min, min(L))
-                l_max = max(l_max, max(L))
+                l_min = np.round(max(l_min, min(L)), 3)
+                l_max = np.round(min(l_max, max(L)), 3)
                 l_shape = max(l_shape, len(L))
 
         print("\n###########################################################")
@@ -986,7 +987,6 @@ class CTR:
         # Create new x axis for interpolation
         self.interpol_step = interpol_step
         if isinstance(self.interpol_step, float):
-            print(f"\nSmallest common range is [{l_min} : {l_max}]")
             l_axe = np.arange(l_min, l_max, self.interpol_step)
 
             # Save final data as numpy array
@@ -1015,8 +1015,8 @@ class CTR:
                 data[i, 1, :] = splev(l_axe, tck)
 
             else:
-                data[i, 0, :] = scan_l_axe
-                data[i, 1, :] = ctr_data
+                data[i, 0, :len(scan_l_axe)] = scan_l_axe
+                data[i, 1, :len(scan_l_axe)] = ctr_data
 
         # Saving
         print("\n###########################################################")
