@@ -1039,6 +1039,9 @@ class CTR:
         fill_first=0,
         fill_last=-1,
         log_intensities=True,
+        line_plot=True,
+        s=None,
+        marker=None,
         fontsize=15,
     ):
         """
@@ -1060,6 +1063,9 @@ class CTR:
         :param fill_first: index of scan to use for filling
         :param fill_last: index of scan to use for filling
         :param log_intensities: if True, y axis is logarithmic
+        :param line_plot: if False, scatter plot
+        :param s: scatter size in scatter plot
+        :param marker: marker used for scatter plot
         :param fontsize: fontsize in plots
         """
 
@@ -1100,33 +1106,62 @@ class CTR:
 
             # Add colour
             try:
-                plt.plot(
-                    l,
-                    y_plot,
-                    color=color_dict[int(scan_index)],
-                    label=label,
-                    linewidth=2,
-                )
+                if line_plot:
+                    plt.plot(
+                        l,
+                        y_plot,
+                        color=color_dict[int(scan_index)],
+                        label=label,
+                        linewidth=2,
+                    )
+                else:
+                    plt.scatter(
+                        x= l,
+                        y= y_plot,
+                        c=color_dict[int(scan_index)],
+                        label=label,
+                        s=s,
+                        marker=marker
+                    )
 
             except KeyError:
                 # Take int(scan_index) in case keys are not strings in the dict
                 try:
-                    plt.plot(
-                        l,
-                        y_plot,
-                        color=color_dict[scan_index],
-                        label=label,
-                        linewidth=2,
-                    )
+                    if line_plot:
+                        plt.plot(
+                            l,
+                            y_plot,
+                            color=color_dict[scan_index],
+                            label=label,
+                            linewidth=2,
+                        )
+                    else:
+                        plt.scatter(
+                            x= l,
+                            y= y_plot,
+                            c=color_dict[scan_index],
+                            label=label,
+                            s=s,
+                            marker=marker
+                        )
                 except Exception as e:
                     raise e
             except TypeError:  # No special colour
-                plt.plot(
-                    l,
-                    y_plot,
-                    label=label,
-                    linewidth=2,
-                )
+                if line_plot:
+                    plt.plot(
+                        l,
+                        y_plot,
+                        label=label,
+                        linewidth=2,
+                    )
+                else:
+                    plt.scatter(
+                        x= l,
+                        y= y_plot,
+                        label=label,
+                        s=s,
+                        marker=marker
+                    )
 
             # For filling
             if i == fill_first:
@@ -1152,14 +1187,14 @@ class CTR:
                 print("Could not add filling.")
 
         # Legend and axis labels
-        plt.legend(fontsize=fontsize, ncol=ncol)
+        plt.legend(fontsize=fontsize, ncol=ncol, markerscale=1.2)
 
         plt.xlabel("L", fontsize=fontsize)
         plt.ylabel("Intensity (a.u.)", fontsize=fontsize)
 
         # Title
         if isinstance(title, str):
-            plt.title(f"{title}.png", fontsize=20)
+            plt.title(f"{title}", fontsize=20)
 
         # Save
         plt.tight_layout()
