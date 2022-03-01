@@ -34,6 +34,7 @@ class Reflectivity:
         data_format,
         var="l",
         configuration_file=False,
+        verbose=True,
     ):
         """
         :param folder: path to data folder
@@ -43,6 +44,7 @@ class Reflectivity:
         :param configuration_file: False, .yml file that stores metadata
          specific to the reaction, if False, default to
          self.path_package + "experiments/ammonia.yml"
+        :param verbose: True to print extra informations
         """
 
         self.path_package = inspect.getfile(sixs).split("__")[0]
@@ -113,9 +115,12 @@ class Reflectivity:
         # Find files in folder depending on data format
         files = [f.split("/")[-1]
                  for f in sorted(glob.glob(f"{folder}/*.{data_format}"))]
-        print(f"Detected files in {folder}:")
-        for f in files:
-            print("\t", f)
+        if verbose:
+            print("\n###########################################################")
+            print(f"Detected files in {folder}:")
+            for f in files:
+                print("\t", f)
+            print("###########################################################\n")
 
         # Get files of interest based on scan_indices
         if self.data_type == "hkl" and self.data_format == "hdf5":
@@ -538,6 +543,51 @@ class Reflectivity:
             for miller_indices in self.Pt_PD
         ]
 
+
+    def normalize_data(
+        self,
+        x_var,
+        normalisation_range=False,
+    ):
+        """
+        Normalize the data by max on normalisation range
+
+        :param x_var: choose x_axis in the self.x_axes list
+        :param normalisation_range: normalize by maximum on this range
+        """
+
+        # Get x axis
+        if self.data_format == "nxs" and x_var in self.x_axes:
+            x_axis = getattr(self, x_var)
+
+        elif self.data_format == "nxs" and x_var not in self.x_axes:
+            return("Choose x_axis in the following list :", self.x_axes)
+
+        # x_var has no influence if we use binocular file for now
+        elif self.data_format == "hdf5":
+            x_axis = [self.binoc_x_axis for i in self.scan_list]
+
+        print("\n###########################################################")
+        print("Normalizing data ...")
+        for (i, y), x, scan_index in zip(
+            enumerate(self.intensities),
+            x_axis,
+            self.scan_indices
+        ):
+            # Normalize data
+            if isinstance(normalisation_range, list) \
+            or isinstance(normalisation_range, tuple):
+                print("\nScan index:", scan_index)
+                start = self.find_nearest(x, normalisation_range[0])[1]
+                end = self.find_nearest(x, normalisation_range[1])[1]
+                max_ref = max(y[start:end])
+                print(f"\tmax(y[{start}: {end}])={max_ref}")
+                self.intensities[i] = y/max_ref
+                print("\tNormalized the data by maximum on normalisation range.\n")
+            else:
+                print("Provide a list or tuple for the normalisation range.\n")
+        print("###########################################################")
+
     def plot_refl(
         self,
         x_var,
@@ -557,7 +607,6 @@ class Reflectivity:
         critical_angles=False,
         background=False,
         log_intensities=True,
-        normalisation_range=False,
     ):
         """
         Plot the reflectivity.
@@ -583,7 +632,6 @@ class Reflectivity:
         :param background: path to .npz background file to load and subtract,
          there must a data entry that corresponds to x_axis
         :param log_intensities: if True, y axis is logarithmic
-        :param normalisation_range: normalizse by maximum on this range
         """
 
         # Get x axis
@@ -638,16 +686,6 @@ class Reflectivity:
 
             except (AttributeError, TypeError):
                 y_plot = y
-
-            # Normalize data
-            if isinstance(normalisation_range, list) or isinstance(normalisation_range, tuple):
-                print("\nScan index:", scan_index)
-                start = self.find_nearest(x, normalisation_range[0])[1]
-                end = self.find_nearest(x, normalisation_range[1])[1]
-                max_ref = max(y_plot[start:end])
-                print(f"\tmax(y[{start}: {end}])={max_ref}")
-                y_plot = y_plot/max_ref
-                print("\tNormalized the data by maximum on normalisation range.\n")
 
             # Add label
             if isinstance(labels, list):

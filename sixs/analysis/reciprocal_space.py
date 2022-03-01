@@ -1116,8 +1116,8 @@ class CTR:
                     )
                 else:
                     plt.scatter(
-                        x= l,
-                        y= y_plot,
+                        x=l,
+                        y=y_plot,
                         c=color_dict[int(scan_index)],
                         label=label,
                         s=s,
@@ -1137,8 +1137,8 @@ class CTR:
                         )
                     else:
                         plt.scatter(
-                            x= l,
-                            y= y_plot,
+                            x=l,
+                            y=y_plot,
                             c=color_dict[scan_index],
                             label=label,
                             s=s,
@@ -1156,8 +1156,8 @@ class CTR:
                     )
                 else:
                     plt.scatter(
-                        x= l,
-                        y= y_plot,
+                        x=l,
+                        y=y_plot,
                         label=label,
                         s=s,
                         marker=marker

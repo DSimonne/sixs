@@ -16,7 +16,7 @@ from scipy import special
 from scipy.optimize import curve_fit
 
 
-class XCAT():
+class XCAT:
     """Combines data from the mass flow controller and the mass spectrometer
     to compare the input flow in the reactor cell and the products of the
     reaction.
@@ -24,7 +24,7 @@ class XCAT():
 
     What's left to do?
     See if we can create a routine to normalize the data by the coefficient of
-    the leak that is linked to the temperature. It can be extracted from the an
+    the leak that is linked to the temperature. It can be extracted from the
     experiment without any products but just a temperature change.
     """
 
@@ -283,10 +283,13 @@ class XCAT():
         """
         Find timestamp of the mass spectrometer (Resifual Gas Analyzer - RGA)
          file and load the file as a DataFrame.
-         Careful, all the data extraction from the file is hardcoded due to its
+        Careful, all the data extraction from the file is hardcoded due to its
          specific architecture.
         Also interpolates the data in seconds using scipy.interpolate.interp1d
         Defines the time range of the experiment.
+
+        The self.truncate_mass_flow_df and self.interpolate_mass_flow_df
+         methods are automatically launched.
 
         :param mass_spec_file: absolute path to the mass_spec_file (converted to
          .txt beforehand in the RGA software)
@@ -520,7 +523,8 @@ class XCAT():
         save=False,
         fig_name="mass_flow_entry",
     ):
-        """Plot the evolution of the input of the reactor
+        """
+        Plot the evolution of the input of the reactor
         Each mass corresponds to one channel controlled by the mass flow
         controller.
 
@@ -625,7 +629,7 @@ class XCAT():
                             label=cursor_label
                         )
                     except KeyError:
-                        print("Is there an entry on the color dict for each mass ?")
+                        print("No cursors.")
                     # except (TypeError, KeyError):
                     #     pass
 
