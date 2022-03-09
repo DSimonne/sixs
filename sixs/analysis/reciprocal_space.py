@@ -541,7 +541,7 @@ class CTR:
 
         # Get scans specified with scan_indices
         self.scan_files = [f for f in files if any(
-            ["-" + n + ".hdf5" in f for n in self.scan_indices])]
+            [n in f for n in self.scan_indices])]
 
         if verbose:
             print("\n###########################################################")
@@ -912,7 +912,7 @@ class CTR:
         folder,
         scan_indices,
         save_name,
-        data_type="nisf",
+        glob_string_match="nisf*.txt",
         interpol_step=False,
         verbose=False,
     ):
@@ -937,11 +937,11 @@ class CTR:
 
         # Get all txt files first
         files = [f.split("/")[-1]
-                 for f in sorted(glob.glob(f"{folder}/{data_type}*.txt"))]
+                 for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
 
         # Get scans specified with scan_indices
         self.scan_files = [f for f in files if any(
-            ["-" + n + ".txt" in f for n in self.scan_indices])]
+            [n in f for n in self.scan_indices])]
         if verbose:
             print("\n###########################################################")
             print(f"Detected files in {folder}:")
