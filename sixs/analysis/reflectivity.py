@@ -5,6 +5,7 @@ import glob
 import os
 import inspect
 import yaml
+from periodictable import xsf
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -153,35 +154,38 @@ class Reflectivity:
     def prep_nxs_data(
         self,
         roi,
-        theta="mu",
-        two_theta="gamma",
         detector="xpad140",
+        theta="mu",
+        compute_q=False,
     ):
         """
         Change the integration roi to see if it has an impact on the data,
-        then the data is intergrated on this roi.
-        Many parameters are taken from the nxs file such as q, qpar, qper, mu,
-        gamma, delta, omega, h, k and l.
+        then the data is integrated on this roi.
+        Many parameters are extracted from the nxs file such as Q, qpar, qper,
+        mu, gamma, delta, omega, h, k and l.
         h, k and l depend on the orientation matrix used at that time.
 
         Each one of these parameters is defined FOR THE CENTRAL PIXEL of the
         detector !
 
         The reflectivity may not have the same length, and/ or amount of points
+        for each scan.
 
-        We take the wavelength of the first dataset in the series
+        The wavelength of the first dataset in the series is taken to compute
+        Brakk peaks in 00L (e.g. Pt 003).
 
         :param roi: int or container
-         if int, use this roi (e.g. if 3, roi3)
+         if int, use this roi (e.g. if 3, roi3 entry in ReadNxs4)
          if container of length 4, define roi as [roi[0], roi[1], roi[2], roi[3]]
-        :param theta: angle used as theta in theta / two_theta geometry
-        :param two_theta: angle used as two_theta in theta / two_theta geometry
         :param detector: detector used, can be xpad140, xpad70, ...
+        :param theta: string corresponding to entry in ReadNxs4, incoming angle
+         used if compute_q following:
+         Q = (4pi/lambda) * sin(theta)
+        :param compute_q: if True compute Q from theta and lambda
         """
 
         self.intensities = []
         self.theta = theta
-        self.two_theta = two_theta
         self.detector = detector
 
         # Compute reflections, we use the wavelength of first dataset in list
@@ -189,21 +193,28 @@ class Reflectivity:
             filename=self.scan_list[0],
             directory=self.folder
         )
-        self.wavel = dataset.waveL
+        try:
+            print("\n###########################################################")
+            self.wavel = dataset.waveL
+            print(f"Wavelength = {self.wavel:0.3f} Angström")
+            print(f"Corresponding to {xsf.xray_energy(self.wavel):0.3f} keV")
+            print("###########################################################\n")
+
+        except:
+            print("\n###########################################################")
+            print("Could not extract wavelength.")
+            print("###########################################################\n")
+
+        # this should be done elsewhere
         self.y_range = getattr(dataset, detector).shape[1]
         self.x_range = getattr(dataset, detector).shape[2]
-
-        # self.compute_miller(
-        #     wl=self.wavel,
-        #     tt_cutoff=getattr(data, two_theta)[-1]
-        # )
 
         # Possible x axes, key is the name here, value is the name in rn4
         self.x_axes = {
             "h": "h",
             "k": "k",
             "l": "l",
-            "q": "q",
+            "Q": "Q",
             "qpar": "qpar",
             "qper": "qper",
             "gamma": "gamma",
@@ -245,6 +256,7 @@ class Reflectivity:
                     filt='default'
                 )
 
+                # Do not take bad values due to attenuator change
                 data_array = getattr(data, f"roi5_{self.detector}_new")
                 # self.intensities.append(data_array[self.common_mask])
                 mask = np.log(data_array) > 0
@@ -262,9 +274,26 @@ class Reflectivity:
                     # p.append(getattr(data, value)[self.common_mask])
                     p.append(getattr(data, value)[mask])
                     setattr(self, key, p)
-                    print("Saved values for", value)
+                    print("\tSaved values for", value)
                 except AttributeError:
                     pass
+
+            # Compute Q, will override data
+            if compute_q:
+                try:  # Get current list
+                    p = self.Q
+                except AttributeError:  # Create one
+                    p = []
+
+                # Append Q values for this scan
+                try:
+                    print(f"\tComputing Q assuming {theta} in degrees...")
+                    inc_angle = getattr(dataset, theta)[mask]
+                    p.append((4*np.pi / self.wavel) * np.sin(np.deg2rad(inc_angle)))
+                    setattr(self, "Q", p)
+                    print("\tSaved values for Q")
+                except:
+                    print("\tCould not compute Q.")
 
             print("###########################################################")
 
@@ -543,14 +572,13 @@ class Reflectivity:
             for miller_indices in self.Pt_PD
         ]
 
-
     def normalize_data(
         self,
         x_var,
         normalisation_range=False,
     ):
         """
-        Normalize the data by max on normalisation range
+        Normalize the data by maximum intensity on normalisation_range.
 
         :param x_var: choose x_axis in the self.x_axes list
         :param normalisation_range: normalize by maximum on this range
@@ -801,7 +829,7 @@ class Reflectivity:
                 BN_pos = self.q_bragg_pos_BN
                 Al2P3_pos = self.q_bragg_pos_Al2O3
                 plot_peaks = True
-                print("Careful, peak position in q.")
+                print("Careful, peak position in Q.")
 
             elif self.data_format == "nxs" and x_axis == "mu":
                 Pt_pos = self.theta_bragg_pos_Pt[:1]
@@ -820,7 +848,7 @@ class Reflectivity:
                 plot_peaks = True
 
             else:
-                print("Positions only in angle or q.")
+                print("Positions only in angle or Q.")
                 plot_peaks = False
 
             if plot_peaks:
@@ -829,11 +857,21 @@ class Reflectivity:
 
                     for i, (miller_indices, bragg_angle) in enumerate(Pt_pos):
                         if bragg_angle > self.x_min and bragg_angle < self.x_max:
-                            plt.axvline(x=bragg_angle,
-                                        # label ="Pt",
-                                        color=self.BP_colors["Pt"], linewidth=1, alpha=.5)
-                            plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Pt"],
-                                     weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+                            plt.axvline(
+                                x=bragg_angle,
+                                color=self.BP_colors["Pt"],
+                                alpha=0.5
+                                )
+                            plt.text(
+                                x=bragg_angle,
+                                y=self.y_text,
+                                s=f"{miller_indices}",
+                                color=self.BP_colors["Pt"],
+                                weight='bold',
+                                rotation=60,
+                                backgroundcolor='#f0f0f0',
+                                fontsize=self.fontsize
+                                )
 
                 if "al2o3" in [z.lower() for z in miller]:
                     # Highlight Bragg peaks of Al2O3
@@ -841,15 +879,38 @@ class Reflectivity:
                     for i, (miller_indices, bragg_angle) in enumerate(Al2P3_pos):
                         if bragg_angle > self.x_min and bragg_angle < self.x_max:
                             if i == 0:
-                                plt.axvline(x=bragg_angle, color=self.BP_colors["Al2O3"],
-                                            linewidth=1, alpha=.5, label=("Al2O3"))
-                                plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Al2O3"],
-                                         weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+                                plt.axvline(
+                                    x=bragg_angle,
+                                    color=self.BP_colors["Al2O3"],
+                                    alpha=0.5,
+                                    label=("Al2O3")
+                                    )
+                                plt.text(
+                                    x=bragg_angle,
+                                    y=self.y_text,
+                                    s=f"{miller_indices}",
+                                    color=self.BP_colors["Al2O3"],
+                                    weight='bold',
+                                    rotation=60,
+                                    backgroundcolor='#f0f0f0',
+                                    fontsize=self.fontsize
+                                    )
                             else:
-                                plt.axvline(x=bragg_angle, color=self.BP_colors["Al2O3"],
-                                            linewidth=1, alpha=.5)
-                                plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["Al2O3"],
-                                         weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+                                plt.axvline(
+                                    x=bragg_angle,
+                                    color=self.BP_colors["Al2O3"],
+                                    alpha=0.5
+                                    )
+                                plt.text(
+                                    x=bragg_angle,
+                                    y=self.y_text,
+                                    s=f"{miller_indices}",
+                                    color=self.BP_colors["Al2O3"],
+                                    weight='bold',
+                                    rotation=60,
+                                    backgroundcolor='#f0f0f0',
+                                    fontsize=self.fontsize
+                                    )
 
                 if "bn" in [z.lower() for z in miller]:
                     # Highlight Bragg peaks of BN
@@ -857,15 +918,38 @@ class Reflectivity:
                     for i, (miller_indices, bragg_angle) in enumerate(BN_pos):
                         if bragg_angle > self.x_min and bragg_angle < self.x_max:
                             if i == 0:
-                                plt.axvline(x=bragg_angle, color=self.BP_colors["BN"],
-                                            linewidth=1, alpha=.5, label=("Boron nitride"))
-                                plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["BN"],
-                                         weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+                                plt.axvline(
+                                    x=bragg_angle,
+                                    color=self.BP_colors["BN"],
+                                    alpha=0.5,
+                                    label=("Boron nitride")
+                                    )
+                                plt.text(
+                                    x=bragg_angle,
+                                    y=self.y_text,
+                                    s=f"{miller_indices}",
+                                    color=self.BP_colors["BN"],
+                                    weight='bold',
+                                    rotation=60,
+                                    backgroundcolor='#f0f0f0',
+                                    fontsize=self.fontsize
+                                    )
                             else:
-                                plt.axvline(x=bragg_angle, color=self.BP_colors["BN"],
-                                            linewidth=1, alpha=.5)
-                                plt.text(x=bragg_angle, y=self.y_text, s=f"{miller_indices}", color=self.BP_colors["BN"],
-                                         weight='bold', rotation=60, backgroundcolor='#f0f0f0', fontsize=self.fontsize)
+                                plt.axvline(
+                                    x=bragg_angle,
+                                    color=self.BP_colors["BN"],
+                                    alpha=0.5
+                                    )
+                                plt.text(
+                                    x=bragg_angle,
+                                    y=self.y_text,
+                                    s=f"{miller_indices}",
+                                    color=self.BP_colors["BN"],
+                                    weight='bold',
+                                    rotation=60,
+                                    backgroundcolor='#f0f0f0',
+                                    fontsize=self.fontsize
+                                    )
 
         # Ticks
         plt.xticks(fontsize=self.fontsize)
@@ -914,7 +998,7 @@ class Reflectivity:
         self,
         scan_to_fit,
         fit_range=[2.75, 2.95],
-        x_axis="q",
+        x_axis="Q",
         peak_nb=1,
         peak_pos=[2.85],
         peak_amp=[1e5],
@@ -947,13 +1031,13 @@ class Reflectivity:
                   "mu": "cp_mu",
                   "omega": "cp_omega",
                   "delta": "cp_delta",
-                  "q": "cp_q",
+                  "Q": "cp_q",
                   "qpar": "cp_qpar",
                   "qper": "cp_qper"}
 
         # Find good x axis
         if self.data_format == "nxs" and x_axis in [
-            "h", "k", "l", "q",
+            "h", "k", "l", "Q",
             "qpar", "qper", "gamma",
             "mu", "delta", "omega"
         ]:
@@ -961,13 +1045,13 @@ class Reflectivity:
 
         elif self.data_format == "nxs" and x_axis not in [
             "h", "k", "l",
-            "q", "qpar", "qper",
+            "Q", "qpar", "qper",
             "qpar", "qper", "gamma",
             "mu", "delta", "omega"
         ]:
             return("Choose a x_axis in the following list :", [
                 "h", "k", "l",
-                "q", "qpar", "qper",
+                "Q", "qpar", "qper",
                 "gamma", "mu",
                 "delta", "omega"])
 
@@ -1038,8 +1122,8 @@ class Reflectivity:
                      np.sin(np.pi * outofplane_angle / 180),  # y
                      np.sin(np.pi * inplane_angle / 180) * np.cos(np.pi * outofplane_angle / 180)])  # x
 
-                q = (kout - kin)  # convert from 1/m to 1/angstrom
-                qnorm = np.linalg.norm(q)
+                Q = (kout - kin)  # convert from 1/m to 1/angstrom
+                qnorm = np.linalg.norm(Q)
                 dist_plane = 2 * np.pi / qnorm
                 self.lat_para[scan_name] = np.sqrt(3)*dist_plane
 
@@ -1109,8 +1193,8 @@ class Reflectivity:
 
             # ax[0].text(x=1.5,
             #            y=-25,
-            #            s="Parameters : gamma = {:.3f}, mu = {:.3f}, hkl = ({:.3f}, {:.3f}, {:.3f}), q = {:3f}, qpar, qper = ({:3f}, {:3f})".format(
-            #                Refl.gamma[index], Refl.mu[index], Refl.h[index], Refl.k[index], Refl.l[index], Refl.q[index], Refl.qPar[index], Refl.qPer[index]),
+            #            s="Parameters : gamma = {:.3f}, mu = {:.3f}, hkl = ({:.3f}, {:.3f}, {:.3f}), Q = {:3f}, qpar, qper = ({:3f}, {:3f})".format(
+            #                Refl.gamma[index], Refl.mu[index], Refl.h[index], Refl.k[index], Refl.l[index], Refl.Q[index], Refl.qPar[index], Refl.qPer[index]),
             #            #color = diverging_colors_1["E"],
             #            weight='bold',
             #            rotation=0,
