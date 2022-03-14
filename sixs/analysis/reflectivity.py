@@ -289,7 +289,8 @@ class Reflectivity:
                 try:
                     print(f"\tComputing Q assuming {theta} in degrees...")
                     inc_angle = getattr(dataset, theta)[mask]
-                    p.append((4*np.pi / self.wavel) * np.sin(np.deg2rad(inc_angle)))
+                    p.append((4*np.pi / self.wavel) *
+                             np.sin(np.deg2rad(inc_angle)))
                     setattr(self, "Q", p)
                     print("\tSaved values for Q")
                 except:
@@ -604,7 +605,7 @@ class Reflectivity:
         ):
             # Normalize data
             if isinstance(normalisation_range, list) \
-            or isinstance(normalisation_range, tuple):
+                    or isinstance(normalisation_range, tuple):
                 print("\nScan index:", scan_index)
                 start = self.find_nearest(x, normalisation_range[0])[1]
                 end = self.find_nearest(x, normalisation_range[1])[1]
@@ -861,7 +862,7 @@ class Reflectivity:
                                 x=bragg_angle,
                                 color=self.BP_colors["Pt"],
                                 alpha=0.5
-                                )
+                            )
                             plt.text(
                                 x=bragg_angle,
                                 y=self.y_text,
@@ -871,7 +872,7 @@ class Reflectivity:
                                 rotation=60,
                                 backgroundcolor='#f0f0f0',
                                 fontsize=self.fontsize
-                                )
+                            )
 
                 if "al2o3" in [z.lower() for z in miller]:
                     # Highlight Bragg peaks of Al2O3
@@ -884,7 +885,7 @@ class Reflectivity:
                                     color=self.BP_colors["Al2O3"],
                                     alpha=0.5,
                                     label=("Al2O3")
-                                    )
+                                )
                                 plt.text(
                                     x=bragg_angle,
                                     y=self.y_text,
@@ -894,13 +895,13 @@ class Reflectivity:
                                     rotation=60,
                                     backgroundcolor='#f0f0f0',
                                     fontsize=self.fontsize
-                                    )
+                                )
                             else:
                                 plt.axvline(
                                     x=bragg_angle,
                                     color=self.BP_colors["Al2O3"],
                                     alpha=0.5
-                                    )
+                                )
                                 plt.text(
                                     x=bragg_angle,
                                     y=self.y_text,
@@ -910,7 +911,7 @@ class Reflectivity:
                                     rotation=60,
                                     backgroundcolor='#f0f0f0',
                                     fontsize=self.fontsize
-                                    )
+                                )
 
                 if "bn" in [z.lower() for z in miller]:
                     # Highlight Bragg peaks of BN
@@ -923,7 +924,7 @@ class Reflectivity:
                                     color=self.BP_colors["BN"],
                                     alpha=0.5,
                                     label=("Boron nitride")
-                                    )
+                                )
                                 plt.text(
                                     x=bragg_angle,
                                     y=self.y_text,
@@ -933,13 +934,13 @@ class Reflectivity:
                                     rotation=60,
                                     backgroundcolor='#f0f0f0',
                                     fontsize=self.fontsize
-                                    )
+                                )
                             else:
                                 plt.axvline(
                                     x=bragg_angle,
                                     color=self.BP_colors["BN"],
                                     alpha=0.5
-                                    )
+                                )
                                 plt.text(
                                     x=bragg_angle,
                                     y=self.y_text,
@@ -949,7 +950,7 @@ class Reflectivity:
                                     rotation=60,
                                     backgroundcolor='#f0f0f0',
                                     fontsize=self.fontsize
-                                    )
+                                )
 
         # Ticks
         plt.xticks(fontsize=self.fontsize)
