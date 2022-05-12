@@ -71,31 +71,19 @@ class XCAT:
                 print("Loaded configuration file.")
 
         # Time for the gaz to travel from cell to detector
-        try:
-            print(
-                f"Travel time from cell to detector fixed to {self.gaz_travel_time} seconds.")
-            print(
-                "\n#####################################################################\n")
-        except AttributeError:
-            self.gaz_travel_time = 12
-            print(
-                f"Travel time from cell to detector fixed to {self.gaz_travel_time} seconds.")
-            print(
-                "\n#####################################################################\n")
+        self.gaz_travel_time = 12
+        print(
+            f"Travel time from cell to detector defaulted to {self.gaz_travel_time} seconds.")
+        print(
+            "\n#####################################################################\n")
 
         # Time shift between computers
-        try:
-            print(
-                f"Travel shift between computers fixed to {self.time_shift} seconds.")
-            print(
-                "\n#####################################################################\n")
-        except AttributeError:
-            self.time_shift = 502  # jan 2022
-            # self.time_shift = 1287 # experiment in 2021
-            print(
-                f"Travel shift between computers fixed to {self.time_shift} seconds.")
-            print(
-                "\n#####################################################################\n")
+        self.time_shift = 502  # jan 2022
+        # self.time_shift = 1287 # experiment in 2021
+        print(
+            f"Travel shift between computers defaulted to {self.time_shift} seconds.")
+        print(
+            "\n#####################################################################\n")
 
     def load_mass_flow_controller_file(
         self,
@@ -122,37 +110,47 @@ class XCAT:
         print(f"Using {self.mass_flow_file} as filename for data frame input.")
         print("\n#####################################################################\n")
 
-        self.MRS_pos = [
-            "All", "Ar", "Ar+Shu", "All", "Rea+Ar", "Closed", "All", "Closed",
-            "Ar", "Ar+Shu", "Shu", "Closed", "All", "Rea", "Rea", "Rea+Ar",
-            "Rea+Ar", "Closed", "All", "Shu", "Rea+Shu", "Rea+Shu", "Shu",
-            "Closed"
-        ]
-        print(f"Defaulting MRS valve positions to:\n{self.MRS_pos}.")
+        try:
+            self.MRS_pos = MRS_pos
+        except:
+            self.MRS_pos = [
+                "All", "Ar", "Ar+Shu", "All", "Rea+Ar", "Closed", "All", "Closed",
+                "Ar", "Ar+Shu", "Shu", "Closed", "All", "Rea", "Rea", "Rea+Ar",
+                "Rea+Ar", "Closed", "All", "Shu", "Rea+Shu", "Rea+Shu", "Shu",
+                "Closed"
+            ]
+            print(f"Defaulting MRS valve positions to:\n{self.MRS_pos}.")
         print("\n#####################################################################\n")
 
-        self.MIX_pos = [
-            "NO", "All", "Closed", "H2+CO", "H2+O2+CO", "H2+O2", "H2", "All",
-            "Closed", "NO+O2", "NO+O2+CO", "O2+CO", "O2", "All", "Closed",
-            "H2+CO", "NO+H2+CO", "NO+CO", "CO", "All", "Closed", "NO+O2",
-            "NO+H2+O2", "NO+H2"
-        ]
-        print(f"Defaulting MIX valve positions to:\n{self.MIX_pos}.")
+        try:
+            self.MIX_pos = MIX_pos
+        except:
+            self.MIX_pos = [
+                "NO", "All", "Closed", "H2+CO", "H2+O2+CO", "H2+O2", "H2", "All",
+                "Closed", "NO+O2", "NO+O2+CO", "O2+CO", "O2", "All", "Closed",
+                "H2+CO", "NO+H2+CO", "NO+CO", "CO", "All", "Closed", "NO+O2",
+                "NO+H2+O2", "NO+H2"
+            ]
+            print(f"Defaulting MIX valve positions to:\n{self.MIX_pos}.")
         print("\n#####################################################################\n")
 
-        self.mass_flow_file_columns = [
-            "time_no", "flow_no", "setpoint_no", "valve_no",
-            "time_h2", "flow_h2", "setpoint_h2", "valve_h2",
-            "time_o2", "flow_o2", "setpoint_o2", "valve_o2",
-            "time_co", "flow_co", "setpoint_co", "valve_co",
-            "time_ar", "flow_ar", "setpoint_ar", "valve_ar",
-            "time_shunt", "flow_shunt", "setpoint_shunt", "valve_shunt",
-            "time_reactor", "flow_reactor", "setpoint_reactor", "valve_reactor",
-            "time_drain", "flow_drain", "setpoint_drain", "valve_drain",
-            "time_valve", "valve_MRS", "valve_MIX"
-        ]
-        print(
-            f"Defaulted to log file columns (in order):\n{self.mass_flow_file_columns}.")
+        try:
+            self.mass_flow_file_columns = mass_flow_file_columns
+        except:
+            self.mass_flow_file_columns = [
+                "time_no", "flow_no", "setpoint_no", "valve_no",
+                "time_h2", "flow_h2", "setpoint_h2", "valve_h2",
+                "time_o2", "flow_o2", "setpoint_o2", "valve_o2",
+                "time_co", "flow_co", "setpoint_co", "valve_co",
+                "time_ar", "flow_ar", "setpoint_ar", "valve_ar",
+                "time_shunt", "flow_shunt", "setpoint_shunt", "valve_shunt",
+                "time_reactor", "flow_reactor", "setpoint_reactor", "valve_reactor",
+                "time_drain", "flow_drain", "setpoint_drain", "valve_drain",
+                "time_valve", "valve_MRS", "valve_MIX"
+            ]
+            print(
+                f"Defaulted to log file columns (in order):",
+                f"\n{self.mass_flow_file_columns}.")
         print("\n#####################################################################\n")
 
         # Create DataFrame
@@ -169,13 +167,16 @@ class XCAT:
             raise E
 
         # Change time to unix epoch
-        self.time_columns = [
-            "time_no", "time_h2", "time_o2", "time_co",
-            "time_ar", "time_shunt", "time_reactor",
-            "time_drain", "time_valve"
-        ]
-        print(
-            f"Defaulted to the following time columns (in order):\n{self.time_columns}.")
+        try:
+            self.time_columns = time_columns
+        except:
+            self.time_columns = [
+                "time_no", "time_h2", "time_o2", "time_co",
+                "time_ar", "time_shunt", "time_reactor",
+                "time_drain", "time_valve"
+            ]
+            print(
+                f"Defaulted to the following time columns (in order):\n{self.time_columns}.")
         print("\n#####################################################################\n")
 
         for column_name in self.time_columns:
@@ -191,9 +192,12 @@ class XCAT:
             self.df.iloc[-1, 0]).strftime('%Y-%m-%d %H:%M:%S')
 
         print(
-            f"Mass flow. starting time: {self.mass_flow_start_time_epoch} (unix epoch), {self.mass_flow_start_time}.")
+            f"Mass flow. starting time: {self.mass_flow_start_time_epoch} "
+            f"(unix epoch), {self.mass_flow_start_time}."
+        )
         print(
-            f"Mass flow. end time: {self.mass_flow_end_time_epoch} (unix epoch), {self.mass_flow_end_time}.")
+            f"Mass flow. end time: {self.mass_flow_end_time_epoch} "
+            f"(unix epoch), {self.mass_flow_end_time}.")
         print("Careful, there are two hours added regarding utc time.")
         print("\n#####################################################################\n")
 
@@ -337,7 +341,7 @@ class XCAT:
             print("#######################################################\n")
 
         # Create DataFrame
-        self.rga_data = pd.read_csv(
+        self.rga_df = pd.read_csv(
             mass_spec_file,
             delimiter=',',
             index_col=False,
@@ -348,7 +352,7 @@ class XCAT:
         # Interpolate the data of the mass spectrometer in seconds
         try:
             # Get bad time axis
-            x = self.rga_data["Time"]
+            x = self.rga_df["Time"]
 
             # Get time range in seconds of the experiment linked to that dataset
             self.time_range = int(float(x.values[-1]))
@@ -377,10 +381,10 @@ class XCAT:
             })
 
             # Iterate over all the columns
-            for column in self.rga_data.columns[self.rga_data.columns != "Time"]:
+            for column in self.rga_df.columns[self.rga_df.columns != "Time"]:
 
                 # Interpolate
-                f = interpolate.interp1d(x, self.rga_data[column].values)
+                f = interpolate.interp1d(x, self.rga_df[column].values)
                 interpolated_df[column] = f(new_time_column)
 
             # Make sure that the time is integer
@@ -467,7 +471,8 @@ class XCAT:
                 x_0 = int(temp_df[f"time_{mass}"].values[0])
                 x_1 = int(temp_df[f"time_{mass}"].values[-1])
 
-                # # get time range in seconds of the experiment linked to that dataset from RGA if exist, or just length oh dataset
+                # # get time range in seconds of the experiment linked to that
+                # # dataset from RGA if exist, or just length oh dataset
                 # try:
                 # 	exp_duration = self.time_range
                 # except:
@@ -522,6 +527,7 @@ class XCAT:
         hours=True,
         save=False,
         fig_name="mass_flow_entry",
+        plot_valve=True,
     ):
         """
         Plot the evolution of the input of the reactor
@@ -547,6 +553,7 @@ class XCAT:
         :param hours: True to show x scale in hours instead of seconds
         :param save: True to save the plot:
         :param fig_name: figure name when saving
+        :param plot_valve: True to also see the valve positions
         """
 
         # Get coloring dictionnary
@@ -562,7 +569,12 @@ class XCAT:
             print("Plotting for ", entry)
             print("#######################################################")
             plt.close()
-            fig, axes = plt.subplots(2, 1, figsize=figsize)
+
+            if plot_valve:
+                fig, axes = plt.subplots(2, 1, figsize=figsize)
+            else:
+                fig, axes = plt.subplots(1, 1, figsize=figsize)
+                axes = [axes]  # gross quick fix
 
             # Get dataframe
             try:
@@ -592,26 +604,35 @@ class XCAT:
                 label=f"flow_{entry}")
 
             # Plot setpoint
-            axes[0].plot(
-                plot_df[f"time_{entry}"],
-                plot_df[f"setpoint_{entry}"],
-                linestyle="--",
-                label=f"setpoint_{entry}")
+            try:
+                axes[0].plot(
+                    plot_df[f"time_{entry}"],
+                    plot_df[f"setpoint_{entry}"],
+                    linestyle="--",
+                    label=f"setpoint_{entry}")
+            except:
+                pass
 
             # Plot valve position
-            axes[1].plot(
-                plot_df[f"time_{entry}"],
-                plot_df[f"valve_{entry}"],
-                label=f"valve_{entry}")
+            try:
+                axes[1].plot(
+                    plot_df[f"time_{entry}"],
+                    plot_df[f"valve_{entry}"],
+                    label=f"valve_{entry}")
+            except:
+                pass
 
             # Zoom
             try:
                 axes[0].set_xlim([zoom1[0], zoom1[1]])
                 axes[0].set_ylim([zoom1[2], zoom1[3]])
+            except TypeError:
+                pass
 
+            try:
                 axes[1].set_xlim([zoom2[0], zoom2[1]])
                 axes[1].set_ylim([zoom2[2], zoom2[3]])
-            except TypeError:
+            except:
                 pass
 
             # Plot cursors
@@ -619,7 +640,7 @@ class XCAT:
                 cursor_positions,
                 cursor_labels
             ):
-                for j, ax in enumerate(axes):
+                for ax in axes:
                     try:
                         ax.axvline(
                             cursor_pos,
@@ -654,11 +675,14 @@ class XCAT:
 
             axes[0].set_ylabel("Flow", fontsize=fontsize+2)
             axes[0].set_xlabel(x_label, fontsize=fontsize+2)
-            axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
-            axes[1].set_xlabel(x_label, fontsize=fontsize+2)
-
             axes[0].legend(ncol=len(mass_list), fontsize=fontsize)
-            axes[1].legend(ncol=len(mass_list), fontsize=fontsize)
+
+            try:
+                axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
+                axes[1].set_xlabel(x_label, fontsize=fontsize+2)
+                axes[1].legend(ncol=len(mass_list), fontsize=fontsize)
+            except:
+                pass
 
             plt.tight_layout()
             if save:
@@ -837,7 +861,8 @@ class XCAT:
         text_dict=None,
         hours=True,
         save=False,
-        fig_name="rga_data",
+        fig_name="rga_df",
+        title = "Pressure in XCAT reactor cell for each mass",
     ):
         """Plot the evolution of the gas detected by the mass spectrometer.
         Each mass corresponds to one channel detected. Careful, some mass can
@@ -858,7 +883,7 @@ class XCAT:
          value to find the pressures in the reactor cell. used with norm_carrier
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title have +2.
-        :param zoom: list of 4 integers to zoom
+        :param zoom: list of 4 integers to zoom, [xmin, xmax, ymin, ymax]
         :param color_dict: str, name of dict from the configuration file that
          will be used for the colors.
         :param cursor_positions: add cursors using these positions
@@ -872,6 +897,7 @@ class XCAT:
          a time and a temperature column.
         :param save: True to save the plot:
         :param fig_name: figure name when saving
+        :param title: figure title
         """
 
         # Get coloring dictionnary
@@ -882,10 +908,17 @@ class XCAT:
 
         # Get dataframe
         if df == "interpolated":
-            self.norm_df = self.rga_df_interpolated.copy()
+            try:
+                self.norm_df = self.rga_df_interpolated.copy()
+            except AttributeError:
+                print(
+                    "No attribute `rga_df_interpolated`,",
+                    " defaulted to `rga_df`"
+                )
+                self.norm_df = self.rga_df.copy()
 
         else:
-            self.norm_df = self.rga_data.copy()
+            self.norm_df = self.rga_df.copy()
 
         # Use all comlumns if none specified
         if mass_list is None:
@@ -994,16 +1027,16 @@ class XCAT:
             x_label = "Time (s)"
 
         # Create figure
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        fig, ax = plt.subplots(figsize=figsize)
         ax.semilogy()
         ax.set_title(
-            f"Pressure in XCAT reactor cell for each mass",
+            title,
             fontsize=fontsize+5
         )
 
         # If only plotting a subset of the masses
-        try:
-            for mass in mass_list:
+        for mass in mass_list:
+            try:
                 ax.plot(
                     self.norm_df.Time.values,
                     self.norm_df[mass].values,
@@ -1012,8 +1045,14 @@ class XCAT:
                     color=color_dict[mass]
                 )
 
-        except KeyError:
-            print("Is there an entry on the color dict for each mass ?")
+            except KeyError:
+                print("Is there an entry on the color dict for", mass)
+                ax.plot(
+                    self.norm_df.Time.values,
+                    self.norm_df[mass].values,
+                    linewidth=2,
+                    label=f"{mass}",
+                )
 
         # Temperature on second ax
         try:
@@ -1156,10 +1195,7 @@ class XCAT:
         x_peak = x[peak_start:peak_end]
         y_peak = y[peak_start:peak_end]
 
-        axs[0].plot(x_peak,
-                    y_peak,
-                    label="Peak"
-                    )
+        axs[0].plot(x_peak, y_peak, label="Peak")
         axs[0].set_ylabel(y_col)
         axs[0].set_xlabel(x_col)
 
@@ -1167,10 +1203,7 @@ class XCAT:
         x_no_peak = np.concatenate([x[:peak_start], x[peak_end:]])
         y_no_peak = np.concatenate([y[:peak_start], y[peak_end:]])
 
-        axs[0].plot(x_no_peak,
-                    y_no_peak,
-                    label="No peak"
-                    )
+        axs[0].plot(x_no_peak, y_no_peak, label="No peak")
 
         # Fit range without peak to get background
         poly = np.polyfit(x_no_peak, y_no_peak, degree)
