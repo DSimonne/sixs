@@ -564,17 +564,19 @@ class XCAT:
 
         mass_list = [g.lower() for g in mass_list]
 
+        # Iterate over each valve
         for entry in mass_list:
             print("#######################################################")
             print("Plotting for ", entry)
             print("#######################################################")
             plt.close()
 
+            # Create figure
             if plot_valve:
                 fig, axes = plt.subplots(2, 1, figsize=figsize)
             else:
                 fig, axes = plt.subplots(1, 1, figsize=figsize)
-                axes = [axes]  # gross quick fix
+                axes = [axes]
 
             # Get dataframe
             try:
@@ -651,8 +653,6 @@ class XCAT:
                         )
                     except KeyError:
                         print("No cursors.")
-                    # except (TypeError, KeyError):
-                    #     pass
 
             # Dict for y positions of text depending on the valve
             for x1, x2, cursor_label in zip(
@@ -676,6 +676,7 @@ class XCAT:
             axes[0].set_ylabel("Flow", fontsize=fontsize+2)
             axes[0].set_xlabel(x_label, fontsize=fontsize+2)
             axes[0].legend(ncol=len(mass_list), fontsize=fontsize)
+            axes[0].set_title(entry.upper())
 
             try:
                 axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
@@ -684,6 +685,7 @@ class XCAT:
             except:
                 pass
 
+            # Save figure
             plt.tight_layout()
             if save:
                 plt.savefig(f"{fig_name}_{entry}.png")
@@ -864,7 +866,8 @@ class XCAT:
         fig_name="rga_df",
         title = "Pressure in XCAT reactor cell for each mass",
     ):
-        """Plot the evolution of the gas detected by the mass spectrometer.
+        """
+        Plot the evolution of the gas detected by the mass spectrometer.
         Each mass corresponds to one channel detected. Careful, some mass can
          overlap.
 
