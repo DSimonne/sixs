@@ -325,7 +325,7 @@ class Map:
             temp = np.nanmean(datanan, axis=axe2num)
             self.int2 = np.nanmean(temp, axis=axe1num)
 
-    def hdf2png(
+    def plot(
         self,
         axe,
         axe_range=None,

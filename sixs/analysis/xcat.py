@@ -110,9 +110,7 @@ class XCAT:
         print(f"Using {self.mass_flow_file} as filename for data frame input.")
         print("\n#####################################################################\n")
 
-        try:
-            self.MRS_pos = MRS_pos
-        except:
+        if MRS_pos == None:
             self.MRS_pos = [
                 "All", "Ar", "Ar+Shu", "All", "Rea+Ar", "Closed", "All", "Closed",
                 "Ar", "Ar+Shu", "Shu", "Closed", "All", "Rea", "Rea", "Rea+Ar",
@@ -120,11 +118,11 @@ class XCAT:
                 "Closed"
             ]
             print(f"Defaulting MRS valve positions to:\n{self.MRS_pos}.")
-        print("\n#####################################################################\n")
+            print("\n#####################################################################\n")
+        else:
+            self.MRS_pos = MRS_pos
 
-        try:
-            self.MIX_pos = MIX_pos
-        except:
+        if MIX_pos == None:
             self.MIX_pos = [
                 "NO", "All", "Closed", "H2+CO", "H2+O2+CO", "H2+O2", "H2", "All",
                 "Closed", "NO+O2", "NO+O2+CO", "O2+CO", "O2", "All", "Closed",
@@ -132,11 +130,11 @@ class XCAT:
                 "NO+H2+O2", "NO+H2"
             ]
             print(f"Defaulting MIX valve positions to:\n{self.MIX_pos}.")
-        print("\n#####################################################################\n")
+            print("\n#####################################################################\n")
+        else:
+            self.MIX_pos = MIX_pos
 
-        try:
-            self.mass_flow_file_columns = mass_flow_file_columns
-        except:
+        if mass_flow_file_columns == None:
             self.mass_flow_file_columns = [
                 "time_no", "flow_no", "setpoint_no", "valve_no",
                 "time_h2", "flow_h2", "setpoint_h2", "valve_h2",
@@ -151,7 +149,21 @@ class XCAT:
             print(
                 f"Defaulted to log file columns (in order):",
                 f"\n{self.mass_flow_file_columns}.")
-        print("\n#####################################################################\n")
+            print("\n#####################################################################\n")
+        else:
+            self.mass_flow_file_columns = mass_flow_file_columns
+
+        if time_columns == None:
+            self.time_columns = [
+                "time_no", "time_h2", "time_o2", "time_co",
+                "time_ar", "time_shunt", "time_reactor",
+                "time_drain", "time_valve"
+            ]
+            print(
+                f"Defaulted to the following time columns (in order):\n{self.time_columns}.")
+            print("\n#####################################################################\n")
+        else:
+            self.time_columns = time_columns
 
         # Create DataFrame
         try:
@@ -167,18 +179,6 @@ class XCAT:
             raise E
 
         # Change time to unix epoch
-        try:
-            self.time_columns = time_columns
-        except:
-            self.time_columns = [
-                "time_no", "time_h2", "time_o2", "time_co",
-                "time_ar", "time_shunt", "time_reactor",
-                "time_drain", "time_valve"
-            ]
-            print(
-                f"Defaulted to the following time columns (in order):\n{self.time_columns}.")
-        print("\n#####################################################################\n")
-
         for column_name in self.time_columns:
             column = getattr(self.df, column_name)
 
@@ -1017,6 +1017,7 @@ class XCAT:
             y_units = "bar" if isinstance(pressure_carrier, float) else None
 
         # Normalize data by leak pressure
+        # TODO
 
         # No normalisation
         else:
