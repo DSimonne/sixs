@@ -7,6 +7,7 @@ import inspect
 import yaml
 import sixs
 import decimal
+import shutil
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -533,7 +534,7 @@ class CTR:
         """
 
         # Load data
-        self.scan_indices = [str(s) for s in scan_indices]
+        scan_indices = [str(s) for s in scan_indices]
 
         # Get all hdf5 files first
         files = [f.split("/")[-1]
@@ -541,7 +542,7 @@ class CTR:
 
         # Get scans specified with scan_indices
         self.scan_files = [f for f in files if any(
-            [n in f for n in self.scan_indices])]
+            [n in f for n in scan_indices])]
 
         if verbose:
             print("\n###########################################################")
@@ -933,7 +934,7 @@ class CTR:
         """
 
         # Get files
-        self.scan_indices = [str(s) for s in scan_indices]
+        scan_indices = [str(s) for s in scan_indices]
 
         # Get all txt files first
         files = [f.split("/")[-1]
@@ -941,7 +942,7 @@ class CTR:
 
         # Get scans specified with scan_indices
         self.scan_files = [f for f in files if any(
-            [n in f for n in self.scan_indices])]
+            [n in f for n in scan_indices])]
         if verbose:
             print("\n###########################################################")
             print(f"Detected files in {folder}:")
@@ -1024,6 +1025,127 @@ class CTR:
         print("###########################################################")
         np.save(folder + save_name, data)
 
+    def prep_ROD_data(
+        self,
+        folder,
+        scan_indices,
+        save_name,
+        data_column=7,
+        glob_string_match="*.dat",
+        interpol_step=False,
+        verbose=False,
+    ):
+        """
+        CTR simulated with ROD at least 5 columns, e.g.:
+        h      k      l   f-bulk   f-surf    f-mol    f-liq    f-sum    phase
+
+        We are only interested in two: l and a data column.
+
+        :param folder: path to data folder
+        :param scan_indices: indices of maps scans, list
+        :param save_name: name of file in which the results are saved, saved in
+         folder.
+        :param data_type: type of data to load from binoculars, usually the
+         possibilities are "nisf" or "sf". Prefer nisf data, detail here the
+         differences
+        :param interpol_step: step size in interpolation along L, to avoid
+         problem with analysing CTR with different steps. No interpolation if
+         False, default.
+        :param verbose: True for additional informations printed during function
+        """
+
+        # Get files
+        scan_indices = [str(s) for s in scan_indices]
+
+        # Get all txt files first
+        files = [f.split("/")[-1]
+                 for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
+
+        # Get scans specified with scan_indices
+        self.scan_files = [f for f in files if any(
+            [n in f for n in scan_indices])]
+        if verbose:
+            print("\n###########################################################")
+            print(f"Detected files in {folder}:")
+            for f in files:
+                print("\t", f)
+            print("###########################################################\n")
+
+            print("\n###########################################################")
+            print("Working on the following files:")
+            for f in self.scan_files:
+                print("\t", f)
+            print("###########################################################\n")
+
+        # Iterating on all files to create l axis
+        for i, fname in enumerate(self.scan_files):
+            # Load data
+            rod_data = np.loadtxt(folder + fname, skiprows=2)
+
+            # L axis
+            L = rod_data[:, 2]
+
+            if verbose:
+                print(
+                    "\n###########################################################")
+                print(f"Opening file {fname} ...")
+                print("\tRange and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
+                    min(L), max(L), len(L)))
+                print("###########################################################")
+
+            if i == 0:
+                l_min = np.round(min(L), 3)
+                l_max = np.round(max(L), 3)
+                l_shape = len(L)
+            else:
+                l_min = np.round(max(l_min, min(L)), 3)
+                l_max = np.round(min(l_max, max(L)), 3)
+                l_shape = max(l_shape, len(L))
+
+        print("\n###########################################################")
+        print(f"Smallest common range in L is [{l_min} : {l_max}]")
+        print("###########################################################")
+
+        # Create new x axis for interpolation
+        self.interpol_step = interpol_step
+        if isinstance(self.interpol_step, float):
+            l_axe = np.arange(l_min, l_max, self.interpol_step)
+
+            # Save final data as numpy array
+            # 0 is x axis, 1 is data, 2 is background
+            data = np.nan * \
+                np.empty((len(self.scan_files), 3, (len(l_axe))))
+        else:
+            # Save final data as numpy array
+            # 0 is x axis, 1 is data, 2 is background
+            data = np.nan * np.empty((len(self.scan_files), 3, l_shape))
+
+        # Background already subtracted, left as nan
+        # Get l axis and CTR intensity for each file
+        for i, fname in enumerate(self.scan_files):
+
+            # Load data
+            rod_data = np.loadtxt(folder + fname, skiprows=2)
+            scan_l_axe = rod_data[:, 2]
+            ctr_data = rod_data[:, data_column]
+
+            # Interpolate
+            if isinstance(self.interpol_step, float):
+                data[i, 0, :] = l_axe
+
+                tck = splrep(scan_l_axe, ctr_data, s=0)
+                data[i, 1, :] = splev(l_axe, tck)
+
+            else:
+                data[i, 0, :len(scan_l_axe)] = scan_l_axe
+                data[i, 1, :len(scan_l_axe)] = ctr_data
+
+        # Saving
+        print("\n###########################################################")
+        print(f"Saving data as: {folder}{save_name}.npy")
+        print("###########################################################")
+        np.save(folder + save_name, data)
+
     @ staticmethod
     def plot_CTR(
         numpy_array,
@@ -1048,6 +1170,10 @@ class CTR:
         Plot the CTRs together
 
         :param numpy_array: path to .npy file on disk.
+        TODO problem here, inverting indices in array
+            - l
+            - data
+            - background
         :param scan_indices: scan indices of files plotted, in order, used for
          labelling, mandatory because we need to know what we plot!
         :param title: if string, set to figure title
@@ -1218,3 +1344,83 @@ def find_nearest(array, value):
                 return array[-1], -1
             elif all(array > value):
                 return array[0], 0
+
+
+def simulate_rod(
+    macro,
+    bulk_file=None,
+    surface_file=None,
+    rod_hk=[2, 2],
+    l_start=0,
+    l_end=3,
+    nb_points=251,
+    l_bragg=0,
+    nb_layers_bulk=2,
+    error_bars=True,
+    save_as=None,
+    comment=None,
+):
+    """
+    Help document:
+        https://www.esrf.fr/computing/scientific/joint_projects/ANA-ROD/RODMAN2.html
+
+    Will generate the following files the first time it is run in a folder:
+        - pgplot.ps
+        - plotinit.mac
+        - rod_init.mac
+    These files will be used during subsequent runs.
+    """
+
+    # Check path
+    path, ext = os.path.splitext(macro)
+    macro = path + '.mac'
+
+    # Create list of lines
+    lines = [
+        f"set calc LStart {l_start}",
+        f"\nLEnd {l_end}",
+        f"\nNpoints {nb_points}",
+        f"\nLBragg {l_bragg}",
+        f"\nNLayers {nb_layers_bulk} return return",
+    ]
+
+    # Read files
+    if isinstance(bulk_file, str):
+        if os.path.isfile(bulk_file):
+            shutil.copy2(
+                bulk_file,
+                os.getcwd(),
+            )
+            lines.append(f"\nread bul {os.path.basename(bulk_file)}")
+
+    if isinstance(surface_file, str):
+        if os.path.isfile(surface_file):
+            shutil.copy2(
+                surface_file,
+                os.getcwd(),
+            )
+            lines.append(f"\nread sur {os.path.basename(surface_file)}")
+
+    # Plotting options
+    if error_bars:
+        lines.append(f"\nplot errors y return")
+
+    # Calculate
+    lines.append(f"\ncalc rod {rod_hk[0]} {rod_hk[1]}")
+
+    # Save data
+    if isinstance(save_as,str):
+        lines.append(f"\nlist all {save_as} {None}")
+
+    # Add one more to avoid bogs
+    lines.append("\nquit\n\n")
+
+    # Create file
+    print("Saving macro in file", macro, end = "\n\n")
+    with open(macro, "w") as m:
+        for line in lines:
+            # print(line)
+            m.write(line)
+
+    # Run macro
+    os.system(f'rod < {macro}')

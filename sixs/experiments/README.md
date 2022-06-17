@@ -18,7 +18,7 @@
 * So we are **not** measuring the pressure in the reactor cell but in the leak ! There must be a normalisation step to correctly find the pressure in the reactor chamber.
 * The pressure in that chamber, ~ 3e-6, should be constant throughout the experiment, you can control it with a valve.
 * The leak depends on the temperature (dilatation)
-* No dependance on particle size (Avrgadro nb)
+* No dependance on particle size (Avogadro nb)
 * However the flux depends on the speed, thus on the mass.
 * We can compute the dependance of the detector on the temperature by following its signal during a temperature cycle while keeping the reagent product constant. However, we are only sensible to the reagents.
 * Pressure control is after the reactor chamber exit.

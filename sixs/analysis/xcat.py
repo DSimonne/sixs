@@ -118,7 +118,8 @@ class XCAT:
                 "Closed"
             ]
             print(f"Defaulting MRS valve positions to:\n{self.MRS_pos}.")
-            print("\n#####################################################################\n")
+            print(
+                "\n#####################################################################\n")
         else:
             self.MRS_pos = MRS_pos
 
@@ -130,7 +131,8 @@ class XCAT:
                 "NO+H2+O2", "NO+H2"
             ]
             print(f"Defaulting MIX valve positions to:\n{self.MIX_pos}.")
-            print("\n#####################################################################\n")
+            print(
+                "\n#####################################################################\n")
         else:
             self.MIX_pos = MIX_pos
 
@@ -149,7 +151,8 @@ class XCAT:
             print(
                 f"Defaulted to log file columns (in order):",
                 f"\n{self.mass_flow_file_columns}.")
-            print("\n#####################################################################\n")
+            print(
+                "\n#####################################################################\n")
         else:
             self.mass_flow_file_columns = mass_flow_file_columns
 
@@ -161,7 +164,8 @@ class XCAT:
             ]
             print(
                 f"Defaulted to the following time columns (in order):\n{self.time_columns}.")
-            print("\n#####################################################################\n")
+            print(
+                "\n#####################################################################\n")
         else:
             self.time_columns = time_columns
 
@@ -549,7 +553,7 @@ class XCAT:
          cursor_positions
         :param text_dict: Add text on plot, same length as
          cursor_positions, e.g. {"ar": [45, 3.45], "argon": [45, 3.45],
-         "o2": [5, 2], "h2": [5, 2]}
+         "o2": [5, 2], "h2": [5, 2]}, not used for now !! TODO
         :param hours: True to show x scale in hours instead of seconds
         :param save: True to save the plot:
         :param fig_name: figure name when saving
@@ -864,7 +868,7 @@ class XCAT:
         hours=True,
         save=False,
         fig_name="rga_df",
-        title = "Pressure in XCAT reactor cell for each mass",
+        title="Pressure in XCAT reactor cell for each mass",
     ):
         """
         Plot the evolution of the gas detected by the mass spectrometer.
