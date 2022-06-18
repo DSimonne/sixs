@@ -1347,7 +1347,7 @@ def find_nearest(array, value):
 
 
 def simulate_rod(
-    macro,
+    filename,
     bulk_file=None,
     surface_file=None,
     rod_hk=[2, 2],
@@ -1357,7 +1357,7 @@ def simulate_rod(
     l_bragg=0,
     nb_layers_bulk=2,
     error_bars=True,
-    save_as=None,
+    save_folder=None,
     comment=None,
 ):
     """
@@ -1369,11 +1369,25 @@ def simulate_rod(
         - plotinit.mac
         - rod_init.mac
     These files will be used during subsequent runs.
+
+    :param filename: str, will be used in the names of the output files, not a path
     """
 
-    # Check path
-    path, ext = os.path.splitext(macro)
-    macro = path + '.mac'
+    # Save folder is either os.getcwd() or specified
+    if save_folder == None:
+        save_folder = os.getcwd()
+
+    elif not os.path.exists(save_folder):
+        print(f"{save_folder} does not exist, defaulting to {os.getcwd()}")
+        save_folder = os.getcwd()
+
+    elif os.path.exists(save_folder):
+        save_folder = save_folder
+
+    # Remove file extension
+    filename, _ = os.path.splitext(filename)
+    macro_file = filename + '.mac'
+    save_file = filename + '.dat'
 
     # Create list of lines
     lines = [
@@ -1387,17 +1401,19 @@ def simulate_rod(
     # Read files
     if isinstance(bulk_file, str):
         if os.path.isfile(bulk_file):
+            # Copy bulk file to save_folder for execution
             shutil.copy2(
                 bulk_file,
-                os.getcwd(),
+                save_folder,
             )
             lines.append(f"\nread bul {os.path.basename(bulk_file)}")
 
     if isinstance(surface_file, str):
         if os.path.isfile(surface_file):
+            # Copy surface file to save_folder for execution
             shutil.copy2(
                 surface_file,
-                os.getcwd(),
+                save_folder,
             )
             lines.append(f"\nread sur {os.path.basename(surface_file)}")
 
@@ -1405,22 +1421,87 @@ def simulate_rod(
     if error_bars:
         lines.append(f"\nplot errors y return")
 
-    # Calculate
+    # Calculate rod at [h, k]
     lines.append(f"\ncalc rod {rod_hk[0]} {rod_hk[1]}")
 
     # Save data
-    if isinstance(save_as,str):
-        lines.append(f"\nlist all {save_as} {None}")
+    lines.append(f"\nlist all {save_file} {comment}")
 
     # Add one more to avoid bogs
     lines.append("\nquit\n\n")
 
     # Create file
-    print("Saving macro in file", macro, end = "\n\n")
-    with open(macro, "w") as m:
+    print("Saving macro in file", save_folder + "/" + macro_file, end="\n\n")
+    with open(save_folder + "/" + macro_file, "w") as m:
         for line in lines:
-            # print(line)
             m.write(line)
 
-    # Run macro
-    os.system(f'rod < {macro}')
+    # Run macro in folder
+    os.system(f'cd {save_folder} && rod < {macro_file}')
+
+
+def modify_surface_relaxation(
+    base_file,
+    save_as,
+    lines_to_edit=[3],
+    columns_to_edit=["z"],
+    relaxation=0.99,
+    round_order=3,
+    sep=" ",
+    print_old_file=False,
+    print_new_file=True,
+):
+    """
+    Files must use only one space between characters to split properly
+
+    :param relaxation: values are multipled by this float number
+    """
+    # Open old file
+    with open(base_file) as f:
+        old_file_lines = f.readlines()
+
+    # Print old file
+    if print_old_file:
+        print("############### Old surface file ###############\n")
+        for line in old_file_lines:
+            print(line, end="")
+
+        print("\n############### Old surface file ###############")
+
+    # Make copy
+    new_file_lines = old_file_lines.copy()
+
+    # Modify lines
+    for l in lines_to_edit:
+
+        # Split line
+        line = old_file_lines[l].split(sep)
+
+        # Modify parameter
+        for c in columns_to_edit:
+            c_index = {"x": 1, "y": 2, "z": 3}[c]
+            line[c_index] = str(float(line[c_index]) *
+                                np.round(relaxation, round_order))
+
+        # Join line
+        line = sep.join(line)
+
+        # Bog when changing the last column
+        if not line.endswith("\n"):
+            line += "\n"
+
+        # Save changes in new lines
+        new_file_lines[l] = line
+
+    # Print new file
+    if print_new_file:
+        print("\n############### New surface file ###############")
+        print(f"################## r = {relaxation:.3f}  ##################\n")
+        for line in new_file_lines:
+            print(line, end="")
+
+        print("\n############### New surface file ###############")
+
+    # Create new file
+    with open(save_as, "w") as f:
+        f.writelines(new_file_lines)
