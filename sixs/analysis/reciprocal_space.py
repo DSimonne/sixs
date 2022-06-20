@@ -1155,7 +1155,7 @@ class CTR:
         figsize=(18, 9),
         ncol=2,
         color_dict=None,
-        labels=False,
+        labels=None,
         zoom=[None, None, None, None],
         fill=False,
         fill_first=0,
@@ -1217,17 +1217,18 @@ class CTR:
             y_plot = y-np.nan_to_num(b)
 
             # Add label
-            if isinstance(labels, list):
-                label = labels[i]
-            elif isinstance(labels, dict):
+            if isinstance(labels, dict):
                 try:
                     label = labels[scan_index]
                 except KeyError:
                     label = labels[int(scan_index)]
                 except:
-                    print("Dict not valid for labels, used scan_index")
+                    print("Dict not valid for labels, using scan_indices")
                     label = scan_index
+            elif labels == None:
+                label = scan_index
             else:
+                print("Labels must be a dictionnary with keys = scan_indices")
                 label = scan_index
 
             # Add colour
@@ -1250,7 +1251,7 @@ class CTR:
                         marker=marker
                     )
 
-            except KeyError:
+            except (KeyError, ValueError):
                 # Take int(scan_index) in case keys are not strings in the dict
                 try:
                     if line_plot:
@@ -1270,8 +1271,22 @@ class CTR:
                             s=s,
                             marker=marker
                         )
-                except Exception as e:
-                    raise e
+                except TypeError:
+                    if line_plot:
+                        plt.plot(
+                            l,
+                            y_plot,
+                            label=label,
+                            linewidth=2,
+                        )
+                    else:
+                        plt.scatter(
+                            x=l,
+                            y=y_plot,
+                            label=label,
+                            s=s,
+                            marker=marker
+                        )
             except TypeError:  # No special colour
                 if line_plot:
                     plt.plot(
@@ -1497,7 +1512,10 @@ def modify_surface_relaxation(
     for l in lines_to_edit:
 
         # Split line
-        line = old_file_lines[l].split(sep)
+        try:
+            line = old_file_lines[l].split(sep)
+        except IndexError:
+            print("l out of range, try to change lines_to_edit")
 
         # Modify parameter
         for c in columns_to_edit:
