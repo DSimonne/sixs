@@ -1361,6 +1361,7 @@ def simulate_rod(
     comment=None,
 ):
     """
+    This function uses ROD, that must be installed on your computer.
     Help document:
         https://www.esrf.fr/computing/scientific/joint_projects/ANA-ROD/RODMAN2.html
 
@@ -1368,9 +1369,21 @@ def simulate_rod(
         - pgplot.ps
         - plotinit.mac
         - rod_init.mac
-    These files will be used during subsequent runs.
+    These files will be used during subsequent runs, they initialize a bunch of
+     arguments used for plotting.
 
     :param filename: str, will be used in the names of the output files, not a path
+    :param bulk_file: str, path to bulk file (.bul)
+    :param surface_file: str, path to surface file (.sur)
+    :param rod_hk: list, position in h and k of the rod
+    :param l_start: beginning of the rod in l
+    :param l_end: end of the rod in l
+    :param nb_points: nb of points in the rod
+    :param l_bragg: position in l of the first bragg peak
+    :param nb_layers_bulk: number of layers in the bulk
+    :param error_bars: bool, use error bars or not in the plot
+    :param save_folder: folder in which output files are saved
+    :param comment: str, comment to add to file
     """
 
     # Save folder is either os.getcwd() or specified
@@ -1384,7 +1397,7 @@ def simulate_rod(
     elif os.path.exists(save_folder):
         save_folder = save_folder
 
-    # Remove file extension
+    # Remove file extension if one was provided to avoid bugs
     filename, _ = os.path.splitext(filename)
     macro_file = filename + '.mac'
     save_file = filename + '.dat'
@@ -1452,9 +1465,18 @@ def modify_surface_relaxation(
     print_new_file=True,
 ):
     """
-    Files must use only one space between characters to split properly
+    !!! Files must use only one space between characters to split properly !!!
 
+    :param base_file: file to edit
+    :param save_as: save new file at this path
+    :param lines_to_edit: list of lines to edit in the file
+    :param columns_to_edit: list of columns to edit in the file,
+     e.g. ["x", "y", "z"]
     :param relaxation: values are multipled by this float number
+    :param round_order: to avoid weird float values, the relaxation is rounded
+    :param sep: str, separator between the columns, e.g. " " is one space
+    :param print_old_file: bool, True to see lines in old file
+    :param print_new_file: bool, True to see lines in new file
     """
     # Open old file
     with open(base_file) as f:
