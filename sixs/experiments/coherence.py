@@ -156,6 +156,9 @@ def show_map(
     load_with_readnxs=False,
     scale="log",
     verbose=False,
+    roi=None,
+    x=None,
+    y=None,
 ):
     """
     Quick solution to extract maps from a list of files
@@ -176,6 +179,36 @@ def show_map(
 
     if not isinstance(verbose, bool):
         return ("`verbose` parameter must be a Boolean")
+
+    if not isinstance(roi, str):
+        if map_type == "hexapod_scan":
+            roi = "roi4_merlin"
+            print("Defaulted to roi4_merlin")
+        elif map_type == "ascan_y":
+            roi = "data_30"
+            print("Defaulted to data_30")
+    else:
+        print("Using for roi:", roi)
+
+    if not isinstance(x, str):
+        if map_type == "hexapod_scan":
+            x = "X"
+            print("Defaulted to X")
+        elif map_type == "ascan_y":
+            x = "data_41"
+            print("Defaulted to data_41")
+    else:
+        print("Using for x:", x)
+
+    if not isinstance(y, str):
+        if map_type == "hexapod_scan":
+            y = "Y"
+            print("Defaulted to Y")
+        elif map_type == "ascan_y":
+            y = "data_42"
+            print("Defaulted to data_42")
+    else:
+        print("Using for y:", y)
 
     # Save file range index
     first_scan = file_name_list[0].split(".nxs")[0][-5:]
@@ -199,15 +232,10 @@ def show_map(
     else:
         # Load with tables
         for file in file_name_list:
-            with tb.open_file(directory + file) as f:
-                if map_type == "hexapod_scan":
-                    X = (f.root.com.scan_data.X[...])
-                    Y = (f.root.com.scan_data.Y[...])
-                    roi_sum = (f.root.com.scan_data.roi4_merlin[...])
-                elif map_type == "ascan_y":
-                    X = (f.root.com.scan_data.data_41[...])
-                    Y = (f.root.com.scan_data.data_42[...])
-                    roi_sum = (f.root.com.scan_data.data_30[...])
+            with h5py.File(directory + file) as f:
+                X = (f["com"]["scan_data"][x][...])
+                Y = (f["com"]["scan_data"][y][...])
+                roi_sum = (f["com"]["scan_data"][roi][...])
 
             # Append to lists
             X_lists.append(X)
