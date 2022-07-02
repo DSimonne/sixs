@@ -6,4 +6,4 @@
 """
 Welcome to sixs, the package is divided in several modules listed under."""
 
-__all__ = ["analysis", "experiments", "scripts", "ReadNxs4", "utilities3"]
+__all__ = ["coherence"]

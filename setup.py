@@ -11,6 +11,7 @@ setuptools.setup(
     author_email="david.simonne@synchrotron-soleil.fr",
     data_files=[('', ["licence.txt",
                       "sixs/experiments/ammonia.yml",
+                      "sixs/alias_dict_2022.txt",                      
                       ])],
     scripts=[
         "sixs/scripts/print_pos.py"
