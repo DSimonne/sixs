@@ -1,4 +1,7 @@
 import matplotlib.pyplot as plt
+import matplotlib
+from matplotlib import cm
+
 import tables as tb
 import numpy as np
 import glob
@@ -12,7 +15,6 @@ try:
 except Exception as E:
     pass
 from sixs import ReadNxs4 as rn4
-from matplotlib import cm
 
 
 def find_focal_plane(
@@ -296,48 +298,60 @@ def plot_2d_scan(
 
     # Load data
     try:
-        with h5py.File(scan) as f:
+        with h5py.File(file) as f:
             x = f["com"]["scan_data"][x][...]
             y = f["com"]["scan_data"][y][...]
             roi_sum = f["com"]["scan_data"][roi][...]
     except Exception as E:
         return ("Data not supported")
 
+    x_max = np.round(x[roi_sum.argmax()], 4)
+    y_max = np.round(y[roi_sum.argmax()], 4)
+
     # Define colormap
     norm = matplotlib.colors.Normalize(vmin=min(roi_sum), vmax=max(roi_sum))
     colors = [colormap(norm(roi)) for roi in roi_sum]
 
     # Define plot
-    left, width = 0.1, 0.65
-    bottom, height = 0.1, 0.65
-    spacing = 0.05
+    left, width = 0.1, 0.6
+    bottom, height = 0.1, 0.6
+    h_spacing = 0.07
+    v_spacing = 0.05
+    smaller_width = 0.2
+    smaller_height = 0.2
 
     rect_scatter = [left, bottom, width, height]
-    rect_histx = [left, bottom + height + spacing, width, 0.2]
-    rect_histy = [left + width + spacing, bottom, 0.2, height]
+    rect_histx = [left, bottom + height + v_spacing, width, smaller_width]
+    rect_histy = [left + width + h_spacing, bottom, smaller_height, height]
 
-    fig = plt.figure(figsize=(12, 12))
+    fig = plt.figure(figsize=(8, 8))
 
     ax = fig.add_axes(rect_scatter)
-    ax_histx = fig.add_axes(rect_histx, sharex=ax)
-    ax_histy = fig.add_axes(rect_histy, sharey=ax)
-
-    ax.scatter(x, y, color=colors)
+    ax.set_ylabel("Y", fontsize=15)
+    ax.set_xlabel("X", fontsize=15)
     ax.grid()
-    ax_histx.grid()
-    ax_histy.grid()
+    ax.tick_params(axis='both', labelsize=10)
 
-    ax_histx.scatter(x, roi_sum, color=colors)
-    ax_histy.scatter(roi_sum, y, color=colors)
-
-    x_max = np.round(x[roi_sum.argmax()], 4)
-    y_max = np.round(y[roi_sum.argmax()], 4)
-
+    ax_histx = fig.add_axes(rect_histx, sharex=ax)
+    ax_histx.set_ylabel("Sum over ROI", fontsize=15)
     ax_histx.xaxis.set_label_position("top")
-    ax_histx.set_title(f"Max for x = {x_max}", fontsize=15)
+    ax_histx.set_xlabel(f"Max for x = {x_max}", fontsize=15)
+    ax_histx.grid()
+    ax_histx.tick_params(axis='both', labelsize=10)
 
+    ax_histy = fig.add_axes(rect_histy, sharey=ax)
+    ax_histy.set_xlabel("Sum over ROI", fontsize=15)
     ax_histy.yaxis.set_label_position("right")
     ax_histy.set_ylabel(f"Max for y = {y_max}", fontsize=15)
+    ax_histy.grid()
+    ax_histy.tick_params(axis='both', labelsize=10)
+
+    # Plot
+    ax.scatter(x, y, color=colors)
+
+    ax_histx.scatter(x, roi_sum, color=colors)
+
+    ax_histy.scatter(roi_sum, y, color=colors)
 
     ax.axvline(x[roi_sum.argmax()], color=colors[roi_sum.argmax()], alpha=0.4)
     ax_histx.axvline(x[roi_sum.argmax()],
@@ -345,5 +359,4 @@ def plot_2d_scan(
     ax.axhline(y[roi_sum.argmax()], color=colors[roi_sum.argmax()], alpha=0.4)
     ax_histy.axhline(y[roi_sum.argmax()],
                      color=colors[roi_sum.argmax()], alpha=0.4)
-
     plt.show()
