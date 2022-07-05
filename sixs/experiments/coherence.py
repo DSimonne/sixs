@@ -154,18 +154,35 @@ def show_map(
     directory="./",
     map_type="hexapod_scan",
     load_with_readnxs=False,
-    scale="log",
-    verbose=False,
     roi=None,
     x=None,
     y=None,
+    verbose=False,
+    scale="log",
+    flip_axes=False,
 ):
     """
     Quick solution to extract maps from a list of files
 
     The path to the X, Y and roi array are fixed
 
-    Many bog possibilities still
+    :param file_name_list: list of .nxs files in 
+     param directory
+    :param directory: directory in which file_name_list are
+    :param map_type: str in ("hexapod_scan", "ascan_y"),
+     used to give default values for params roi, x and y
+    :param load_with_readnxs: False for faster computation
+    :param roi: str, key used in f.root.com.scan_data for roi
+     default is roi4_merli"n"
+    :param x: str, key used in f.root.com.scan_data for x
+     default is "X"
+    :param y: str, key used in f.root.com.scan_data for y
+     default is "Y"
+    :param verbose: True for more details
+    :param scale: str in ("log", "lin")
+    :param flip_axes: True to switch x and y
+
+    return: Error or success message
     """
     # Check parameters
     if map_type not in ("hexapod_scan", "ascan_y"):
@@ -179,6 +196,9 @@ def show_map(
 
     if not isinstance(verbose, bool):
         return ("`verbose` parameter must be a Boolean")
+
+    if not isinstance(flip_axes, bool):
+        return ("`flip_axes` parameter must be a Boolean")
 
     if not isinstance(roi, str):
         if map_type == "hexapod_scan":
@@ -276,29 +296,61 @@ def show_map(
 
     # Plot data
     title = f"Scans {first_scan} ----> {last_scan}"
-    plot_mesh(arr_x, arr_y, plotted_array, title)
-
+    plot_mesh(arr_x, arr_y, plotted_array, title, cmap=cmap, flip_axes=flip_axes)
+    plt.show(block=False)
+    
     return ("Data successfully plotted.")
 
 
-def plot_mesh(arr_x, arr_y, plotted_array, title=None):
+def plot_mesh(
+    arr_x, 
+    arr_y, 
+    plotted_array, 
+    title=None,
+    cmap='jet',
+    flip_axes=False,
+):
     """
+    Plot mesh of values from x and y coordinates.
+
+    :param arr_x: positions in x, shape (X,)
+    :param arr_y: positions in y, shape (Y,)
+    :param plotted_array: values, 2D array of shape (X, Y)
+    :param cmap: colormap used for mesh
+    :param flip_axes: True to switch x and y
     """
     # Image
     plt.figure(figsize=(8, 8))
-    plt.pcolormesh(
-        arr_x,
-        arr_y,
-        plotted_array,
-        cmap='jet'
-    )
+    
+    if flip_axes: 
+        plt.pcolormesh(
+            arr_y,
+            arr_x,
+            plotted_array,
+            cmap=cmap,
+            shading='nearest'
+        )
+    else:
+        plt.pcolormesh(
+            arr_x,
+            arr_y,
+            plotted_array,
+            cmap=cmap,
+            shading='nearest'
+        )
     plt.axis('square')
-    plt.xlabel('x (mm)')
-    plt.ylabel('y (mm)')
+    if flip_axes:
+        plt.xlabel('y (mm)')
+        plt.ylabel('x (mm)')
+    else:
+        plt.xlabel('x (mm)')
+        plt.ylabel('y (mm)')
+        
+    plt.format_coord = format_coord
     if isinstance(title, str):
         plt.title(title)
     plt.grid()
-    plt.show()
+    plt.show(block=False)
 
 
 def plot_2d_scan(
@@ -311,10 +363,15 @@ def plot_2d_scan(
     """
     Plot evolution of roi as a function of x and y
 
-    Uses 
-        - x = f.root.com.scan_data.X[...]
-        - y = f.root.com.scan_data.Y[...]
-        - roi_sum = f.root.com.scan_data.roi4_merlin[...]
+    :param file: absolute path to .nxs file
+    :param colormap: colormap used to color roi, default
+     is "jet", other possibilites are viridis, ...
+    :param roi: str, key used in f.root.com.scan_data for roi
+     default is roi4_merli"n"
+    :param x: str, key used in f.root.com.scan_data for x
+     default is "X"
+    :param y: str, key used in f.root.com.scan_data for y
+     default is "Y"
 
     return: Error or success message
     """
@@ -335,6 +392,7 @@ def plot_2d_scan(
 
     x_max = np.round(x[roi_sum.argmax()], 4)
     y_max = np.round(y[roi_sum.argmax()], 4)
+    print(f"mv (x, {x_max}); mv (y, {y_max})")
 
     # Define colormap
     norm = matplotlib.colors.Normalize(vmin=min(roi_sum), vmax=max(roi_sum))
@@ -355,22 +413,22 @@ def plot_2d_scan(
     fig = plt.figure(figsize=(8, 8))
 
     ax = fig.add_axes(rect_scatter)
-    ax.set_ylabel("Y", fontsize=15)
-    ax.set_xlabel("X", fontsize=15)
+    ax.set_ylabel("Y", fontsize=10)
+    ax.set_xlabel("X", fontsize=10)
     ax.grid()
     ax.tick_params(axis='both', labelsize=10)
 
     ax_histx = fig.add_axes(rect_histx, sharex=ax)
-    ax_histx.set_ylabel("Sum over ROI", fontsize=15)
+    ax_histx.set_ylabel("Sum over ROI", fontsize=10)
     ax_histx.xaxis.set_label_position("top")
-    ax_histx.set_xlabel(f"Max for x = {x_max}", fontsize=15)
+    ax_histx.set_xlabel(f"Max for x = {x_max}", fontsize=10)
     ax_histx.grid()
     ax_histx.tick_params(axis='both', labelsize=10)
 
     ax_histy = fig.add_axes(rect_histy, sharey=ax)
-    ax_histy.set_xlabel("Sum over ROI", fontsize=15)
+    ax_histy.set_xlabel("Sum over ROI", fontsize=10)
     ax_histy.yaxis.set_label_position("right")
-    ax_histy.set_ylabel(f"Max for y = {y_max}", fontsize=15)
+    ax_histy.set_ylabel(f"Max for y = {y_max}", fontsize=10)
     ax_histy.grid()
     ax_histy.tick_params(axis='both', labelsize=10)
 
@@ -387,4 +445,4 @@ def plot_2d_scan(
     ax.axhline(y[roi_sum.argmax()], color=colors[roi_sum.argmax()], alpha=0.4)
     ax_histy.axhline(y[roi_sum.argmax()],
                      color=colors[roi_sum.argmax()], alpha=0.4)
-    plt.show()
+    plt.show(block=False)
