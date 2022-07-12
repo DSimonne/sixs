@@ -10,12 +10,14 @@ Functions to use in the ipy3 environment of srv4:
         to align the sample
     plot_rocking_curve(): plot rocking curve in mu or omega and prints the command
         to align the sample
+    plot_position_evolution(): plot the evolution of the particle position
+        taken from hexapod alignment scans
 
 Other functions used in the module:
-    load_detector_intensity()
     load_nexus_attribute()
     find_FZP_focal_plane()
     plot_mesh()
+    get_scan_number()
 """
 
 import matplotlib.pyplot as plt
@@ -41,26 +43,16 @@ except ModuleNotFoundError:
 # Functions to load data from SixS NeXuS files
 
 
-def load_detector_intensity(path_to_nxs_data):
-    "Find detector intensity in NeXuS file"
-    detector_intensity = None
-
-    with h5py.File(path_to_nxs_data, "r") as f:
-        for key in f["com/scan_data"].keys():
-            shape = f["com/scan_data"][key].shape
-            if ((len(shape) == 3)
-                    and (shape[1] in (512, 515))
-                    and (shape[2] in (512, 515))
-                ):
-                detector_intensity = f["com/scan_data"][key][...]
-    return detector_intensity
-
-
-def load_nexus_attribute(path_to_nxs_data, key):
+def load_nexus_attribute(key, file, directory=None):
     "Get attribute values from nexus file in f.com.scan_data"
     if not isinstance(key, str):
         print("param 'key' must be a string")
         return None
+
+    if isinstance(directory, str):
+        path_to_nxs_data = directory + file
+    else:
+        path_to_nxs_data = file
 
     if not os.path.isfile(path_to_nxs_data):
         print("param 'path_to_nxs_data' must be a valid path to a hdf5 file.")
@@ -84,14 +76,16 @@ def get_file_range(directory, start_number, end_number, pattern='*.nxs'):
     once is specified the file expention, default is nxs, splitting character is: "_"
     It returns a file list with the desired numbers
     """
+    print("Using as directory:", directory)
     all_file_list = sorted(
         glob.glob(directory + pattern),
         key=os.path.getmtime,
     )
-    print("Using as directory:", directory)
+
+    # Filter based on scan number
     file_list = []
     for file in all_file_list:
-        file_number = int(os.path.splitext(file)[0].split("_")[-1])
+        file_number = get_scan_number(file)
         if start_number <= file_number <= end_number and os.path.isfile(file):
             file_list.append(os.path.basename(file))
     print(f"Found {len(file_list)} files.")
@@ -316,17 +310,18 @@ def show_map(
         return ("`flip_axes` parameter must be a Boolean")
 
     # Save file range index, specific to SixS naming
-    first_scan = os.path.splitext(file_list[0])[0].split("_")[-1]
-    last_scan = os.path.splitext(file_list[-1])[0].split("_")[-1]
+    first_scan = get_scan_number(file_list[0])
+    last_scan = get_scan_number(file_list[-1])
 
     # Get data
     X_list, Y_list, roi_sum_list = [], [], []
 
     # Load data
     for file in file_list:
-        x = load_nexus_attribute(directory + file, x_key)
-        y = load_nexus_attribute(directory + file, y_key)
-        roi_sum = load_nexus_attribute(directory + file, roi_key)
+        x = load_nexus_attribute(key=x_key, file=file, directory=directory)
+        y = load_nexus_attribute(key=y_key, file=file, directory=directory)
+        roi_sum = load_nexus_attribute(
+            key=roi_key, file=file, directory=directory)
 
         # Append to lists
         X_list.append(x)
@@ -473,18 +468,15 @@ def plot_2d_scan(
     return: Error or success message
     """
     # Check arguments
-    if not os.path.isfile(directory + file):
-        return ("'file' is not a valid path ...")
-
     try:
         colormap = getattr(cm, colormap)
     except AttributeError:
         return ("Possible colormaps are 'viridis', 'jet', ...")
 
     # Load data
-    x = load_nexus_attribute(directory + file, x_key)
-    y = load_nexus_attribute(directory + file, y_key)
-    roi_sum = load_nexus_attribute(directory + file, roi_key)
+    x = load_nexus_attribute(key=x_key, file=file, directory=directory)
+    y = load_nexus_attribute(key=y_key, file=file, directory=directory)
+    roi_sum = load_nexus_attribute(key=roi_key, file=file, directory=directory)
 
     # Print different command to move to max in x and y
     x_max = np.round(x[roi_sum.argmax()], 4)
@@ -556,15 +548,15 @@ def plot_2d_scan(
 
 
 def plot_rocking_curve(
-        file: str,
-        directory=None,
-        roi_key: str = "roi1_merlin",
-        motor_key: str = "mu",
-        method: str = "com",
-        plot: bool = True,
-        logscale: bool = True,
-        figsize: tuple = (12, 6),
-        color: str = "teal",
+    file: str,
+    directory=None,
+    roi_key: str = "roi1_merlin",
+    motor_key: str = "mu",
+    method: str = "com",
+    plot: bool = True,
+    logscale: bool = True,
+    figsize: tuple = (12, 6),
+    color: str = "teal",
 ) -> None:
     """
     Find the rocking curve position of interest (maximum, or center of
@@ -588,8 +580,10 @@ def plot_rocking_curve(
     """
     # load the data, detector intensity and motor positions
     try:
-        sum_intensity = load_nexus_attribute(directory + file, roi_key)
-        scanned_motor = load_nexus_attribute(directory + file, motor_key)
+        sum_intensity = load_nexus_attribute(
+            key=roi_key, file=file, directory=directory)
+        scanned_motor = load_nexus_attribute(
+            key=motor_key, file=file, directory=directory)
     except Exception as e:
         print(e.__str__())
         return
@@ -641,3 +635,76 @@ def plot_rocking_curve(
         # Show figure
         plt.tight_layout()
         plt.show(block=False)
+
+
+def plot_position_evolution(
+    file_list,
+    directory=None,
+    roi_key="roi1_merlin",
+    x_key="X",
+    y_key="Y",
+    method="max",
+    cmap="RdYlBu",
+):
+    """
+    Plot the evolution of the position of the sample taken from the alignment scans
+    as a function of the scan number
+
+    :param file_list: list of .nxs files in param directory
+    :param directory: directory in which file are, default is None
+    :param roi_key: str, key used in f.root.com.scan_data for roi
+     default value depends on 'map_type'
+    :param x_key: str, key used in f.root.com.scan_data for x
+     default value depends on 'map_type'
+    :param y_key: str, key used in f.root.com.scan_data for y
+     default value depends on 'map_type'
+    :param method: the method used to find the position of interest
+        (str).
+    :param cmap: cmap for color in plots
+    """
+
+    temp_colors = np.arange(0, len(file_list))
+    x_max_list = []
+    y_max_list = []
+
+    for file in file_list:
+        try:
+            x = load_nexus_attribute(key=x_key, file=file, directory=directory)
+            y = load_nexus_attribute(key=y_key, file=file, directory=directory)
+            roi = load_nexus_attribute(
+                key=roi_key, file=file, directory=directory)
+
+            argmax_roi = roi.argmax()
+            x_max_list.append(x[argmax_roi])
+            y_max_list.append(y[argmax_roi])
+        except AttributeError:
+            print("AttributeError for ", file)
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    sc = ax.scatter(
+        x_max_list,
+        y_max_list,
+        s=50,
+        c=temp_colors,
+        cmap=cmap
+    )
+    ax.plot(x_max_list, y_max_list, alpha=0.5)
+
+    ax.set_xlabel("x", size=15)
+    ax.set_ylabel("y", size=15)
+    ax.grid()
+    ax.tick_params(labelsize=15)
+    cbar = plt.colorbar(sc)
+    cbar.ax.set_title('Last scan', size=15)
+    cbar.set_ticks(np.arange(len(file_list)))
+    cbar.set_ticklabels([get_scan_number(f) for f in file_list])
+    plt.show()
+
+
+def get_scan_number(file):
+    "Return scan number of nexus file for SixS"
+    file = os.path.basename(file)
+
+    return int(os.path.splitext(file)[0].split("_")[-1])
