@@ -1,3 +1,22 @@
+"""
+This module has functions to help with the alignment of the sample
+during coherence experiments at SixS.
+
+Functions to use in the ipy3 environment of srv4:
+    get_file_range(): get a list of file in a directory, that is then
+        used as entry in show_map()
+    show_map(): show a map performed with the hexapod
+    plot_2d_scan(): plot a 2d scan, usually in x and y, and prints the command
+        to align the sample
+    plot_rocking_curve(): plot rocking curve in mu or omega and prints the command
+        to align the sample
+
+Other functions used in the module:
+    load_nexus_attribute()
+    find_FZP_focal_plane()
+    plot_mesh()
+"""
+
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib import cm
@@ -9,18 +28,69 @@ import os
 import h5py
 
 from scipy import interpolate
-from lmfit.models import GaussianModel
+try:
+    from lmfit.models import GaussianModel
+    from sixs import ReadNxs4 as rn4
+except ModuleNotFoundError:
+    print(
+        "Could not import `lmfit`, and `sixs`"
+        "\nThis is normal on srv4"
+    )
 try:
     plt.switch_backend('Qt5Agg')
 except Exception as E:
     pass
-from sixs import ReadNxs4 as rn4
+
+# Functions to load data from SixS NeXuS files
 
 
-def find_focal_plane(
+def load_nexus_attribute(path_to_nxs_data, key):
+    "Get attribute values from nexus file in f.com.scan_data"
+    if not isinstance(key, str):
+        print("param 'key' must be a string")
+        return None
+
+    if not os.path.isfile(path_to_nxs_data):
+        print("param 'path_to_nxs_data' must be a valid path to a hdf5 file.")
+        return None
+
+    try:
+        with h5py.File(path_to_nxs_data, "r") as f:
+            return f[f"com/scan_data/{key}"][()]
+    except OSError:
+        print(
+            f"path_to_nxs_data: {path_to_nxs_data} is not a valid NeXuS file")
+        return None
+    except KeyError:
+        print(f"key: {key} was not found in f.com.scan_data")
+        return None
+
+
+def get_file_range(directory, start_number, end_number, pattern='*.nxs'):
+    """
+    It select a files range with the numeration at the end of the file,
+    once is specified the file expention, default is nxs, splitting character is: "_"
+    It returns a file list with the desired numbers
+    """
+    all_file_list = sorted(
+        glob.glob(directory + pattern),
+        key=os.path.getmtime,
+    )
+    print("Using as directory:", directory)
+    file_list = []
+    for file in all_file_list:
+        file_number = int(os.path.splitext(file)[0].split("_")[-1])
+        if start_number <= file_number <= end_number and os.path.isfile(file):
+            file_list.append(os.path.basename(file))
+    print(f"Found {len(file_list)} files.")
+    return file_list
+
+
+# Data visualisation for SixS
+def find_FZP_focal_plane(
     file_list,
     scan_type,
-    directory="./",
+    directory=None,
     omega=0,
     pos_hor_scans=None,
     ROI=(None, None, None, None),
@@ -32,7 +102,7 @@ def find_focal_plane(
     scale='log',
 ):
     """
-    Find the focal plane of the lenses by plotting the evolution 
+    Find the focal plane of the lenses by plotting the evolution
     of the beam FWHM in the vertical position.
 
     It uses the x and y position of the goniometer, that should be attributes
@@ -49,7 +119,7 @@ def find_focal_plane(
     :param omega: tilt angle between the vertical axis and x, in degress, must be constant
      , necessary if scan_type == 'gonio'
     :param ROI: container of length 4, determines the region of interest on the detector
-     e.g. = (200, 650, 400, 600), 
+     e.g. = (200, 650, 400, 600),
     :param directory: e.g. = "./"
     :param verbose: e.g. False
     :param amplitude: init parameter for gaussian fit, e.g. 0.005
@@ -146,142 +216,131 @@ def find_focal_plane(
     plt.scatter(pos_hor_scans, fwhm_scans, color=colors)
     plt.xlabel("Horizontal position")
     plt.ylabel("FWHM")
-    plt.show()
+
+    # Show figure
+    plt.tight_layout()
+    plt.show(block=False)
 
 
 def show_map(
-    file_name_list,
-    directory="./",
+    file_list,
+    directory=None,
     map_type="hexapod_scan",
     load_with_readnxs=False,
-    roi=None,
-    x=None,
-    y=None,
+    roi_key=None,
+    x_key=None,
+    y_key=None,
     verbose=False,
     scale="log",
-    flip_axes=False,
+    flip_axes=True,
+    shading="nearest",
+    cmap='turbo',
 ):
     """
-    Quick solution to extract maps from a list of files
+    Extract map from a list of scans
 
-    The path to the X, Y and roi array are fixed
-
-    :param file_name_list: list of .nxs files in 
-     param directory
-    :param directory: directory in which file_name_list are
+    :param file_list: list of .nxs files in param directory
+    :param directory: directory in which file_list are, default is None
     :param map_type: str in ("hexapod_scan", "ascan_y"),
-     used to give default values for params roi, x and y
-    :param load_with_readnxs: False for faster computation
-    :param roi: str, key used in f.root.com.scan_data for roi
-     default is roi4_merli"n"
-    :param x: str, key used in f.root.com.scan_data for x
-     default is "X"
-    :param y: str, key used in f.root.com.scan_data for y
-     default is "Y"
+     used to give default values for params roi_key, x_key and y_key
+    :param roi_key: str, key used in f.root.com.scan_data for roi
+     default value depends on 'map_type'
+    :param x_key: str, key used in f.root.com.scan_data for x
+     default value depends on 'map_type'
+    :param y_key: str, key used in f.root.com.scan_data for y
+     default value depends on 'map_type'
     :param verbose: True for more details
     :param scale: str in ("log", "lin")
-    :param flip_axes: True to switch x and y
+    :param flip_axes: True to switch x and y axis
+    :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
+    :param cmap: colormap to use for the map
 
     return: Error or success message
     """
     # Check parameters
+    if len(file_list) == 0:
+        return ("`file_list` parameter must be of length at least 1")
+
     if map_type not in ("hexapod_scan", "ascan_y"):
         return ("`map_type` parameter must be 'hexapod_scan' or 'ascan_y'")
 
-    if scale not in ("log", "lin"):
-        return ("`scale` parameter must be 'lin' or 'log'")
+    if not isinstance(roi_key, str):
+        if map_type == "hexapod_scan":
+            roi_key = "roi1_merlin"
+            print("Defaulted 'roi' to 'roi1_merlin'")
+        elif map_type == "ascan_y":
+            roi_key = "data_30"
+            print("Defaulted 'roi' to 'data_30'")
+    else:
+        print("Using for roi:", roi_key)
 
-    if len(file_name_list) == 0:
-        return ("`file_name_list` parameter must be of length at least 1")
+    if not isinstance(x_key, str):
+        if map_type == "hexapod_scan":
+            x_key = "X"
+            print("Defaulted 'x' to 'X'")
+        elif map_type == "ascan_y":
+            x_key = "data_41"
+            print("Defaulted 'x' to 'data_41'")
+    else:
+        print("Using for x:", x_key)
+
+    if not isinstance(y_key, str):
+        if map_type == "hexapod_scan":
+            y_key = "Y"
+            print("Defaulted 'y' to 'Y'")
+        elif map_type == "ascan_y":
+            y_key = "data_42"
+            print("Defaulted 'y' to 'data_42'")
+    else:
+        print("Using for y:", y_key)
 
     if not isinstance(verbose, bool):
         return ("`verbose` parameter must be a Boolean")
 
+    if scale not in ("log", "lin"):
+        return ("`scale` parameter must be 'lin' or 'log'")
+
     if not isinstance(flip_axes, bool):
         return ("`flip_axes` parameter must be a Boolean")
 
-    if not isinstance(roi, str):
-        if map_type == "hexapod_scan":
-            roi = "roi4_merlin"
-            print("Defaulted to roi4_merlin")
-        elif map_type == "ascan_y":
-            roi = "data_30"
-            print("Defaulted to data_30")
-    else:
-        print("Using for roi:", roi)
-
-    if not isinstance(x, str):
-        if map_type == "hexapod_scan":
-            x = "X"
-            print("Defaulted to X")
-        elif map_type == "ascan_y":
-            x = "data_41"
-            print("Defaulted to data_41")
-    else:
-        print("Using for x:", x)
-
-    if not isinstance(y, str):
-        if map_type == "hexapod_scan":
-            y = "Y"
-            print("Defaulted to Y")
-        elif map_type == "ascan_y":
-            y = "data_42"
-            print("Defaulted to data_42")
-    else:
-        print("Using for y:", y)
-
-    # Save file range index
-    first_scan = file_name_list[0].split(".nxs")[0][-5:]
-    last_scan = file_name_list[-1].split(".nxs")[0][-5:]
+    # Save file range index, specific to SixS naming
+    first_scan = os.path.splitext(file_list[0])[0].split("_")[-1]
+    last_scan = os.path.splitext(file_list[-1])[0].split("_")[-1]
 
     # Get data
-    X_lists, Y_lists, roi_sum_lists = [], [], []
-    if load_with_readnxs:
-        # Load datasets
-        for file in file_name_list:
-            dataset = rn4.DataSet(file, directory, verbose=verbose)
-            if map_type == "hexapod_scan":
-                X_lists.append(dataset.X)
-                Y_lists.append(dataset.Y)
-                roi_sum_lists.append(dataset.roi4_merlin)
-            elif map_type == "ascan_y":
-                X_lists.append(dataset.x)
-                Y_lists.append(dataset.y)
-                roi_sum_lists.append(dataset.roi4_merlin)
+    X_list, Y_list, roi_sum_list = [], [], []
 
-    else:
-        # Load with tables
-        for file in file_name_list:
-            with h5py.File(directory + file) as f:
-                X = (f["com"]["scan_data"][x][...])
-                Y = (f["com"]["scan_data"][y][...])
-                roi_sum = (f["com"]["scan_data"][roi][...])
+    # Load data
+    for file in file_list:
+        x = load_nexus_attribute(directory + file, x_key)
+        y = load_nexus_attribute(directory + file, y_key)
+        roi_sum = load_nexus_attribute(directory + file, roi_key)
 
-            # Append to lists
-            X_lists.append(X)
-            Y_lists.append(Y)
-            roi_sum_lists.append(roi_sum)
-            if verbose:
-                print(
-                    f"Loading :{file}"
-                    f"\n\tShape in X: {X.shape}"
-                    f"\n\tShape in Y: {Y.shape}"
-                    f"\n\tShape in roi_sum: {roi_sum.shape}\n"
-                )
+        # Append to lists
+        X_list.append(x)
+        Y_list.append(y)
+        roi_sum_list.append(roi_sum)
+        if verbose:
+            print(
+                f"Loading :{file}"
+                f"\n\tShape in x: {x.shape}"
+                f"\n\tShape in y: {y.shape}"
+                f"\n\tShape in roi_sum: {roi_sum.shape}\n"
+            )
 
     # Create empty arrays
-    arr_roi = np.zeros((len(file_name_list), len(Y_lists[0])))
-    arr_y = np.zeros((len(file_name_list), len(Y_lists[0])))
-    arr_x = np.zeros((len(file_name_list), len(Y_lists[0])))
+    arr_roi = np.zeros((len(file_list), len(Y_list[0])))
+    arr_y = np.zeros((len(file_list), len(Y_list[0])))
+    arr_x = np.zeros((len(file_list), len(Y_list[0])))
 
     # Fill arrays
-    for j, (X, Y, roi_sum) in enumerate(zip(X_lists, Y_lists, roi_sum_lists)):
-        # Y is constant, X changes
+    for j, (x, y, roi_sum) in enumerate(zip(X_list, Y_list, roi_sum_list)):
+        # y is constant, x changes
         if verbose:
-            print(f"Scan nb {j} for y=", np.round(np.mean(Y), 3))
+            print(f"Scan nb {j} for y=", np.round(np.mean(y), 3))
         arr_roi[j] = roi_sum
-        arr_y[j] = np.around(Y, 3)
-        arr_x[j] = np.around(X, 3)
+        arr_y[j] = np.around(y, 3)
+        arr_x[j] = np.around(x, 3)
 
     if map_type == "ascan_y":
         # Flip because the scans go with increasing y every other scan
@@ -292,43 +351,63 @@ def show_map(
                 arr_roi[i] = np.flip(arr_roi[i])
 
     # Apply scale
-    plotted_array = arr_roi if scale == 'lin' else np.log10(arr_roi)
+    if scale == 'lin':
+        plotted_array = arr_roi
+    else:
+        plotted_array = np.where(arr_roi > 0, np.log10(arr_roi), 0)
 
     # Plot data
     title = f"Scans {first_scan} ----> {last_scan}"
-    plot_mesh(arr_x, arr_y, plotted_array, title, cmap=cmap, flip_axes=flip_axes)
-    plt.show(block=False)
-    
+    plot_mesh(
+        arr_x,
+        arr_y,
+        plotted_array,
+        title,
+        cmap=cmap,
+        flip_axes=flip_axes,
+        shading=shading,
+    )
+
     return ("Data successfully plotted.")
 
 
 def plot_mesh(
-    arr_x, 
-    arr_y, 
-    plotted_array, 
+    arr_x,
+    arr_y,
+    plotted_array,
     title=None,
     cmap='jet',
     flip_axes=False,
+    shading="nearest",
 ):
     """
     Plot mesh of values from x and y coordinates.
+    Axis are forced to be square
 
     :param arr_x: positions in x, shape (X,)
     :param arr_y: positions in y, shape (Y,)
     :param plotted_array: values, 2D array of shape (X, Y)
     :param cmap: colormap used for mesh
     :param flip_axes: True to switch x and y
+    :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
     """
-    # Image
+
+    def format_coord(x, y):
+
+        xx = int(round(x, 0))
+        yy = int(round(y, 0))
+        zz = int(data0[int(y), int(x)])
+        return "x=%d, y=%d, I=%d" % (xx, yy, zz)
+
     plt.figure(figsize=(8, 8))
-    
-    if flip_axes: 
+
+    if flip_axes:
         plt.pcolormesh(
             arr_y,
             arr_x,
             plotted_array,
             cmap=cmap,
-            shading='nearest'
+            shading=shading
         )
     else:
         plt.pcolormesh(
@@ -336,8 +415,10 @@ def plot_mesh(
             arr_y,
             plotted_array,
             cmap=cmap,
-            shading='nearest'
+            shading=shading
         )
+
+    # plt.format_coord = format_coord
     plt.axis('square')
     if flip_axes:
         plt.xlabel('y (mm)')
@@ -345,64 +426,73 @@ def plot_mesh(
     else:
         plt.xlabel('x (mm)')
         plt.ylabel('y (mm)')
-        
-    plt.format_coord = format_coord
+
     if isinstance(title, str):
         plt.title(title)
     plt.grid()
+
+    # Show figure
+    plt.tight_layout()
     plt.show(block=False)
 
 
 def plot_2d_scan(
     file,
+    directory=None,
     colormap='jet',
-    roi="roi4_merlin",
-    x="X",
-    y="Y",
+    roi_key="roi1_merlin",
+    x_key="X",
+    y_key="Y",
 ):
     """
-    Plot evolution of roi as a function of x and y
+    Plot evolution of roi as a function of x_key and y_key
 
     :param file: absolute path to .nxs file
+    :param directory: directory in which the file is, default is None
     :param colormap: colormap used to color roi, default
      is "jet", other possibilites are viridis, ...
-    :param roi: str, key used in f.root.com.scan_data for roi
-     default is roi4_merli"n"
-    :param x: str, key used in f.root.com.scan_data for x
+    :param roi_key: str, key used in f.root.com.scan_data for roi
+     default is roi1_merli"n"
+    :param x_key: str, key used in f.root.com.scan_data for x
      default is "X"
-    :param y: str, key used in f.root.com.scan_data for y
+    :param y_key: str, key used in f.root.com.scan_data for y
      default is "Y"
 
     return: Error or success message
     """
     # Check arguments
+    if not os.path.isfile(directory + file):
+        return ("'file' is not a valid path ...")
+
     try:
         colormap = getattr(cm, colormap)
     except AttributeError:
         return ("Possible colormaps are 'viridis', 'jet', ...")
 
     # Load data
-    try:
-        with h5py.File(file) as f:
-            x = f["com"]["scan_data"][x][...]
-            y = f["com"]["scan_data"][y][...]
-            roi_sum = f["com"]["scan_data"][roi][...]
-    except Exception as E:
-        return ("Data not supported")
+    x = load_nexus_attribute(directory + file, x_key)
+    y = load_nexus_attribute(directory + file, y_key)
+    roi_sum = load_nexus_attribute(directory + file, roi_key)
 
+    # Print different command to move to max in x and y
     x_max = np.round(x[roi_sum.argmax()], 4)
     y_max = np.round(y[roi_sum.argmax()], 4)
-    print(f"mv (x, {x_max}); mv (y, {y_max})")
+    print(f"mv (x, {x_max}); mv (y, {y_max}); rct()")
+    print(f"mv (x, {x_max}); rct()")
+    print(f"mv (y, {y_max}); rct()")
 
     # Define colormap
-    norm = matplotlib.colors.Normalize(vmin=min(roi_sum), vmax=max(roi_sum))
+    norm = matplotlib.colors.Normalize(
+        vmin=min(roi_sum),
+        vmax=max(roi_sum)
+    )
     colors = [colormap(norm(roi)) for roi in roi_sum]
 
     # Define plot
-    left, width = 0.1, 0.6
-    bottom, height = 0.1, 0.6
-    h_spacing = 0.07
-    v_spacing = 0.05
+    left, width = 0.13, 0.6
+    bottom, height = 0.1, 0.63
+    h_spacing = 0.02
+    v_spacing = 0.02
     smaller_width = 0.2
     smaller_height = 0.2
 
@@ -424,6 +514,7 @@ def plot_2d_scan(
     ax_histx.set_xlabel(f"Max for x = {x_max}", fontsize=10)
     ax_histx.grid()
     ax_histx.tick_params(axis='both', labelsize=10)
+    ax_histx.xaxis.set_tick_params(labelbottom=False)
 
     ax_histy = fig.add_axes(rect_histy, sharey=ax)
     ax_histy.set_xlabel("Sum over ROI", fontsize=10)
@@ -431,6 +522,7 @@ def plot_2d_scan(
     ax_histy.set_ylabel(f"Max for y = {y_max}", fontsize=10)
     ax_histy.grid()
     ax_histy.tick_params(axis='both', labelsize=10)
+    ax_histy.yaxis.set_tick_params(labelleft=False)
 
     # Plot
     ax.scatter(x, y, color=colors)
@@ -445,4 +537,95 @@ def plot_2d_scan(
     ax.axhline(y[roi_sum.argmax()], color=colors[roi_sum.argmax()], alpha=0.4)
     ax_histy.axhline(y[roi_sum.argmax()],
                      color=colors[roi_sum.argmax()], alpha=0.4)
+
+    # Show figure
+    fig.tight_layout()
     plt.show(block=False)
+
+
+def plot_rocking_curve(
+        file: str,
+        directory=None,
+        roi_key: str = "roi1_merlin",
+        motor_key: str = "mu",
+        method: str = "com",
+        plot: bool = True,
+        logscale: bool = True,
+        figsize: tuple = (12, 6),
+        color: str = "teal",
+) -> None:
+    """
+    Find the rocking curve position of interest (maximum, or center of
+    mass).
+
+    :param file: path to data
+    :param directory: directory in which file are, default is None
+    :param roi_key: the roi key (str) in the nexus file. To avoid memory errors
+        we load directly the sum over one of the ROI
+    :param motor_key: the scanned motor key (str) in the nexus file.
+    :param method: the method used to find the position of interest
+        (str).
+    :param plot: whether to plot the rocking curve (bool). Default: True
+    :param logscale: whether to plot the rocking curve in logscale
+        (bool). Default: True
+    :param figsize: the matplotlib figure size (tuple). Default: (12, 6)
+    :param color: the rocking curve color on the plot (str).
+        Default: "teal"
+
+    :return None:
+    """
+    # load the data, detector intensity and motor positions
+    try:
+        sum_intensity = load_nexus_attribute(directory + file, roi_key)
+        scanned_motor = load_nexus_attribute(directory + file, motor_key)
+    except Exception as e:
+        print(e.__str__())
+        return
+
+    if method == "com":
+        position = np.average(scanned_motor, weights=sum_intensity)
+        title = f"Rocking curve center of mass, ({position:.4f})"
+    elif method == "max":
+        position = scanned_motor[np.argmax(sum_intensity)]
+        title = f"Rocking curve maximum, ({position:.4f})"
+    else:
+        print(f"[INFO] Method not known ({method}), will use 'com'")
+        position = np.average(scanned_motor, weights=sum_intensity)
+        title = f"Rocking curve center of mass, ({position:.4f})"
+
+    # print the command
+    print(f"mv mu, {position:.4f}; rct();")
+
+    if plot:
+        # plot the rocking curve
+        fig, ax = plt.subplots(1, figsize=figsize)
+        if logscale:
+            sum_intensity = np.log(sum_intensity)
+        line = ax.plot(scanned_motor, sum_intensity, linewidth=2.5)
+
+        # plot the center of mass vertical line
+        ax.vlines(
+            position,
+            ymin=np.min(sum_intensity),
+            ymax=np.max(sum_intensity),
+            ls="--",
+            linewidths=2,
+        )
+
+        # add grid and set background color
+        ax.grid(which="both", ls=":")
+        ax.patch.set_facecolor("grey")
+        ax.patch.set_alpha(0.2)
+
+        # handle title and labels
+        ax.set_title(title, size=18)
+        ax.set_xlabel("Scanned motor", size=16)
+        if logscale:
+            ylabel = "Summed intensity (logscale, a. u)"
+        else:
+            ylabel = "Summed intensity"
+        ax.set_ylabel(ylabel, size=16)
+
+        # Show figure
+        plt.tight_layout()
+        plt.show(block=False)
