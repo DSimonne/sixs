@@ -12,6 +12,7 @@ Functions to use in the ipy3 environment of srv4:
         to align the sample
 
 Other functions used in the module:
+    load_detector_intensity()
     load_nexus_attribute()
     find_FZP_focal_plane()
     plot_mesh()
@@ -36,12 +37,23 @@ except ModuleNotFoundError:
         "Could not import `lmfit`, and `sixs`"
         "\nThis is normal on srv4"
     )
-try:
-    plt.switch_backend('Qt5Agg')
-except Exception as E:
-    pass
 
 # Functions to load data from SixS NeXuS files
+
+
+def load_detector_intensity(path_to_nxs_data):
+    "Find detector intensity in NeXuS file"
+    detector_intensity = None
+
+    with h5py.File(path_to_nxs_data, "r") as f:
+        for key in f["com/scan_data"].keys():
+            shape = f["com/scan_data"][key].shape
+            if ((len(shape) == 3)
+                    and (shape[1] in (512, 515))
+                    and (shape[2] in (512, 515))
+                ):
+                detector_intensity = f["com/scan_data"][key][...]
+    return detector_intensity
 
 
 def load_nexus_attribute(path_to_nxs_data, key):
