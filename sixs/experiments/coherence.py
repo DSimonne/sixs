@@ -65,12 +65,12 @@ def load_nexus_attribute(key, file, directory=None):
         return None
 
     if isinstance(directory, str):
-        path_to_nxs_data = directory + file
+        path_to_nxs_data = os.path.join(directory, file)
     else:
         path_to_nxs_data = file
 
     if not os.path.isfile(path_to_nxs_data):
-        print("param 'path_to_nxs_data' must be a valid path to a hdf5 file.")
+        print("param 'path_to_nxs_data' must be a valid path to a hdf5 file:", path_to_nxs_data)
         return None
 
     try:
@@ -277,7 +277,7 @@ def show_map(
     :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
     :param cmap: colormap to use for the map
     :param square_aspect: True to force square aspect in the final plot
-
+    
     return: Error or success message
     """
     # Check parameters
@@ -425,7 +425,7 @@ def plot_mesh(
             arr_x,
             plotted_array,
             cmap=cmap,
-            shading=shading
+            shading=shading,
         )
     else:
         plt.pcolormesh(
@@ -433,7 +433,7 @@ def plot_mesh(
             arr_y,
             plotted_array,
             cmap=cmap,
-            shading=shading
+            shading=shading,
         )
 
     if square_aspect:
@@ -447,6 +447,7 @@ def plot_mesh(
 
     if isinstance(title, str):
         plt.title(title)
+    plt.colorbar()
     plt.grid()
 
     # Show figure
