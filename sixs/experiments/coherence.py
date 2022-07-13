@@ -18,6 +18,21 @@ Other functions used in the module:
     find_FZP_focal_plane()
     plot_mesh()
     get_scan_number()
+    
+How to test these functions on srv4:
+    test_dir = "/nfs/ruche-sixs/sixs-soleil/com-sixs/2022/Run3/Chatelier_20211332/B18S1P1_bis/"
+    
+    Position evolution:
+
+        file_list_position_evolution = coh.get_file_range(directory=test_dir, start_number=1090,end_number=1160, pattern="*hexapod*.nxs")
+        coh.plot_position_evolution(directory=test_dir, file_list=file_list_position_evolution)
+    
+    Map:
+        file_list_map =coh.get_file_range(directory=test_dir, start_number=470,end_number=1070)
+        coh.show_map(file_list=file_list_map, directory=test_dir)
+    
+    2d scan:
+        coh.plot_2d_scan(file="B18S1P1_bis_hexapod_scan_00692.nxs", directory=test_dir)
 """
 
 import matplotlib.pyplot as plt
@@ -241,6 +256,7 @@ def show_map(
     flip_axes=True,
     shading="nearest",
     cmap='turbo',
+    square_aspect=True,
 ):
     """
     Extract map from a list of scans
@@ -260,6 +276,7 @@ def show_map(
     :param flip_axes: True to switch x and y axis
     :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
     :param cmap: colormap to use for the map
+    :param square_aspect: True to force square aspect in the final plot
 
     return: Error or success message
     """
@@ -386,6 +403,7 @@ def plot_mesh(
     cmap='jet',
     flip_axes=False,
     shading="nearest",
+    square_aspect=True,
 ):
     """
     Plot mesh of values from x and y coordinates.
@@ -397,15 +415,8 @@ def plot_mesh(
     :param cmap: colormap used for mesh
     :param flip_axes: True to switch x and y
     :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
+    :param square_aspect: True to force square aspect in the final plot
     """
-
-    def format_coord(x, y):
-
-        xx = int(round(x, 0))
-        yy = int(round(y, 0))
-        zz = int(data0[int(y), int(x)])
-        return "x=%d, y=%d, I=%d" % (xx, yy, zz)
-
     plt.figure(figsize=(8, 8))
 
     if flip_axes:
@@ -425,8 +436,8 @@ def plot_mesh(
             shading=shading
         )
 
-    # plt.format_coord = format_coord
-    plt.axis('square')
+    if square_aspect:
+        plt.axis('square')
     if flip_axes:
         plt.xlabel('y (mm)')
         plt.ylabel('x (mm)')
