@@ -28,8 +28,8 @@ How to test these functions on srv4:
         coh.plot_position_evolution(directory=test_dir, file_list=file_list_position_evolution)
     
     Map:
-        file_list_map =coh.get_file_range(directory=test_dir, start_number=470,end_number=1070)
-        coh.show_map(file_list=file_list_map, directory=test_dir)
+        file_list_map = coh.get_file_range(directory=test_dir, start_number=470,end_number=1070)
+        coh.show_map(file_list = file_list_map, directory=test_dir)
     
     2d scan:
         coh.plot_2d_scan(file="B18S1P1_bis_hexapod_scan_00692.nxs", directory=test_dir)
@@ -38,6 +38,7 @@ How to test these functions on srv4:
 import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib import cm
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import tables as tb
 import numpy as np
@@ -70,7 +71,8 @@ def load_nexus_attribute(key, file, directory=None):
         path_to_nxs_data = file
 
     if not os.path.isfile(path_to_nxs_data):
-        print("param 'path_to_nxs_data' must be a valid path to a hdf5 file:", path_to_nxs_data)
+        print("param 'path_to_nxs_data' must be a valid path to a hdf5 file:",
+              path_to_nxs_data)
         return None
 
     try:
@@ -277,7 +279,7 @@ def show_map(
     :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
     :param cmap: colormap to use for the map
     :param square_aspect: True to force square aspect in the final plot
-    
+
     return: Error or success message
     """
     # Check parameters
@@ -417,10 +419,45 @@ def plot_mesh(
     :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
     :param square_aspect: True to force square aspect in the final plot
     """
-    plt.figure(figsize=(8, 8))
+    class Cursor:
+        """
+        A cross hair cursor.
+        """
+
+        def __init__(self, ax):
+            self.ax = ax
+            self.horizontal_line = ax.axhline(color='k', lw=0.8, ls='--')
+            self.vertical_line = ax.axvline(color='k', lw=0.8, ls='--')
+            # text location in axes coordinates
+            self.text = ax.text(1, 1, '', transform=ax.transAxes, size=30)
+
+        def set_cross_hair_visible(self, visible):
+            need_redraw = self.horizontal_line.get_visible() != visible
+            self.horizontal_line.set_visible(visible)
+            self.vertical_line.set_visible(visible)
+            self.text.set_visible(visible)
+            return need_redraw
+
+        def on_mouse_move(self, event):
+            if not event.inaxes:
+                need_redraw = self.set_cross_hair_visible(False)
+                if need_redraw:
+                    self.ax.figure.canvas.draw()
+            else:
+                self.set_cross_hair_visible(True)
+                x, y, z = event.xdata, event.ydata, event.zdata
+                # update the line positions
+                self.horizontal_line.set_ydata(y)
+                self.vertical_line.set_xdata(x)
+                self.text.set_text('x=%1.2f, y=%1.2f, z=%1.2f' % (x, y, z))
+                print('x=%1.2f, y=%1.2f, z=%1.2f' % (x, y, z))
+                self.ax.figure.canvas.draw()
+
+    # Define figure
+    fig, ax = plt.subplots(figsize=(8, 8))
 
     if flip_axes:
-        plt.pcolormesh(
+        im = ax.pcolormesh(
             arr_y,
             arr_x,
             plotted_array,
@@ -428,7 +465,7 @@ def plot_mesh(
             shading=shading,
         )
     else:
-        plt.pcolormesh(
+        im = ax.pcolormesh(
             arr_x,
             arr_y,
             plotted_array,
@@ -437,18 +474,26 @@ def plot_mesh(
         )
 
     if square_aspect:
-        plt.axis('square')
+        ax.axis('square')
     if flip_axes:
-        plt.xlabel('y (mm)')
-        plt.ylabel('x (mm)')
+        ax.set_xlabel('y (mm)')
+        ax.set_ylabel('x (mm)')
     else:
-        plt.xlabel('x (mm)')
-        plt.ylabel('y (mm)')
+        ax.set_xlabel('x (mm)')
+        ax.set_ylabel('y (mm)')
+
+    # This does not work
+    # cursor = Cursor(ax)
+    # fig.canvas.mpl_connect('motion_notify_event', cursor.on_mouse_move)
 
     if isinstance(title, str):
-        plt.title(title)
-    plt.colorbar()
-    plt.grid()
+        ax.set_title(title)
+
+    # Colorbar
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='5%', pad=0.05)
+    fig.colorbar(im, cax=cax, orientation='vertical')
+    ax.grid()
 
     # Show figure
     plt.tight_layout()
