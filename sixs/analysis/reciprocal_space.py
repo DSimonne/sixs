@@ -199,17 +199,17 @@ class Map:
             axenum = 0
 
         if axe == 'Qx':
-            # to be check good for projection along Qx
+            # to be checked if good for projection along Qx
             datanan = np.swapaxes(self.raw_data, 1, 2)
             axenum = 0
 
         if axe == 'Qy':
-            # to be check good for projection along Qy
+            # to be checked if good for projection along Qy
             datanan = np.swapaxes(self.raw_data, 0, 2)
             axenum = 1
 
         if axe == 'Qz':
-            # to be check good for projection along Qz
+            # to be checked if good for projection along Qz
             datanan = np.swapaxes(self.raw_data, 0, 1)
             axenum = 2
 
@@ -217,14 +217,13 @@ class Map:
 
     def prjaxe_range(self, axe, axe_range):
         """
-        Project on one of the measured axes
+        Projects on one of the measured axes by averaging on the range of values
         The result is added as attribute .imgr to the file
 
         :param axe: string in ("H", "K", "L")
         :param axe_range: list or tuple of length two, defines the positions of
          the value to be used in the array on the desired axe
         """
-        #datanan = self.data
 
         if axe == 'H':
             axenum = 2
@@ -330,19 +329,26 @@ class Map:
         self,
         axe,
         axe_range=None,
+        interpolation="none",
         vmin=0.1,
         vmax=2000,
         figsize=(16, 9),
         title=None,
         cmap="jet",
         save_path=False,
+        three_d_plot=False,
     ):
         """
         Plot/save a hdf5 map.
 
+        You can use the command `%matplotlib notebook` before to use a cursor
+        in the notebook cell (chaneg figsize to (8,8))
+
         :param axe: string in ("H", "K", "L")
         :param axe_range: list or tuple of length two, defines the positions of
-         the value to be used in the array on the desired axe
+            the value to be used in the array on the desired axe
+        :param interpolation: default is 'none'. See plt.imshow? for options,
+            e.g. 'nearest'
         :param vmin: default to 0.1
         :param vmax: default to 2000
         :param figsize: default to (16, 9)
@@ -350,6 +356,7 @@ class Map:
         :param cmap: color map used, pick from
          https://matplotlib.org/stable/tutorials/colors/colormaps.html
         :param save_path: path to save file at
+        :param three_d_plot: True to show a 3D plot
         """
         if axe_range == None:
             self.prjaxe(axe)
@@ -402,34 +409,53 @@ class Map:
             axe_name2 = 'Qy'
 
         # Plot
-        fig = plt.figure(figsize=figsize)
-        plt.imshow(img,
-                   cmap=cmap,
-                   # interpolation="nearest",
-                   origin="lower",
-                   # aspect = 'auto',
-                   norm=LogNorm(vmin=vmin, vmax=vmax),
-                   extent=[axe1.min(), axe1.max(), axe2.min(), axe2.max()]
-                   )
-        plt.xlabel(axe_name1, fontsize=20)
-        plt.ylabel(axe_name2, fontsize=20)
-        plt.xticks(fontsize=20)
-        plt.yticks(fontsize=20)
+        if three_d_plot:
+            X, Y = np.meshgrid(axe1, axe2)
+            Z = np.where(img > vmin, np.log(img), 0)
+
+            fig, ax = plt.subplots(
+                figsize=figsize,
+                subplot_kw={'projection': '3d'}
+            )
+            plotted_img = ax.plot_surface(
+                X,
+                Y,
+                Z,
+                cmap=cmap,
+                # cstride=40,
+                # rstride=40,
+            )
+
+        else:
+            fig, ax = plt.subplots(figsize=figsize)
+            plotted_img = ax.imshow(img,
+                                    cmap=cmap,
+                                    interpolation=interpolation,
+                                    origin="lower",
+                                    # aspect = 'auto',
+                                    norm=LogNorm(vmin=vmin, vmax=vmax),
+                                    extent=[axe1.min(), axe1.max(),
+                                            axe2.min(), axe2.max()]
+                                    )
+
+        # Labels and ticks
+        ax.set_xlabel(axe_name1, fontsize=20)
+        ax.set_ylabel(axe_name2, fontsize=20)
+        ax.tick_params(axis=('both'), labelsize=20)
 
         # Colorbar
-        cbar = plt.colorbar()
+        cbar = fig.colorbar(plotted_img, shrink=0.5)
         cbar.ax.tick_params(labelsize=20)
 
         plt.tight_layout()
 
         if isinstance(title, str):
-            plt.title(title, fontsize=20)
+            ax.set_title(title, fontsize=20)
 
         if save_path:
             plt.savefig(save_path)
 
         plt.show()
-        plt.close()
 
 
 class CTR:
@@ -1413,9 +1439,6 @@ def simulate_rod(
         print(f"{save_folder} does not exist, defaulting to {os.getcwd()}")
         save_folder = os.getcwd()
 
-    elif os.path.exists(save_folder):
-        save_folder = save_folder
-
     # Remove file extension if one was provided to avoid bugs
     filename, _ = os.path.splitext(filename)
     macro_file = filename + '.mac'
@@ -1428,7 +1451,7 @@ def simulate_rod(
         f"\nNpoints {nb_points}",
         f"\nLBragg {l_bragg}",
         f"\nAtten {attenuation}",
-        f"\bBeta {beta}",
+        f"\nBeta {beta}",
         f"\nNLayers {nb_layers_bulk} return return",
     ]
 
