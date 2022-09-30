@@ -414,44 +414,12 @@ def plot_mesh(
     :param arr_x: positions in x, shape (X,)
     :param arr_y: positions in y, shape (Y,)
     :param plotted_array: values, 2D array of shape (X, Y)
+    :param title: title (str) for the plot
     :param cmap: colormap used for mesh
     :param flip_axes: True to switch x and y
     :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
     :param square_aspect: True to force square aspect in the final plot
     """
-    class Cursor:
-        """
-        A cross hair cursor.
-        """
-
-        def __init__(self, ax):
-            self.ax = ax
-            self.horizontal_line = ax.axhline(color='k', lw=0.8, ls='--')
-            self.vertical_line = ax.axvline(color='k', lw=0.8, ls='--')
-            # text location in axes coordinates
-            self.text = ax.text(1, 1, '', transform=ax.transAxes, size=30)
-
-        def set_cross_hair_visible(self, visible):
-            need_redraw = self.horizontal_line.get_visible() != visible
-            self.horizontal_line.set_visible(visible)
-            self.vertical_line.set_visible(visible)
-            self.text.set_visible(visible)
-            return need_redraw
-
-        def on_mouse_move(self, event):
-            if not event.inaxes:
-                need_redraw = self.set_cross_hair_visible(False)
-                if need_redraw:
-                    self.ax.figure.canvas.draw()
-            else:
-                self.set_cross_hair_visible(True)
-                x, y, z = event.xdata, event.ydata, event.zdata
-                # update the line positions
-                self.horizontal_line.set_ydata(y)
-                self.vertical_line.set_xdata(x)
-                self.text.set_text('x=%1.2f, y=%1.2f, z=%1.2f' % (x, y, z))
-                print('x=%1.2f, y=%1.2f, z=%1.2f' % (x, y, z))
-                self.ax.figure.canvas.draw()
 
     # Define figure
     fig, ax = plt.subplots(figsize=(8, 8))
@@ -494,6 +462,21 @@ def plot_mesh(
     cax = divider.append_axes('right', size='5%', pad=0.05)
     fig.colorbar(im, cax=cax, orientation='vertical')
     ax.grid()
+
+    # Cursor format
+    def format_coord(x, y):
+        X, Y = np.meshgrid(arr_x, arr_y)
+        xarr = X[0, :]
+        yarr = Y[:, 0]
+        if ((x > xarr.min()) & (x <= xarr.max()) &
+                (y > yarr.min()) & (y <= yarr.max())):
+            col = np.searchsorted(xarr, x)-1
+            row = np.searchsorted(yarr, y)-1
+            z = plotted_array[row, col]
+            return f'x={x:1.4f}, y={y:1.4f}, z={z:1.4f}   [{row},{col}]'
+        else:
+            return f'x={x:1.4f}, y={y:1.4f}'
+    ax.format_coord = format_coord
 
     # Show figure
     plt.tight_layout()
