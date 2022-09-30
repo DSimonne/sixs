@@ -4,7 +4,7 @@ during SXRD experiments at SixS.
 
 The two main modules are the following:
     CTR()
-    MAP()
+    MAP()el
 
 There are also functions that help with the simulations in ROD:
     simulate_rod()
@@ -34,12 +34,9 @@ class Map:
     reciproal space and provides 2D plotting methods.
 
     Methods in class:
-        * prjaxe(): projects the data on one axe
-        * prjaxe_range(): projects the data on one axe, with a given range
-        * prjaxes(): projects the data on two axes, with a given range (does
-            not work yet)
-
-    The first two methods must be merged ...
+        * project_one_axis(): projects the data on one axis, with a given range
+        * project_two_axes(): projects the data on two axes, with a given range
+            (does not work yet)
 
     You can then plot the images with the plot_map() method.
     """
@@ -49,10 +46,10 @@ class Map:
         Loads the binoculars file.
 
         The binocular data is loaded as follow:
-            Divide counts by contribution where cont != 0
-            Swap the h and k axes to be consistent with the indexing
-            [h, k, l], or [Qx, Qy, Qz].
-            Flip k axis
+            * Divide counts by contribution where cont != 0
+            * Swap the h and k axes to be consistent with the indexing
+                [h, k, l], or [Qx, Qy, Qz].
+            * Flip k axis
 
         :param file_path: full path to .hdf5 file
         """
@@ -67,7 +64,6 @@ class Map:
             self.raw_data = np.divide(ct, cont, where=cont != 0)
 
             # Get which type of projection we are working with
-
             # HKL
             try:
                 H = f.list_nodes('/binoculars/')[0].H
@@ -75,7 +71,7 @@ class Map:
             except tb.NoSuchNodeError:
                 hkl = False
 
-            #Qpar, Qper
+            ## Qpar, Qper
             try:
                 Qpar = f.list_nodes('/binoculars/')[0].Qpar
                 QparQper = True
@@ -89,7 +85,7 @@ class Map:
             except tb.NoSuchNodeError:
                 Qindex = False
 
-            # Qphi
+            ## Qphi (not tested)
             try:
                 Index = f.list_nodes('/binoculars/')[0].Phi
                 QxQy = False  # also Qphi can have Qz (or Qx, Qy)
@@ -146,48 +142,51 @@ class Map:
                 self.X = f.list_nodes('/binoculars/')[0].Qpar[:]
 
             if Qphi == True:
-                xaxe = np.linspace(self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
-                self.Qaxe = xaxe
-                yaxe = np.linspace(
+                x_axis = np.linspace(
+                    self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
+                self.Q_axis = x_axis
+                y_axis = np.linspace(
                     self.Qxyz[1], self.Qxyz[2], 1+self.Qxyz[5]-self.Qxyz[4])
-                self.Qxyzaxe = yaxe
-                zaxe = np.linspace(
+                self.Qxyz_axis = y_axis
+                z_axis = np.linspace(
                     self.Phi[1], self.Phi[2], 1+self.Phi[5]-self.Phi[4])
-                self.Phiaxe = zaxe
+                self.Phi_axis = z_axis
 
             if Qindex == True:
-                self.qaxe = np.linspace(
+                self.q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
-                self.indaxe = np.linspace(
+                self.ind_axis = np.linspace(
                     self.index[1], self.index[2], 1+self.index[5]-self.index[4])
 
             if hkl == True:
-                xaxe = np.arange(self.H[1], self.H[2], 1+self.H[5]-self.H[4])
-                self.haxe = np.linspace(
+                x_axis = np.arange(self.H[1], self.H[2], 1+self.H[5]-self.H[4])
+                self.h_axis = np.linspace(
                     self.H[1], self.H[2], 1 + int(self.H[5] - self.H[4]))
-                yaxe = np.arange(self.K[1], self.K[2], 1+self.K[5]-self.K[4])
-                self.kaxe = np.linspace(
+                y_axis = np.arange(self.K[1], self.K[2], 1+self.K[5]-self.K[4])
+                self.k_axis = np.linspace(
                     self.K[1], self.K[2], 1 + int(self.K[5] - self.K[4]))
-                zaxe = np.arange(self.L[1], self.L[2], 1+self.L[5]-self.L[4])
-                self.laxe = np.round(np.linspace(
+                z_axis = np.arange(self.L[1], self.L[2], 1+self.L[5]-self.L[4])
+                self.l_axis = np.round(np.linspace(
                     self.L[1], self.L[2], 1 + int(self.L[5] - self.L[4])), 3)
 
             if QxQy == True:
-                xaxe = np.linspace(
+                x_axis = np.linspace(
                     self.X[1], self.X[2], 1 + int(self.X[5]-self.X[4]))
-                self.Qxaxe = xaxe
-                yaxe = np.linspace(
+                self.Qx_axis = x_axis
+                y_axis = np.linspace(
                     self.Y[1], self.Y[2], 1 + int(self.Y[5]-self.Y[4]))
-                self.Qyaxe = yaxe
-                zaxe = np.linspace(
+                self.Qy_axis = y_axis
+                z_axis = np.linspace(
                     self.Z[1], self.Z[2], 1 + int(self.Z[5]-self.Z[4]))
-                self.Qzaxe = zaxe
+                self.Qz_axis = z_axis
 
             if QparQper == True:
-                xaxe = np.linspace(self.X[1], self.X[2], 1+self.X[5]-self.X[4])
-                self.Qpar = xaxe
-                yaxe = np.linspace(self.Y[1], self.Y[2], 1+self.Y[5]-self.Y[4])
-                self.Qper = yaxe
+                x_axis = np.linspace(
+                    self.X[1], self.X[2], 1+self.X[5]-self.X[4])
+                self.Qpar = x_axis
+                y_axis = np.linspace(
+                    self.Y[1], self.Y[2], 1+self.Y[5]-self.Y[4])
+                self.Qper = y_axis
 
             print("\n###########################################################")
             print("Data shape:", self.data.shape)
@@ -198,137 +197,134 @@ class Map:
             print("\tQindex:", Qindex)
             print("###########################################################")
 
-    def prjaxe(self, axe):
+    def project_data(
+        self,
+        axis1,
+        axis2=None,
+        axis_range_1=[None, None],
+        axis_range_2=[None, None],
+    ):
         """
-        Project on one of the measured axes
-        The result is saved as attribute `.img` to the Class
+        Project the data on one or two of the measured axes, the result is saved
+        as attribute `.two_d_data`.
 
-        :param axe: string in ("H", "K", "L")
+        :param axis1: string in ("H", "K", "L", "Qx", "Qy", "Qz")
+        :param axis2: None or string in ("H", "K", "L", "Qx", "Qy", "Qz")
+        :param axis_range_1: list or tuple of length two, defines the positions
+            of the value to be used in the array on the desired axis, use [None,
+            None] to use the whole range.
+        :param axis_range_2: list or tuple of length two, defines the positions
+            of the value to be used in the array on the desired axis, use [None,
+            None] to use the whole range.
         """
+        # Start with first axis
+        axis1_index = {
+            "H": 2,
+            "K": 1,
+            "L": 0,
+            "Qz": 2,
+            "Qy": 1,
+            "Qx": 0,
+        }[axis1]
 
-        datanan = self.data
-        if axe == 'H':
-            axenum = 2
-        if axe == 'K':
-            axenum = 1
-        if axe == 'L':
-            axenum = 0
+        axis1_name = {
+            "H": "h_axis",
+            "K": "k_axis",
+            "L": "l_axis",
+            "Qz": "Qz_axis",
+            "Qy": "Qy_axis",
+            "Qx": "Qx_axis",
+        }[axis1]
 
-        if axe == 'Qx':
-            datanan = np.swapaxes(self.raw_data, 1, 2)
-            axenum = 0
+        axis1_values = getattr(self, axis1_name)
 
-        if axe == 'Qy':
-            datanan = np.swapaxes(self.raw_data, 0, 2)
-            axenum = 1
+        if axis1_range[0] != None:
+            start_value = find_value_in_array(
+                axis_1_values, axis_1_range[0])[0]
 
-        if axe == 'Qz':
-            datanan = np.swapaxes(self.raw_data, 0, 1)
-            axenum = 2
+        if axis1_range[1] != None:
+            end_value = find_value_in_array(axis_1_values, axis_1_range[1])[0]
 
-        self.img = np.nanmean(datanan, axis=axenum)
+        if axis_1 == 'H':
+            datanan = self.data[:, :, start_value:end_value]
 
-    def prjaxe_range(self, axe, axe_range):
-        """
-        Projects on one of the measured axes by averaging on the range of values
-        The result is added as attribute `.imgr` to the file
+        elif axis_1 == 'K':
+            datanan = self.data[:, start_value:end_value, :]
 
-        :param axe: string in ("H", "K", "L")
-        :param axe_range: list or tuple of length two, defines the positions of
-         the value to be used in the array on the desired axe
-        """
+        elif axis_1 == 'L':
+            datanan = self.data[start_value:end_value, :, :]
 
-        if axe == 'H':
-            axenum = 2
-            st = find_nearest(self.haxe, axe_range[0])[0]
-            nd = find_nearest(self.haxe, axe_range[1])[0]
-            datanan = self.data[:, :, st:nd]
+        elif axis_1 == 'Qz':
+            # swap_data = np.swapaxes(self.raw_data, 0, 1)
+            datanan = self.data[:, :, start_value:end_value]
 
-        if axe == 'K':
-            axenum = 1
-            st = find_nearest(self.kaxe, axe_range[0])[0]
-            nd = find_nearest(self.kaxe, axe_range[1])[0]
-            datanan = self.data[:, st:nd, :]
+        elif axis_1 == 'Qy':
+            # swap_data = np.swapaxes(self.raw_data, 0, 2)
+            datanan = self.data[:, start_value:end_value, :]
 
-        if axe == 'L':
-            axenum = 0
-            st = find_nearest(self.laxe, axe_range[0])[0]
-            nd = find_nearest(self.laxe, axe_range[1])[0]
-            datanan = self.data[st:nd, :, :]
+        elif axis_1 == 'Qx':
+            # swap_data = np.swapaxes(self.raw_data, 1, 2)
+            datanan = self.data[start_value:end_value, :, :]
 
-        if axe == 'Qz':
-            axenum = 2
-            # Check if good for projection along Qz
-            swap_data = np.swapaxes(self.raw_data, 0, 1)
+        self.projected_data = np.nanmean(datanan, axis=axis_1_index)
 
-            st = find_nearest(self.Qzaxe, axe_range[0])[0]
-            nd = find_nearest(self.Qzaxe, axe_range[1])[0]
-            datanan = swap_data[:, :, st:nd]
+        # Now second axis if necessary
+        if axis2 != None:
+            axis2_index = {
+                "H": 2,
+                "K": 1,
+                "L": 0,
+                "Qz": 2,
+                "Qy": 1,
+                "Qx": 0,
+            }[axis2]
 
-        if axe == 'Qy':
-            axenum = 1
-            # Check if good for projection along Qy
-            swap_data = np.swapaxes(self.raw_data, 0, 2)
+            axis2_name = {
+                "H": "h_axis",
+                "K": "k_axis",
+                "L": "l_axis",
+                "Qz": "Qz_axis",
+                "Qy": "Qy_axis",
+                "Qx": "Qx_axis",
+            }[axis2]
 
-            st = find_nearest(self.Qyaxe, axe_range[0])[0]
-            nd = find_nearest(self.Qyaxe, axe_range[1])[0]
-            datanan = swap_data[:, st:nd, :]
+            axis1_values = getattr(self, axis1_name)
 
-        if axe == 'Qx':
-            axenum = 0
-            # Check if good for projection along Qx
-            swap_data = np.swapaxes(self.raw_data, 1, 2)
+            if axis1_range[0] != None:
+                start_value = find_value_in_array(
+                    axis_2_values, axis_2_range[0])[0]
 
-            st = find_nearest(self.Qxaxe, axe_range[0])[0]
-            nd = find_nearest(self.Qxaxe, axe_range[1])[0]
-            datanan = swap_data[st:nd, :, :]
+            if axis1_range[1] != None:
+                end_value = find_value_in_array(
+                    axis_2_values, axis_2_range[1])[0]
 
-        self.imgr = np.nanmean(datanan, axis=axenum)
+            if axis_2 == 'H':
+                datanan = self.projected_data[:, :, start_value:end_value]
 
-    def prjaxes(self, axe1, axe2, axe_range_1=None, axe_range_2=None):
-        """
-        Project on two of the measured axes
-        the result is added as attribute .int2 to the file
+            elif axis_2 == 'K':
+                datanan = self.projected_data[:, start_value:end_value, :]
 
-        :param axe1: string in ("H", "K", "L")
-        :param axe2: string in ("H", "K", "L", "Phi", "Q", "Qxyz")
-        :param axe_range_1: list or tuple of length two, defines the positions of
-         the value to be used in the array on the desired axe
-        :param axe_range_2: list or tuple of length two, defines the positions of
-         the value to be used in the array on the desired axe
-        """
-        datanan = self.data
-        if axe1 == 'H':
-            axe1num = 2
-        elif axe1 == 'K':
-            axe1num = 1
-        elif axe1 == 'L':
-            axe1num = 0
+            elif axis_2 == 'L':
+                datanan = self.projected_data[start_value:end_value, :, :]
 
-        if axe2 == 'H':
-            axe2num = 2
-        elif axe2 == 'K':
-            axe2num = 1
-        elif axe2 == 'L':
-            axe2num = 0
-        elif axe2 == 'Phi':
-            axe2num = 0
-        elif axe2 == 'Q':
-            axe2num = 1
-        elif axe2 == 'Qxyz':
-            axe2num = 2
+            elif axis_2 == 'Qz':
+                # swap_data = np.swapaxes(self.raw_data, 0, 1)
+                datanan = self.projected_data[:, :, start_value:end_value]
 
-        if axe2num < axe1num:
-            temp = np.nanmean(datanan, axis=axe1num)
-            self.int2 = np.nanmean(temp, axis=axe2num)
-        else:
-            temp = np.nanmean(datanan, axis=axe2num)
-            self.int2 = np.nanmean(temp, axis=axe1num)
+            elif axis_2 == 'Qy':
+                # swap_data = np.swapaxes(self.raw_data, 0, 2)
+                datanan = self.projected_data[:, start_value:end_value, :]
+
+            elif axis_2 == 'Qx':
+                # swap_data = np.swapaxes(self.raw_data, 1, 2)
+                datanan = self.projected_data[start_value:end_value, :, :]
+
+            self.projected_data = np.nanmean(datanan, axis=axis_2_index)
 
     def plot_map(
         self,
-        axe,
-        axe_range=None,
+        axis,
+        axis_range=[None, None],
         interpolation="none",
         vmin=0.1,
         vmax=2000,
@@ -342,11 +338,11 @@ class Map:
         Plot/save a hdf5 map.
 
         You can use the command `%matplotlib notebook` before to use a cursor
-        in the notebook cell (chaneg figsize to (8,8))
+        in the notebook cell (change figsize to (8,8))
 
-        :param axe: string in ("H", "K", "L")
-        :param axe_range: list or tuple of length two, defines the positions of
-            the value to be used in the array on the desired axe
+        :param axis: string in ("H", "K", "L")
+        :param axis_range: list or tuple of length two, defines the positions of
+            the value to be used in the array on the desired axis
         :param interpolation: default is 'none'. See plt.imshow? for options,
             e.g. 'nearest'
         :param vmin: default to 0.1
@@ -354,63 +350,60 @@ class Map:
         :param figsize: default to (16, 9)
         :param title: figure title
         :param cmap: color map used, pick from
-         https://matplotlib.org/stable/tutorials/colors/colormaps.html
+            https://matplotlib.org/stable/tutorials/colors/colormaps.html
         :param save_path: path to save file at
         :param three_d_plot: True to show a 3D plot
         """
-        if axe_range == None:
-            self.prjaxe(axe)
-            img = self.img
+        try:
+            img = self.projected_data
+        except NameError:
+            print("Use the methods `project_data` to define the data first.")
 
-        elif axe_range != None:
-            self.prjaxe_range(axe, axe_range)
-            img = self.imgr
+        if axis == 'H':
+            axis1 = self.k_axis
+            axis2 = self.l_axis
+            axis_name1 = 'K (rlu)'
+            axis_name2 = 'L (rlu)'
 
-        if axe == 'H':
-            axe1 = self.kaxe
-            axe2 = self.laxe
-            axe_name1 = 'K (rlu)'
-            axe_name2 = 'L (rlu)'
+        elif axis == 'K':
+            axis1 = self.h_axis
+            axis2 = self.l_axis
+            axis_name1 = 'H (rlu)'
+            axis_name2 = 'L (rlu)'
 
-        elif axe == 'K':
-            axe1 = self.haxe
-            axe2 = self.laxe
-            axe_name1 = 'H (rlu)'
-            axe_name2 = 'L (rlu)'
+        elif axis == 'L':
+            axis1 = self.h_axis
+            axis2 = self.k_axis
+            axis_name1 = 'H (rlu)'
+            axis_name2 = 'K (rlu)'
 
-        elif axe == 'L':
-            axe1 = self.haxe
-            axe2 = self.kaxe
-            axe_name1 = 'H (rlu)'
-            axe_name2 = 'K (rlu)'
+        elif axis == 'Qxyz':
+            axis1 = self.Q_axis
+            axis2 = self.Phi_axis
+            axis_name1 = 'Q'
+            axis_name2 = 'Phi (deg)'
 
-        elif axe == 'Qxyz':
-            axe1 = self.Qaxe
-            axe2 = self.Phiaxe
-            axe_name1 = 'Q'
-            axe_name2 = 'Phi (deg)'
+        elif axis == 'Qx':
+            axis1 = self.Qy_axis
+            axis2 = self.Qz_axis
+            axis_name1 = 'Qy'
+            axis_name2 = 'Qz'
 
-        elif axe == 'Qx':
-            axe1 = self.Qyaxe
-            axe2 = self.Qzaxe
-            axe_name1 = 'Qy'
-            axe_name2 = 'Qz'
+        elif axis == 'Qy':
+            axis1 = self.Qx_axis
+            axis2 = self.Qz_axis
+            axis_name1 = 'Qx'
+            axis_name2 = 'Qz'
 
-        elif axe == 'Qy':
-            axe1 = self.Qxaxe
-            axe2 = self.Qzaxe
-            axe_name1 = 'Qx'
-            axe_name2 = 'Qz'
-
-        elif axe == 'Qz':
-            axe1 = self.Qxaxe
-            axe2 = self.Qyaxe
-            axe_name1 = 'Qx'
-            axe_name2 = 'Qy'
+        elif axis == 'Qz':
+            axis1 = self.Qx_axis
+            axis2 = self.Qy_axis
+            axis_name1 = 'Qx'
+            axis_name2 = 'Qy'
 
         # Plot
         if three_d_plot:
-            X, Y = np.meshgrid(axe1, axe2)
+            X, Y = np.meshgrid(axis1, axis2)
             Z = np.where(img > vmin, np.log(img), 0)
 
             fig, ax = plt.subplots(
@@ -428,19 +421,19 @@ class Map:
 
         else:
             fig, ax = plt.subplots(figsize=figsize)
-            plotted_img = ax.imshow(img,
-                                    cmap=cmap,
-                                    interpolation=interpolation,
-                                    origin="lower",
-                                    # aspect = 'auto',
-                                    norm=LogNorm(vmin=vmin, vmax=vmax),
-                                    extent=[axe1.min(), axe1.max(),
-                                            axe2.min(), axe2.max()]
-                                    )
+            plotted_img = ax.imshow(
+                img,
+                cmap=cmap,
+                interpolation=interpolation,
+                origin="lower",
+                # aspect = 'auto',
+                norm=LogNorm(vmin=vmin, vmax=vmax),
+                extent=[axis1.min(), axis1.max(), axis2.min(), axis2.max()]
+            )
 
         # Labels and ticks
-        ax.set_xlabel(axe_name1, fontsize=20)
-        ax.set_ylabel(axe_name2, fontsize=20)
+        ax.set_xlabel(axis_name1, fontsize=20)
+        ax.set_ylabel(axis_name2, fontsize=20)
         ax.tick_params(axis=('both'), labelsize=20)
 
         # Colorbar
@@ -464,13 +457,24 @@ class CTR:
     reciproal space and provides integration methods to analyse the diffracted
     intensity along one direction.
 
-    Use one the following three methods to load the data:
-        *prep_CTR_data()
-        *prep_CTR_data_fitaid()
-        *prep_ROD_data()
+    For now the classical workflow is the following:
+    * process the data with binoculars, creating hdf5 files
+    * integrate RODs with binoculars-fitaid, creating .txt files
+    * fit these RODs with the `ROD` program (https://www.esrf.fr/computing/
+        scientific/joint_projects/ANA-ROD/RODMAN2.html)
 
-    You can then plot the data with the plot_CTR() method. This is static method
-    that you can use on any numpy array created with the preparation methods.
+    Since binoculars-fitaid is not reliable at all, I tried to rewrite that part
+    to be able to integrate the RODs with a python function (integrate_CTR()).
+    It does not currently give the same results as when using fitaid, idk why,
+    so it's better to use fitaid at the moment.
+
+    Use one the following three methods to load the data:
+        * integrate_CTR()
+        * load_fitaid_data()
+        * load_ROD_data()
+
+    All these functions create numpy arrays that can then be plotted with the
+    plot_CTR() method.
     """
 
     def __init__(
@@ -513,7 +517,7 @@ class CTR:
                 print("Loaded configuration file.")
                 print("###########################################################\n")
 
-    def prep_CTR_data(
+    def integrate_CTR(
         self,
         folder,
         scan_indices,
@@ -740,11 +744,11 @@ class CTR:
             scan_k_axe = np.flip(scan_k_axe)
 
             # CTR intensity, define roi indices
-            st_H_roi = find_nearest(scan_h_axe, self.CTR_range_H[0])
-            end_H_roi = find_nearest(scan_h_axe, self.CTR_range_H[1])
+            st_H_roi = find_value_in_array(scan_h_axe, self.CTR_range_H[0])
+            end_H_roi = find_value_in_array(scan_h_axe, self.CTR_range_H[1])
 
-            st_K_roi = find_nearest(scan_k_axe, self.CTR_range_K[1])
-            end_K_roi = find_nearest(scan_k_axe, self.CTR_range_K[0])
+            st_K_roi = find_value_in_array(scan_k_axe, self.CTR_range_K[1])
+            end_K_roi = find_value_in_array(scan_k_axe, self.CTR_range_K[0])
 
             if verbose:
                 print(
@@ -781,14 +785,14 @@ class CTR:
             # Get background
             if center_background == HK_peak:
                 # Background intensity, define roi indices
-                st_H_background = find_nearest(
+                st_H_background = find_value_in_array(
                     scan_h_axe, self.background_range_H[0])
-                end_H_background = find_nearest(
+                end_H_background = find_value_in_array(
                     scan_h_axe, self.background_range_H[1])
 
-                st_K_background = find_nearest(
+                st_K_background = find_value_in_array(
                     scan_k_axe, self.background_range_K[0])
-                end_K_background = find_nearest(
+                end_K_background = find_value_in_array(
                     scan_k_axe, self.background_range_K[1])
 
                 if verbose:
@@ -840,14 +844,14 @@ class CTR:
 
             elif isinstance(center_background, list) and center_background != HK_peak:
                 # Background intensity, define roi indices
-                st_H_background = find_nearest(
+                st_H_background = find_value_in_array(
                     scan_h_axe, self.background_range_H[0])
-                end_H_background = find_nearest(
+                end_H_background = find_value_in_array(
                     scan_h_axe, self.background_range_H[1])
 
-                st_K_background = find_nearest(
+                st_K_background = find_value_in_array(
                     scan_k_axe, self.background_range_K[0])
-                end_K_background = find_nearest(
+                end_K_background = find_value_in_array(
                     scan_k_axe, self.background_range_K[1])
 
                 if verbose:
@@ -927,7 +931,7 @@ class CTR:
         print("###########################################################")
         np.save(folder + save_name, data)
 
-    def prep_CTR_data_fitaid(
+    def load_fitaid_data(
         self,
         folder,
         scan_indices,
@@ -937,7 +941,7 @@ class CTR:
         verbose=False,
     ):
         """
-        Load data prepared with fitaid
+        Load CTR integrated via binoculars-fitaid
 
         :param folder: path to data folder
         :param scan_indices: list of CTR scans indices
@@ -1045,7 +1049,7 @@ class CTR:
         print("###########################################################")
         np.save(folder + save_name, data)
 
-    def prep_ROD_data(
+    def load_ROD_data(
         self,
         folder,
         scan_indices,
@@ -1056,7 +1060,7 @@ class CTR:
         verbose=False,
     ):
         """
-        CTR simulated with ROD at least 5 columns, e.g.:
+        Load CTR simulated with ROD, at least 5 columns, e.g.:
         h      k      l   f-bulk   f-surf    f-mol    f-liq    f-sum    phase
 
         We are only interested in two: l and a data column.
@@ -1202,7 +1206,7 @@ class CTR:
         :param ncol: columns in label, default is 2
         :param color_dict: dict used for labels, keys are scan index, values are
          colours for matplotlib.
-        :param labels: list of labels to use, defaulted to scan index if False
+        :param labels: dict of labels to use, defaulted to scan index if None
         :param zoom: values used for plot range, default is
          [None, None, None, None], order is left, right, bottom and top.
         :param fill: if True, add filling between two plots
@@ -1291,7 +1295,7 @@ class CTR:
                             s=s,
                             marker=marker
                         )
-                except TypeError:
+                except TypeError:  # no color
                     if line_plot:
                         plt.plot(
                             l,
@@ -1556,15 +1560,17 @@ def modify_surface_relaxation(
         f.writelines(new_file_lines)
 
 
-def find_nearest(array, value):
-    mask = np.where(array == value)
-    if len(mask) == 1:
-        try:
-            mask = mask[0][0]
-            return array[mask], mask
-        except IndexError:
-            # print("Value is not in array")
-            if all(array < value):
-                return array[-1], -1
-            elif all(array > value):
-                return array[0], 0
+def find_value_in_array(array, value):
+    try:
+        if all(array < value):
+            return array[-1], -1
+        elif all(array > value):
+            return array[0], 0
+        else:  # value in array
+            mask, = np.where(array == value)
+            if len(mask) != 1:
+                print("There are multiple values in the array")
+            else:
+                return array[mask[0]], mask[0]
+    except TypeError:
+        print("Use a numerical value")
