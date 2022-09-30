@@ -1,3 +1,16 @@
+"""
+This module has functions to help with the analysis of reciprocal space data
+during SXRD experiments at SixS.
+
+The two main modules are the following:
+    CTR()
+    MAP()
+
+There are also functions that help with the simulations in ROD:
+    simulate_rod()
+    modify_surface_relaxation()
+"""
+
 import numpy as np
 import tables as tb
 import pandas as pd
@@ -19,6 +32,16 @@ class Map:
     """
     Loads an hdf5 file created by binoculars that represents a 3D map of the
     reciproal space and provides 2D plotting methods.
+
+    Methods in class:
+        * prjaxe(): projects the data on one axe
+        * prjaxe_range(): projects the data on one axe, with a given range
+        * prjaxes(): projects the data on two axes, with a given range (does
+            not work yet)
+
+    The first two methods must be merged ...
+
+    You can then plot the images with the plot_map() method.
     """
 
     def __init__(self, file_path):
@@ -48,8 +71,6 @@ class Map:
             # HKL
             try:
                 H = f.list_nodes('/binoculars/')[0].H
-                #K = f.list_nodes('/binoculars/')[0].K
-                #L = f.list_nodes('/binoculars/')[0].L
                 hkl = True
             except tb.NoSuchNodeError:
                 hkl = False
@@ -57,8 +78,6 @@ class Map:
             #Qpar, Qper
             try:
                 Qpar = f.list_nodes('/binoculars/')[0].Qpar
-                #K = f.list_nodes('/binoculars/')[0].K
-                #L = f.list_nodes('/binoculars/')[0].L
                 QparQper = True
             except tb.NoSuchNodeError:
                 QparQper = False
@@ -82,8 +101,6 @@ class Map:
             if Qphi == False:  # also Qphi can have Qz (or Qx, Qy)
                 try:
                     Qz = f.list_nodes('/binoculars/')[0].Qz
-                #K = f.list_nodes('/binoculars/')[0].K
-                #L = f.list_nodes('/binoculars/')[0].L
                 except tb.NoSuchNodeError:
                     QxQy = False
 
@@ -147,14 +164,13 @@ class Map:
             if hkl == True:
                 xaxe = np.arange(self.H[1], self.H[2], 1+self.H[5]-self.H[4])
                 self.haxe = np.linspace(
-                    self.H[1], self.H[2], 1 + int(self.H[5] - self.H[4]))  # xaxe
+                    self.H[1], self.H[2], 1 + int(self.H[5] - self.H[4]))
                 yaxe = np.arange(self.K[1], self.K[2], 1+self.K[5]-self.K[4])
                 self.kaxe = np.linspace(
-                    self.K[1], self.K[2], 1 + int(self.K[5] - self.K[4]))  # yaxe
+                    self.K[1], self.K[2], 1 + int(self.K[5] - self.K[4]))
                 zaxe = np.arange(self.L[1], self.L[2], 1+self.L[5]-self.L[4])
                 self.laxe = np.round(np.linspace(
-                    self.L[1], self.L[2], 1 + int(self.L[5] - self.L[4])), 3)  # yaxe
-                # self.laxe = np.round(np.linspace(self.L[1], self.L[2], int((self.L[2] - self.L[1])/self.L[3])), 3) #yaxe
+                    self.L[1], self.L[2], 1 + int(self.L[5] - self.L[4])), 3)
 
             if QxQy == True:
                 xaxe = np.linspace(
@@ -185,7 +201,7 @@ class Map:
     def prjaxe(self, axe):
         """
         Project on one of the measured axes
-        The result is saved as attribute .img to the Class
+        The result is saved as attribute `.img` to the Class
 
         :param axe: string in ("H", "K", "L")
         """
@@ -199,17 +215,14 @@ class Map:
             axenum = 0
 
         if axe == 'Qx':
-            # to be checked if good for projection along Qx
             datanan = np.swapaxes(self.raw_data, 1, 2)
             axenum = 0
 
         if axe == 'Qy':
-            # to be checked if good for projection along Qy
             datanan = np.swapaxes(self.raw_data, 0, 2)
             axenum = 1
 
         if axe == 'Qz':
-            # to be checked if good for projection along Qz
             datanan = np.swapaxes(self.raw_data, 0, 1)
             axenum = 2
 
@@ -218,7 +231,7 @@ class Map:
     def prjaxe_range(self, axe, axe_range):
         """
         Projects on one of the measured axes by averaging on the range of values
-        The result is added as attribute .imgr to the file
+        The result is added as attribute `.imgr` to the file
 
         :param axe: string in ("H", "K", "L")
         :param axe_range: list or tuple of length two, defines the positions of
@@ -250,7 +263,6 @@ class Map:
 
             st = find_nearest(self.Qzaxe, axe_range[0])[0]
             nd = find_nearest(self.Qzaxe, axe_range[1])[0]
-            print(st, nd)
             datanan = swap_data[:, :, st:nd]
 
         if axe == 'Qy':
@@ -260,7 +272,6 @@ class Map:
 
             st = find_nearest(self.Qyaxe, axe_range[0])[0]
             nd = find_nearest(self.Qyaxe, axe_range[1])[0]
-            print(st, nd)
             datanan = swap_data[:, st:nd, :]
 
         if axe == 'Qx':
@@ -270,7 +281,6 @@ class Map:
 
             st = find_nearest(self.Qxaxe, axe_range[0])[0]
             nd = find_nearest(self.Qxaxe, axe_range[1])[0]
-            print(st, nd)
             datanan = swap_data[st:nd, :, :]
 
         self.imgr = np.nanmean(datanan, axis=axenum)
@@ -288,44 +298,34 @@ class Map:
          the value to be used in the array on the desired axe
         """
         datanan = self.data
-        #axe1num = 10
-        #axe2num = 10
-        #axe3num = 10
         if axe1 == 'H':
             axe1num = 2
-        if axe1 == 'K':
+        elif axe1 == 'K':
             axe1num = 1
-        if axe1 == 'L':
+        elif axe1 == 'L':
             axe1num = 0
+
         if axe2 == 'H':
             axe2num = 2
-        if axe2 == 'K':
+        elif axe2 == 'K':
             axe2num = 1
-        if axe2 == 'L':
+        elif axe2 == 'L':
             axe2num = 0
-
-        if axe2 == 'Phi':
+        elif axe2 == 'Phi':
             axe2num = 0
-        if axe2 == 'Q':
+        elif axe2 == 'Q':
             axe2num = 1
-        if axe1 == 'Qxyz':
-            axe1num = 2
-
-        # if ax1 in ['L','Phi'] or ax1 in ['L','Phi']:
-        #     axe1num = 0
-        # if ax1 in ['K','Q'] or ax2 in ['K','Q'] :
-        #     axe2num = 1
-        # if ax1 in ['Qxyz','H'] or ax2 in ['Qxyz','H']:
-        #     axe3num = 2
+        elif axe2 == 'Qxyz':
+            axe2num = 2
 
         if axe2num < axe1num:
             temp = np.nanmean(datanan, axis=axe1num)
             self.int2 = np.nanmean(temp, axis=axe2num)
-        if axe2num > axe1num:
+        else:
             temp = np.nanmean(datanan, axis=axe2num)
             self.int2 = np.nanmean(temp, axis=axe1num)
 
-    def plot(
+    def plot_map(
         self,
         axe,
         axe_range=None,
@@ -463,6 +463,14 @@ class CTR:
     Loads an hdf5 file created by binoculars that represents a 3D map of the
     reciproal space and provides integration methods to analyse the diffracted
     intensity along one direction.
+
+    Use one the following three methods to load the data:
+        *prep_CTR_data()
+        *prep_CTR_data_fitaid()
+        *prep_ROD_data()
+
+    You can then plot the data with the plot_CTR() method. This is static method
+    that you can use on any numpy array created with the preparation methods.
     """
 
     def __init__(
@@ -510,6 +518,7 @@ class CTR:
         folder,
         scan_indices,
         save_name,
+        glob_string_match="*.hdf5",
         interpol_step=False,
         CTR_width_H=0.02,
         CTR_width_K=0.02,
@@ -539,32 +548,33 @@ class CTR:
         :param folder: path to data folder
         :param scan_indices: indices of maps scans, list
         :param save_name: name of file in which the results are saved, saved in
-         folder.
+            folder.
+        :param glob_string_match: string pattern used for file matching
         :param interpol_step: step size in interpolation along L, to avoid
-         problem with analysing CTR with different steps. No interpolation if
-         False, default.
+            problem with analysing CTR with different steps. No interpolation if
+            False, default.
         :param CTR_width_H: width in h of CTR in reciprocal space, default is
-         0.02.
+            0.02.
         :param CTR_width_K: width in k of CTR in reciprocal space, default is
-         0.02.
+            0.02.
         :param background_width_H: width in h of background region taken in
-         reciprocal space, default is 0.01.
+            reciprocal space, default is 0.01.
         :param background_width_K: width in k of background region taken in
-         reciprocal space, default is 0.01.
+            reciprocal space, default is 0.01.
         :param HK_peak: node in reciprocal space around which the CTR is taken,
-         default is [-1, 1].
+            default is [-1, 1].
         :param center_background: node in reciprocal space around which the
-         background is taken, default is [-1, 1]. If equal to HK_peak, the
-         background width is added to the width of the CTR.
+            background is taken. If equal to HK_peak, the background width is
+            added to the width of the CTR. If False, no background is subtracted
         :param verbose: if True, print more details.
         """
 
         # Load data
         scan_indices = [str(s) for s in scan_indices]
 
-        # Get all hdf5 files first
+        # Get all files first
         files = [f.split("/")[-1]
-                 for f in sorted(glob.glob(f"{folder}/*.hdf5"))]
+                 for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
 
         # Get scans specified with scan_indices
         self.scan_files = [f for f in files if any(
@@ -648,19 +658,12 @@ class CTR:
             print("###########################################################")
 
         # Start iterating on file to see the shape
-        if isinstance(self.interpol_step, float):
-            print("\n###########################################################")
-            print("Finding smallest common range in L")
-            print("Depends on the config file in binoculars-process.")
-            print("###########################################################")
-        else:
-            # No interpolation, we assume that all the scan have the same l axis
-            print("\n###########################################################")
-            print("No interpolation")
-            print("###########################################################")
+        print("\n###########################################################")
+        print("Finding smallest common range in L")
+        print("Depends on the config file in binoculars-process.")
+        print("###########################################################")
 
         for i, fname in enumerate(self.scan_files):
-
             with tb.open_file(folder + fname, "r") as f:
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
@@ -687,18 +690,17 @@ class CTR:
                 l_max = min(l_max, L[2])
                 l_shape = max(l_shape, 1 + int(L[5] - L[4]))
 
-        if isinstance(self.interpol_step, float):
-            # Determine interpolation range
-            print("\n###########################################################")
-            print(f"Smallest common range in L is [{l_min} : {l_max}]")
-            print("###########################################################")
+        print("\n###########################################################")
+        print(f"Smallest common range in L is [{l_min} : {l_max}]")
+        print("###########################################################")
 
+        # Create a common l axis if we interpolate
+        if isinstance(self.interpol_step, float):
             l_axe = np.arange(l_min, l_max, self.interpol_step)
 
             # Save final data as numpy array
             # 0 is x axis, 1 is data, 2 is background
-            data = np.nan * \
-                np.empty((len(self.scan_files), 3, (len(l_axe))))
+            data = np.nan * np.empty((len(self.scan_files), 3, (len(l_axe))))
         else:
             # Save final data as numpy array
             # 0 is x axis, 1 is data, 2 is background
@@ -737,17 +739,6 @@ class CTR:
             # Need to flip K axis again
             scan_k_axe = np.flip(scan_k_axe)
 
-            if verbose:
-                print(
-                    "Range and stepsize in H: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                        H[1], H[2], H[3]))
-                print(
-                    "Range and stepsize in K: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                        K[1], K[2], K[3]))
-                print(
-                    "Range and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                        L[1], L[2], L[3]))
-
             # CTR intensity, define roi indices
             st_H_roi = find_nearest(scan_h_axe, self.CTR_range_H[0])
             end_H_roi = find_nearest(scan_h_axe, self.CTR_range_H[1])
@@ -761,7 +752,7 @@ class CTR:
                     \n\t[{st_K_roi[0]}, {end_K_roi[0]}, {st_H_roi[0]}, {end_H_roi[0]}]\
                     \n\t[{st_K_roi[1]}, {end_K_roi[1]}, {st_H_roi[1]}, {end_H_roi[1]}]\
                     """)
-                # f"Data ROI: [start_k, end_K, start_H, end_H] = [{st_K_roi}, {end_K_roi}, {st_H_roi}, {end_H_roi}]")
+
             # Get data only in specific ROI
             # CAREFUL WITH THE ORDER OF H AND K HERE
             roi_2D = raw_data[st_K_roi[1]:end_K_roi[1],
@@ -777,6 +768,8 @@ class CTR:
                 tck = splrep(scan_l_axe, roi_2D.sum(axis=(0, 1)), s=0)
                 roi_2D_sum = splev(l_axe, tck)
                 data[i, 1, :] = roi_2D_sum / nb_pixel_roi
+
+            # No interpolation
             else:
                 # Save x axis
                 data[i, 0, :len(scan_l_axe)] = scan_l_axe
@@ -891,7 +884,7 @@ class CTR:
 
             # Resume with a plot
             if verbose:
-                plt.figure()
+                plt.figure(figsize=(8, 8))
                 plt.imshow(
                     np.sum(raw_data, axis=2),
                     norm=LogNorm(),
@@ -947,9 +940,10 @@ class CTR:
         Load data prepared with fitaid
 
         :param folder: path to data folder
-        :param scan_indices: indices of maps scans, list
+        :param scan_indices: list of CTR scans indices
         :param save_name: name of file in which the results are saved, saved in
          folder.
+        :param glob_string_match: string pattern used for file matching
         :param data_type: type of data to load from binoculars, usually the
          possibilities are "nisf" or "sf". Prefer nisf data, detail here the
          differences
@@ -1372,21 +1366,6 @@ class CTR:
         plt.show()
 
 
-# Common function
-def find_nearest(array, value):
-    mask = np.where(array == value)
-    if len(mask) == 1:
-        try:
-            mask = mask[0][0]
-            return array[mask], mask
-        except IndexError:
-            # print("Value is not in array")
-            if all(array < value):
-                return array[-1], -1
-            elif all(array > value):
-                return array[0], 0
-
-
 def simulate_rod(
     filename,
     bulk_file=None,
@@ -1406,16 +1385,17 @@ def simulate_rod(
     """
     This function uses ROD, that must be installed on your computer.
     Help document:
-        https://www.esrf.fr/computing/scientific/joint_projects/ANA-ROD/RODMAN2.html
+        https://www.esrf.fr/computing/scientific/joint_projects/
+        ANA-ROD/RODMAN2.html
 
     Will generate the following files the first time it is run in a folder:
         - pgplot.ps
         - plotinit.mac
         - rod_init.mac
     These files will be used during subsequent runs, they initialize a bunch of
-     arguments used for plotting.
+        arguments used for plotting.
 
-    :param filename: str, will be used in the names of the output files, not a path
+    :param filename: str, used in the names of the output files, not a path
     :param bulk_file: str, path to bulk file (.bul)
     :param surface_file: str, path to surface file (.sur)
     :param rod_hk: list, position in h and k of the rod
@@ -1509,7 +1489,7 @@ def modify_surface_relaxation(
     print_new_file=True,
 ):
     """
-    !!! Files must use only one space between characters to split properly !!!
+    The files must use only one space between characters to split properly !!!
 
     :param base_file: file to edit
     :param save_as: save new file at this path
@@ -1574,3 +1554,17 @@ def modify_surface_relaxation(
     # Create new file
     with open(save_as, "w") as f:
         f.writelines(new_file_lines)
+
+
+def find_nearest(array, value):
+    mask = np.where(array == value)
+    if len(mask) == 1:
+        try:
+            mask = mask[0][0]
+            return array[mask], mask
+        except IndexError:
+            # print("Value is not in array")
+            if all(array < value):
+                return array[-1], -1
+            elif all(array > value):
+                return array[0], 0

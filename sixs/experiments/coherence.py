@@ -450,10 +450,6 @@ def plot_mesh(
         ax.set_xlabel('x (mm)')
         ax.set_ylabel('y (mm)')
 
-    # This does not work
-    # cursor = Cursor(ax)
-    # fig.canvas.mpl_connect('motion_notify_event', cursor.on_mouse_move)
-
     if isinstance(title, str):
         ax.set_title(title)
 
