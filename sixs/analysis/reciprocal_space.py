@@ -4,7 +4,7 @@ during SXRD experiments at SixS.
 
 The two main modules are the following:
     CTR()
-    MAP()el
+    MAP()
 
 There are also functions that help with the simulations in ROD:
     simulate_rod()
@@ -31,14 +31,11 @@ from scipy.interpolate import splrep, splev
 class Map:
     """
     Loads an hdf5 file created by binoculars that represents a 3D map of the
-    reciproal space and provides 2D plotting methods.
+    reciprocal space and provides 2D plotting methods.
 
     Methods in class:
-        * project_one_axis(): projects the data on one axis, with a given range
-        * project_two_axes(): projects the data on two axes, with a given range
-            (does not work yet)
-
-    You can then plot the images with the plot_map() method.
+        * project_data(): projects the data on one axis, with a given range.
+        * plot_map(): plot the data with matplotlib.
     """
 
     def __init__(self, file_path):
@@ -59,35 +56,35 @@ class Map:
         with tb.open_file(self.file_path) as f:
 
             # Get raw data
-            ct = f.root.binoculars.counts.read()
-            cont = f.root.binoculars.contributions.read()
+            ct = f.root.binoculars.counts[...]
+            cont = f.root.binoculars.contributions[...]
             self.raw_data = np.divide(ct, cont, where=cont != 0)
 
             # Get which type of projection we are working with
             # HKL
             try:
-                H = f.list_nodes('/binoculars/')[0].H
+                H = f.root.binoculars.axes.H[...]
                 hkl = True
             except tb.NoSuchNodeError:
                 hkl = False
 
             ## Qpar, Qper
             try:
-                Qpar = f.list_nodes('/binoculars/')[0].Qpar
+                Qpar = f.root.binoculars.axes.Qpar[...]
                 QparQper = True
             except tb.NoSuchNodeError:
                 QparQper = False
 
             # Qindex
             try:
-                Index = f.list_nodes('/binoculars/')[0].Index
+                Index = f.root.binoculars.axes.Index[...]
                 Qindex = True
             except tb.NoSuchNodeError:
                 Qindex = False
 
-            ## Qphi (not tested)
+            # Qphi
             try:
-                Index = f.list_nodes('/binoculars/')[0].Phi
+                Index = f.root.binoculars.axes.Phi[...]
                 QxQy = False  # also Qphi can have Qz (or Qx, Qy)
                 Qphi = True
             except tb.NoSuchNodeError:
@@ -96,50 +93,50 @@ class Map:
 
             if Qphi == False:  # also Qphi can have Qz (or Qx, Qy)
                 try:
-                    Qz = f.list_nodes('/binoculars/')[0].Qz
+                    Qz = f.root.binoculars.axes.Qz[...]
                 except tb.NoSuchNodeError:
                     QxQy = False
 
             if Qphi == True:
                 self.data = self.raw_data
-                self.Phi = f.list_nodes('/binoculars/')[0].Phi[:]
-                self.Q = f.list_nodes('/binoculars/')[0].Q[:]
+                self.Phi = f.root.binoculars.axes.Phi[...]
+                self.Q = f.root.binoculars.axes.Q[...]
                 try:
-                    self.Qxyz = f.list_nodes('/binoculars/')[0].Qx[:]
+                    self.Qxyz = f.root.binoculars.axes.Qx[...]
                 except:
                     pass
                 try:
-                    self.Qxyz = f.list_nodes('/binoculars/')[0].Qy[:]
+                    self.Qxyz = f.root.binoculars.axes.Qy[...]
                 except:
                     pass
                 try:
-                    self.Qxyz = f.list_nodes('/binoculars/')[0].Qz[:]
+                    self.Qxyz = f.root.binoculars.axes.Qz[...]
                 except:
                     pass
 
             # Load data
             if Qindex == True:
                 self.data = self.raw_data
-                self.index = f.list_nodes('/binoculars/')[0].Index[:]
-                self.Q = f.list_nodes('/binoculars/')[0].Q[:]
+                self.index = f.root.binoculars.axes.Index[...]
+                self.Q = f.root.binoculars.axes.Q[...]
 
             if hkl == True:
                 self.data = np.swapaxes(self.raw_data, 0, 2)
-                self.H = f.list_nodes('/binoculars/')[0].H[:]
-                self.K = f.list_nodes('/binoculars/')[0].K[:]
-                self.L = f.list_nodes('/binoculars/')[0].L[:]
+                self.H = f.root.binoculars.axes.H[...]
+                self.K = f.root.binoculars.axes.K[...]
+                self.L = f.root.binoculars.axes.L[...]
 
             if QxQy == True:
 
                 self.data = self.raw_data
-                self.Z = f.list_nodes('/binoculars/')[0].Qz[:]
-                self.X = f.list_nodes('/binoculars/')[0].Qx[:]
-                self.Y = f.list_nodes('/binoculars/')[0].Qy[:]
+                self.Z = f.root.binoculars.axes.Qz[...]
+                self.X = f.root.binoculars.axes.Qx[...]
+                self.Y = f.root.binoculars.axes.Qy[...]
 
             elif QparQper == True:
                 self.data = self.raw_data
-                self.Y = f.list_nodes('/binoculars/')[0].Qper[:]
-                self.X = f.list_nodes('/binoculars/')[0].Qpar[:]
+                self.Y = f.root.binoculars.axes.Qper[...]
+                self.X = f.root.binoculars.axes.Qpar[...]
 
             if Qphi == True:
                 x_axis = np.linspace(
@@ -199,132 +196,83 @@ class Map:
 
     def project_data(
         self,
-        axis1,
-        axis2=None,
-        axis_range_1=[None, None],
-        axis_range_2=[None, None],
+        projection_axis,
+        projection_axis_range=[None, None],
     ):
         """
-        Project the data on one or two of the measured axes, the result is saved
-        as attribute `.two_d_data`.
+        Project the data on one of the measured axis, the result is saved as 
+        attribute `.projected_data`.
 
-        :param axis1: string in ("H", "K", "L", "Qx", "Qy", "Qz")
-        :param axis2: None or string in ("H", "K", "L", "Qx", "Qy", "Qz")
+        :param projection_axis: string in ("H", "K", "L", "Qx", "Qy", "Qz")
         :param axis_range_1: list or tuple of length two, defines the positions
-            of the value to be used in the array on the desired axis, use [None,
-            None] to use the whole range.
-        :param axis_range_2: list or tuple of length two, defines the positions
             of the value to be used in the array on the desired axis, use [None,
             None] to use the whole range.
         """
         # Start with first axis
-        axis1_index = {
+        self.projection_axis = projection_axis
+        projection_axis_index = {
             "H": 2,
             "K": 1,
             "L": 0,
             "Qz": 2,
             "Qy": 1,
             "Qx": 0,
-        }[axis1]
+        }[self.projection_axis]
 
-        axis1_name = {
+        projection_axis_name = {
             "H": "h_axis",
             "K": "k_axis",
             "L": "l_axis",
             "Qz": "Qz_axis",
             "Qy": "Qy_axis",
             "Qx": "Qx_axis",
-        }[axis1]
+        }[self.projection_axis]
 
-        axis1_values = getattr(self, axis1_name)
+        projection_axis_values = getattr(self, projection_axis_name)
 
-        if axis1_range[0] != None:
+        if projection_axis_range[0] != None:
             start_value = find_value_in_array(
-                axis_1_values, axis_1_range[0])[0]
+                projection_axis_values,
+                projection_axis_range[0]
+            )[0]
+        else:
+            start_value = 0
 
-        if axis1_range[1] != None:
-            end_value = find_value_in_array(axis_1_values, axis_1_range[1])[0]
+        if projection_axis_range[1] != None:
+            end_value = find_value_in_array(
+                projection_axis_values,
+                projection_axis_range[1]
+            )[0]
+        else:
+            end_value = -1
 
-        if axis_1 == 'H':
+        if self.projection_axis == 'H':
             datanan = self.data[:, :, start_value:end_value]
 
-        elif axis_1 == 'K':
+        elif self.projection_axis == 'K':
             datanan = self.data[:, start_value:end_value, :]
 
-        elif axis_1 == 'L':
+        elif self.projection_axis == 'L':
             datanan = self.data[start_value:end_value, :, :]
 
-        elif axis_1 == 'Qz':
+        elif self.projection_axis == 'Qz':
             # swap_data = np.swapaxes(self.raw_data, 0, 1)
             datanan = self.data[:, :, start_value:end_value]
 
-        elif axis_1 == 'Qy':
+        elif self.projection_axis == 'Qy':
             # swap_data = np.swapaxes(self.raw_data, 0, 2)
             datanan = self.data[:, start_value:end_value, :]
 
-        elif axis_1 == 'Qx':
+        elif self.projection_axis == 'Qx':
             # swap_data = np.swapaxes(self.raw_data, 1, 2)
             datanan = self.data[start_value:end_value, :, :]
 
-        self.projected_data = np.nanmean(datanan, axis=axis_1_index)
-
-        # Now second axis if necessary
-        if axis2 != None:
-            axis2_index = {
-                "H": 2,
-                "K": 1,
-                "L": 0,
-                "Qz": 2,
-                "Qy": 1,
-                "Qx": 0,
-            }[axis2]
-
-            axis2_name = {
-                "H": "h_axis",
-                "K": "k_axis",
-                "L": "l_axis",
-                "Qz": "Qz_axis",
-                "Qy": "Qy_axis",
-                "Qx": "Qx_axis",
-            }[axis2]
-
-            axis1_values = getattr(self, axis1_name)
-
-            if axis1_range[0] != None:
-                start_value = find_value_in_array(
-                    axis_2_values, axis_2_range[0])[0]
-
-            if axis1_range[1] != None:
-                end_value = find_value_in_array(
-                    axis_2_values, axis_2_range[1])[0]
-
-            if axis_2 == 'H':
-                datanan = self.projected_data[:, :, start_value:end_value]
-
-            elif axis_2 == 'K':
-                datanan = self.projected_data[:, start_value:end_value, :]
-
-            elif axis_2 == 'L':
-                datanan = self.projected_data[start_value:end_value, :, :]
-
-            elif axis_2 == 'Qz':
-                # swap_data = np.swapaxes(self.raw_data, 0, 1)
-                datanan = self.projected_data[:, :, start_value:end_value]
-
-            elif axis_2 == 'Qy':
-                # swap_data = np.swapaxes(self.raw_data, 0, 2)
-                datanan = self.projected_data[:, start_value:end_value, :]
-
-            elif axis_2 == 'Qx':
-                # swap_data = np.swapaxes(self.raw_data, 1, 2)
-                datanan = self.projected_data[start_value:end_value, :, :]
-
-            self.projected_data = np.nanmean(datanan, axis=axis_2_index)
+        self.projected_data = np.nanmean(datanan, axis=projection_axis_index)
 
     def plot_map(
         self,
-        axis,
-        axis_range=[None, None],
+        zoom_axis1=[None, None],
+        zoom_axis2=[None, None],
         interpolation="none",
         vmin=0.1,
         vmax=2000,
@@ -337,17 +285,18 @@ class Map:
         """
         Plot/save a hdf5 map.
 
-        You can use the command `%matplotlib notebook` before to use a cursor
-        in the notebook cell (change figsize to (8,8))
+        You can use the command `%matplotlib notebook` to use a cursor in the 
+        notebook cell (change figsize to (8,8)).
 
-        :param axis: string in ("H", "K", "L")
-        :param axis_range: list or tuple of length two, defines the positions of
-            the value to be used in the array on the desired axis
+        :param zoom_axis1: container of length two, defines the zoom in the x 
+         axis.
+        :param zoom_axis2: container of length two, defines the zoom in the y 
+         axis.
         :param interpolation: default is 'none'. See plt.imshow? for options,
-            e.g. 'nearest'
-        :param vmin: default to 0.1
-        :param vmax: default to 2000
-        :param figsize: default to (16, 9)
+            other options are 'nearest', 'gouraud', ...
+        :param vmin: default is 0.1
+        :param vmax: default is 2000
+        :param figsize: default is (16, 9)
         :param title: figure title
         :param cmap: color map used, pick from
             https://matplotlib.org/stable/tutorials/colors/colormaps.html
@@ -356,50 +305,65 @@ class Map:
         """
         try:
             img = self.projected_data
-        except NameError:
+        except AttributeError:
             print("Use the methods `project_data` to define the data first.")
 
-        if axis == 'H':
+        if self.projection_axis == 'H':
             axis1 = self.k_axis
             axis2 = self.l_axis
             axis_name1 = 'K (rlu)'
             axis_name2 = 'L (rlu)'
 
-        elif axis == 'K':
+        elif self.projection_axis == 'K':
             axis1 = self.h_axis
             axis2 = self.l_axis
             axis_name1 = 'H (rlu)'
             axis_name2 = 'L (rlu)'
 
-        elif axis == 'L':
+        elif self.projection_axis == 'L':
             axis1 = self.h_axis
             axis2 = self.k_axis
             axis_name1 = 'H (rlu)'
             axis_name2 = 'K (rlu)'
 
-        elif axis == 'Qxyz':
+        elif self.projection_axis == 'Qxyz':
             axis1 = self.Q_axis
             axis2 = self.Phi_axis
             axis_name1 = 'Q'
             axis_name2 = 'Phi (deg)'
 
-        elif axis == 'Qx':
+        elif self.projection_axis == 'Qx':
             axis1 = self.Qy_axis
             axis2 = self.Qz_axis
             axis_name1 = 'Qy'
             axis_name2 = 'Qz'
 
-        elif axis == 'Qy':
+        elif self.projection_axis == 'Qy':
             axis1 = self.Qx_axis
             axis2 = self.Qz_axis
             axis_name1 = 'Qx'
             axis_name2 = 'Qz'
 
-        elif axis == 'Qz':
+        elif self.projection_axis == 'Qz':
             axis1 = self.Qx_axis
             axis2 = self.Qy_axis
             axis_name1 = 'Qx'
             axis_name2 = 'Qy'
+
+        # Zoom
+        if zoom_axis1[0] != None:
+            zoom_axis1[0] = find_value_in_array(axis1, zoom_axis1[0])[-1]
+        if zoom_axis1[1] != None:
+            zoom_axis1[1] = find_value_in_array(axis1, zoom_axis1[1])[-1]
+
+        if zoom_axis2[0] != None:
+            zoom_axis2[0] = find_value_in_array(axis2, zoom_axis2[0])[-1]
+        if zoom_axis2[1] != None:
+            zoom_axis2[1] = find_value_in_array(axis2, zoom_axis2[1])[-1]
+
+        img = img[zoom_axis2[0]:zoom_axis2[1], zoom_axis1[0]:zoom_axis1[1]]
+        axis1 = axis1[zoom_axis1[0]:zoom_axis1[1]]
+        axis2 = axis2[zoom_axis2[0]:zoom_axis2[1]]
 
         # Plot
         if three_d_plot:
@@ -1561,6 +1525,7 @@ def modify_surface_relaxation(
 
 
 def find_value_in_array(array, value):
+    array = np.round(array, 4)  # bc of float errors
     try:
         if all(array < value):
             return array[-1], -1
@@ -1568,8 +1533,10 @@ def find_value_in_array(array, value):
             return array[0], 0
         else:  # value in array
             mask, = np.where(array == value)
-            if len(mask) != 1:
+            if len(mask) > 1:
                 print("There are multiple values in the array")
+            elif len(mask) == 0:
+                print("Value not in array")
             else:
                 return array[mask[0]], mask[0]
     except TypeError:

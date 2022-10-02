@@ -590,7 +590,7 @@ class Reflectivity:
             x_axis = getattr(self, x_var)
 
         elif self.data_format == "nxs" and x_var not in self.x_axes:
-            return("Choose x_axis in the following list :", self.x_axes)
+            return ("Choose x_axis in the following list :", self.x_axes)
 
         # x_var has no influence if we use binocular file for now
         elif self.data_format == "hdf5":
@@ -668,7 +668,7 @@ class Reflectivity:
             x_axis = getattr(self, x_var)
 
         elif self.data_format == "nxs" and x_var not in self.x_axes:
-            return("Choose x_axis in the following list :", self.x_axes)
+            return ("Choose x_axis in the following list :", self.x_axes)
 
         # x_var has no influence if we use binocular file for now
         elif self.data_format == "hdf5":
@@ -1050,7 +1050,7 @@ class Reflectivity:
             "qpar", "qper", "gamma",
             "mu", "delta", "omega"
         ]:
-            return("Choose a x_axis in the following list :", [
+            return ("Choose a x_axis in the following list :", [
                 "h", "k", "l",
                 "Q", "qpar", "qper",
                 "gamma", "mu",
@@ -1157,7 +1157,7 @@ class Reflectivity:
             self.y_range
 
         except:
-            return("You need to run Reflectivity.prep_nxs_data() before!")
+            return ("You need to run Reflectivity.prep_nxs_data() before!")
 
         # Define detector image plotting function
         def plot2D(a, b, c, d, Refl, index):

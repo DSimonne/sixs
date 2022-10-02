@@ -588,7 +588,7 @@ def varname(var):
     for name in frame.f_back.f_locals.keys():
         try:
             if id(eval(name)) == var_id:
-                return(name)
+                return (name)
         except:
             raise
 
