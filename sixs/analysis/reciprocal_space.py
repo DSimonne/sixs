@@ -696,28 +696,28 @@ class CTR:
             scan_l_axis = np.round(np.linspace(
                 L[1], L[2], 1 + int(L[5] - L[4])), 3)
 
-            # Define roi indices
-            start_H_roi = find_value_in_array(scan_h_axis, CTR_range_H[0])
-            end_H_roi = find_value_in_array(scan_h_axis, CTR_range_H[1])
-            start_K_roi = find_value_in_array(scan_k_axis, CTR_range_K[0])
-            end_K_roi = find_value_in_array(scan_k_axis, CTR_range_K[1])
+            # Define ROI indices
+            start_H_ROI = find_value_in_array(scan_h_axis, CTR_range_H[0])
+            end_H_ROI = find_value_in_array(scan_h_axis, CTR_range_H[1])
+            start_K_ROI = find_value_in_array(scan_k_axis, CTR_range_K[0])
+            end_K_ROI = find_value_in_array(scan_k_axis, CTR_range_K[1])
 
             if verbose:
                 print(
-                    f"Data ROI (H, K): [{start_H_roi[0]}, {end_H_roi[0]}, "
-                    f"{start_K_roi[0]}, {end_K_roi[0]}] ; [{start_H_roi[1]}, "
-                    f"{end_H_roi[1]}, {start_K_roi[1]}, {end_K_roi[1]}]"
+                    f"Data ROI (H, K): [{start_H_ROI[0]}, {end_H_ROI[0]}, "
+                    f"{start_K_ROI[0]}, {end_K_ROI[0]}] ; [{start_H_ROI[1]}, "
+                    f"{end_H_ROI[1]}, {start_K_ROI[1]}, {end_K_ROI[1]}]"
                 )
 
             # Get data only in specific ROI
-            roi_2D = raw_data[
-                start_H_roi[1]:end_H_roi[1],
-                start_K_roi[1]:end_K_roi[1],
+            ROI_2D = raw_data[
+                start_H_ROI[1]:end_H_ROI[1],
+                start_K_ROI[1]:end_K_ROI[1],
                 :]
 
             # Compute background
             if center_background == HK_peak:
-                # Background intensity, define roi indices
+                # Background intensity, define ROI indices
                 start_H_background = find_value_in_array(
                     scan_h_axis,
                     background_range_H[0]
@@ -747,40 +747,40 @@ class CTR:
                     )
 
                 # CAREFUL WITH THE ORDER OF H AND K HERE
-                background_roi_0 = raw_data[
-                    start_H_background[1]:start_H_roi[1],
-                    start_K_roi[1]:end_K_roi[1],
+                background_ROI_0 = raw_data[
+                    start_H_background[1]:start_H_ROI[1],
+                    start_K_ROI[1]:end_K_ROI[1],
                     :]
 
-                background_roi_1 = raw_data[
-                    end_H_roi[1]:end_H_background[1],
-                    start_K_roi[1]:end_K_roi[1],
+                background_ROI_1 = raw_data[
+                    end_H_ROI[1]:end_H_background[1],
+                    start_K_ROI[1]:end_K_ROI[1],
                     :]
 
-                background_roi_2 = raw_data[
-                    start_H_roi[1]:end_H_roi[1],
-                    start_K_background[1]:start_K_roi[1],
+                background_ROI_2 = raw_data[
+                    start_H_ROI[1]:end_H_ROI[1],
+                    start_K_background[1]:start_K_ROI[1],
                     :]
 
-                background_roi_3 = raw_data[
-                    start_H_roi[1]:end_H_roi[1],
-                    end_K_roi[1]:end_K_background[1],
+                background_ROI_3 = raw_data[
+                    start_H_ROI[1]:end_H_ROI[1],
+                    end_K_ROI[1]:end_K_background[1],
                     :]
 
                 background_values = (
-                    background_roi_0.mean(axis=(0, 1)) +
-                    background_roi_1.mean(axis=(0, 1)) +
-                    background_roi_2.mean(axis=(0, 1)) +
-                    background_roi_3.mean(axis=(0, 1))
+                    background_ROI_0.mean(axis=(0, 1)) +
+                    background_ROI_1.mean(axis=(0, 1)) +
+                    background_ROI_2.mean(axis=(0, 1)) +
+                    background_ROI_3.mean(axis=(0, 1))
                 ) / 4
 
                 # Remove background for each pixel in ROI before integrating
-                # roi_2D is a 3D array and background_values a 1D array
-                roi_2D = roi_2D - background_values
+                # ROI_2D is a 3D array and background_values a 1D array
+                ROI_2D = ROI_2D - background_values
 
             elif isinstance(center_background, list) \
                     and center_background != HK_peak:
-                # Background intensity, define roi indices
+                # Background intensity, define ROI indices
                 start_H_background = find_value_in_array(
                     scan_h_axis, background_range_H[0])
                 end_H_background = find_value_in_array(
@@ -826,16 +826,16 @@ class CTR:
                 data[i, 0, :] = l_axis
 
                 # Save intensities
-                tck = splrep(scan_l_axis, roi_2D.sum(axis=(0, 1)))
-                roi_2D_sum = splev(l_axis, tck)
-                data[i, 1, :] = roi_2D_sum
+                tck = splrep(scan_l_axis, ROI_2D.sum(axis=(0, 1)))
+                ROI_2D_sum = splev(l_axis, tck)
+                data[i, 1, :] = ROI_2D_sum
 
             else:
                 # Save x axis
                 data[i, 0, :len(scan_l_axis)] = scan_l_axis
 
                 # Save intensities
-                data[i, 1, :len(scan_l_axis)] = roi_2D.sum(axis=(0, 1))
+                data[i, 1, :len(scan_l_axis)] = ROI_2D.sum(axis=(0, 1))
 
             # Resume with a plot
             if verbose:
@@ -852,23 +852,23 @@ class CTR:
 
                 # Plot data ROI
                 plt.axvline(
-                    x=start_H_roi[0],
+                    x=start_H_ROI[0],
                     color='red',
                     linestyle="--"
                 )
                 plt.axvline(
-                    x=end_H_roi[0],
+                    x=end_H_ROI[0],
                     color='red',
                     linestyle="--"
                 )
 
                 plt.axhline(
-                    y=start_K_roi[0],
+                    y=start_K_ROI[0],
                     color='red',
                     linestyle="--"
                 )
                 plt.axhline(
-                    y=end_K_roi[0],
+                    y=end_K_ROI[0],
                     color='red',
                     linestyle="--",
                     label="ROI"
