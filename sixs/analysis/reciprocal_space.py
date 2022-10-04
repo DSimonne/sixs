@@ -9,6 +9,94 @@ The two main modules are the following:
 There are also functions that help with the simulations in ROD:
     simulate_rod()
     modify_surface_relaxation()
+
+Which version to use for binoculars ?
+    * processing data: https://salsa.debian.org/science-team/binoculars
+    * fitting data: https://github.com/picca/binoculars
+
+NOTES ON BINOCULARS-FITAID:
+The resolution parameter in L is very important and gives the range of values
+which will be averaged during the HK projection calculations.
+Smaller value will give better resolution in the final integrated CTR curve, but
+there is a danger that some of the voxels will not have any intensity assigned
+and needs to be interpolated. This due to the fact that the resolution of the
+original scan might not have been sufficient (especially for high Q) and not
+every voxel in reciprocal space map has an assigned value (Drnec et al.,
+J. Appl. Cryst., 47 (2014), 365-377).
+You can either increase the resolution parameter or rely on the interpolation.
+The best is to use a larger resolution directly in binoculars-process to avoid
+such effects, and then use the same step when integrating the data.
+
+The structure factor for each L can be determined by integrating the reflection
+intensity in the slice. FitAid determines the structure factors by:
+* Fitting the reflection with the function chosen in the dropdown list below the
+    slider. The fitting is also used for the determination of the center of the
+    reflection.
+* Interpolating the slice in the selected ROI and then integrating within the
+    ROI with proper background subtraction.
+* Integrating within the selected ROI without the interpolation.
+
+The first step is to try to fit the data with the selected function so that the
+peak tracker, which depends on the center of the reflection determined by the
+fits, is activated.
+
+The next step is to perform the integration of the reflections on each slice.
+We first choose the ROI and background regions.
+When the peak tracker tick box is selected, the center of the ROI is taken from
+the fits obtained in the previous step. However, sometimes the fit fails and the
+peak tracking is not working correctly. In this case the center of the ROI is
+selected by unticking the peak tracker tick box and clicking on the slice in the
+position of desired center of the ROI.
+Selecting the center in one slice selects the same center for all other slices
+within the same rod. Different rods can have different ROI centers.
+
+The background selection is important and it is a crucial part for obtaining
+correct structure factors. Three values are calculated for establishing the
+structure factors:
+
+* sf (structure factor): all voxels with no value are interpolated with a scipy
+    interpolate function (in the slice ?). Then, the sum is taken over all
+    the values in the area indicated by the ROI. The background is calculated by
+    taking the sum of all the values of selected background regions, corrected
+    by the number of voxels. sf = sqrt(roi - #roi / #bkg * bkg) ???
+* nisf (no interpolation structure factor: the same calculation is performed as
+    the sf except that it omits the interpolation of the empty voxels.
+* fitsf: same calculation as with sf except that instead of the raw data, the
+    result from the fit is used to do the calculation. It is numerically
+    integrating the result of the fit and subtracting the background as selected
+    by the ROI and the background regions.
+
+It is also a good idea to check for few L values if the reflections are within
+the ROI and don't spill to the background.
+For the rocking scans, the reciprocal space is much better sampled at low L and
+the structure factor there is more reliable.
+
+Plotting possibilities:
+* sf (structure factor after interpolation)
+* nisf (structure factor before interpolation)
+* fitsf (structure factor from fit)
+* I (intensity)
+
+
+If nisf and fitsf are overlapping with the sf values at low L, it means that the
+accuracy of the integration is good. If those three values are wildly different,
+one needs to do carefully analyse the slices to understand where the problem is.
+
+The counters related to the fit are:
+* loc: location of the peak of the fit.
+* guessloc: value calculated from the results of the fit. It is a polynomial fit
+    of degree two weighed by the variance of the fit of the loc values. guessloc
+    is used as input for a new round of fitting. This is also the value used by
+    the peaktracker in the integration widget. guessloc can be modified by
+    clicking on the peak in the integration widget.
+* gamma: related to the width of the peak
+* slope: slope for a linear background with offset as offset.
+* th: angle of the two axes if using the polar lorentzian fit function. All the
+    var counters represent the variance of the corresponding fit parameters as
+    calculated from the covariance returned by the fitting algorithm.
+
+For details see:
+https://github.com/id03/binoculars/wiki/
 """
 
 import numpy as np
