@@ -746,7 +746,7 @@ class CTR:
                         "\n###########################################################"
                     )
 
-                # CAREFUL WITH THE ORDER OF H AND K HERE
+                # Define the background ROIs
                 background_ROI_0 = raw_data[
                     start_H_background[1]:start_H_ROI[1],
                     start_K_ROI[1]:end_K_ROI[1],
@@ -782,27 +782,44 @@ class CTR:
                     and center_background != HK_peak:
                 # Background intensity, define ROI indices
                 start_H_background = find_value_in_array(
-                    scan_h_axis, background_range_H[0])
+                    scan_h_axis,
+                    background_range_H[0]
+                )
                 end_H_background = find_value_in_array(
-                    scan_h_axis, background_range_H[1])
+                    scan_h_axis,
+                    background_range_H[1]
+                )
 
                 start_K_background = find_value_in_array(
-                    scan_k_axis, background_range_K[0])
+                    scan_k_axis,
+                    background_range_K[0]
+                )
                 end_K_background = find_value_in_array(
-                    scan_k_axis, background_range_K[1])
+                    scan_k_axis,
+                    background_range_K[1]
+                )
 
                 if verbose:
                     print(
-                        f"Background ROI = [{start_H_background[1]}, {end_H_background[1]}, {start_K_background[1]}, {end_K_background[1]}]")
-                    print(
-                        "###########################################################")
+                        f"Background ROI (H, K): [{start_H_background[0]}, "
+                        f"{end_H_background[0]}, {start_K_background[0]}, "
+                        f"{end_K_background[0]}] ; [{start_H_background[1]}, "
+                        f"{end_H_background[1]}, {start_K_background[1]}, "
+                        f"{end_K_background[1]}]"
+                        "\n###########################################################"
+                    )
 
-                background_2D = raw_data[start_K_background[1]:end_K_background[1],
-                                         start_H_background[1]:end_H_background[1],
-                                         :
-                                         ]
-                nb_pixel_background_2D = background_2D.shape[0] * \
-                    background_2D.shape[1]
+                # Define the background ROI
+                background_ROI = raw_data[
+                    start_H_background[1]:end_H_background[1],
+                    start_K_background[1]:end_K_background[1],
+                    :]
+
+                background_values = background_ROI.mean(axis=(0, 1))
+
+                # Remove background for each pixel in ROI before integrating
+                # ROI_2D is a 3D array and background_values a 1D array
+                ROI_2D = ROI_2D - background_values
 
             # Save background
             try:
