@@ -56,9 +56,10 @@ structure factors:
 
 * sf (structure factor): all voxels with no value are interpolated with a scipy
     interpolate function (in the slice ?). Then, the sum is taken over all
-    the values in the area indicated by the ROI. The background is calculated by
-    taking the sum of all the values of selected background regions, corrected
-    by the number of voxels. sf = sqrt(roi - #roi / #bkg * bkg) ???
+    the values in the area indicated by the ROI(divided by the nb of voxels ?).
+    The background is calculated by taking the sum of all the values of selected
+    background regions, corrected by the number of voxels.
+    sf = sqrt(roi - #roi / #bkg * bkg) ???
 * nisf (no interpolation structure factor: the same calculation is performed as
     the sf except that it omits the interpolation of the empty voxels.
 * fitsf: same calculation as with sf except that instead of the raw data, the
@@ -73,14 +74,14 @@ the structure factor there is more reliable.
 
 Plotting possibilities:
 * sf (structure factor after interpolation)
-* nisf (structure factor before interpolation)
+* nisf (structure factor without interpolation)
 * fitsf (structure factor from fit)
 * I (intensity)
 
 
 If nisf and fitsf are overlapping with the sf values at low L, it means that the
 accuracy of the integration is good. If those three values are wildly different,
-one needs to do carefully analyse the slices to understand where the problem is.
+one needs to carefully analyse the slices to understand where the problem is.
 
 The counters related to the fit are:
 * loc: location of the peak of the fit.
