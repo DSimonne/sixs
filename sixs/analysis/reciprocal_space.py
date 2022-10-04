@@ -19,12 +19,10 @@ import os
 import inspect
 import yaml
 import sixs
-import decimal
 import shutil
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-
 from scipy.interpolate import splrep, splev
 
 
@@ -185,14 +183,16 @@ class Map:
                     self.Y[1], self.Y[2], 1+self.Y[5]-self.Y[4])
                 self.Qper = y_axis
 
-            print("\n###########################################################")
-            print("Data shape:", self.data.shape)
-            print("\tHKL data:", hkl)
-            print("\tQxQy data:", QxQy)
-            print("\tQparQper data:", QparQper)
-            print("\tQphi data:", Qphi)
-            print("\tQindex:", Qindex)
-            print("###########################################################")
+            print(
+                "\n############################################################"
+                f"\nData shape: {self.data.shape}"
+                f"\n\tHKL data: {hkl}"
+                f"\n\tQxQy data: {QxQy}"
+                f"\n\tQparQper data: {QparQper}"
+                f"\n\tQphi data: {Qphi}"
+                f"\n\tQindex: {Qindex}"
+                f"\n###########################################################"
+            )
 
     def project_data(
         self,
@@ -462,8 +462,10 @@ class CTR:
                 self.configuration_file = configuration_file
             else:
                 self.configuration_file = self.path_package + "experiments/ammonia.yml"
-                print("Could not find configuration file.")
-                print("Defaulted to ammonia configuration.")
+                print(
+                    "Could not find configuration file."
+                    "Defaulted to ammonia configuration."
+                )
 
         except TypeError:
             self.configuration_file = self.path_package + "experiments/ammonia.yml"
@@ -478,8 +480,10 @@ class CTR:
 
                 for key in yaml_parsed_file:
                     setattr(self, key, yaml_parsed_file[key])
-                print("Loaded configuration file.")
-                print("###########################################################\n")
+                print(
+                    "Loaded configuration file."
+                    "\n###########################################################\n"
+                )
 
     def integrate_CTR(
         self,
@@ -531,9 +535,10 @@ class CTR:
             reciprocal space, default is 0.01.
         :param HK_peak: node in reciprocal space around which the CTR is taken,
             default is [-1, 1].
-        :param center_background: node in reciprocal space around which the
-            background is taken. If equal to HK_peak, the background width is
-            added to the width of the CTR. If False, no background is subtracted
+        :param center_background: list, node in reciprocal space around which
+            the background is taken. If equal to HK_peak, the background width
+            is added to the width of the CTR. If False, no background is
+            subtracted.
         :param verbose: if True, print more details.
         """
 
@@ -549,22 +554,24 @@ class CTR:
 
         if verbose:
             print(
-                "\n###########################################################")
-            print(f"Detected files in {folder}:")
+                "\n###########################################################"
+                f"Detected files in {folder}:"
+            )
             for f in files:
                 print("\t", f)
             print(
                 "###########################################################\n")
 
             print(
-                "\n###########################################################")
-            print("Working on the following files:")
+                "\n###########################################################"
+                "Working on the following files:"
+            )
             for f in scan_files:
                 print("\t", f)
             print(
                 "###########################################################\n")
 
-        # Parameters of rod
+        # ROD range
         CTR_range_H = [
             np.round(HK_peak[0] - CTR_width_H, 3),
             np.round(HK_peak[0] + CTR_width_H, 3)
@@ -576,27 +583,24 @@ class CTR:
 
         print(
             "\n###########################################################"
-            f"Range in H is [{CTR_range_H[0]} : {CTR_range_H[1]}]"
-            f"Range in K is [{CTR_range_K[0]} : {CTR_range_K[1]}]"
-            "###########################################################"
+            f"\nRange in H: [{CTR_range_H[0]} : {CTR_range_H[1]}]"
+            f"\nRange in K: [{CTR_range_K[0]} : {CTR_range_K[1]}]"
+            "\n###########################################################"
         )
 
-        # Background parameter
+        # Background range
         if center_background == HK_peak:
-            background_width_H = CTR_width_H + background_width_H
-            background_width_K = CTR_width_K + background_width_K
-
             background_range_H = [
-                np.round(HK_peak[0] - background_width_H, 3),
-                np.round(HK_peak[0] + background_width_H, 3)
+                np.round(CTR_range_H[0] - background_width_H, 3),
+                np.round(CTR_range_H[1] + background_width_H, 3)
             ]
             background_range_K = [
-                np.round(HK_peak[1] - background_width_K, 3),
-                np.round(HK_peak[1] + background_width_K, 3)
+                np.round(CTR_range_K[0] - background_width_K, 3),
+                np.round(CTR_range_K[1] + background_width_K, 3)
             ]
 
         elif isinstance(center_background, list) \
-            and center_background != HK_peak:
+                and center_background != HK_peak:
 
             background_range_H = [
                 center_background[0] - background_width_H,
@@ -610,19 +614,19 @@ class CTR:
         if verbose and isinstance(center_background, list):
             print(
                 "\n###########################################################"
-                f"Background range in H is [{background_range_H[0]}"
+                f"\nBackground range in H: [{background_range_H[0]}"
                 f" : {background_range_H[1]}]"
-                f"Background range in K is [{background_range_K[0]}"
+                f"\nBackground range in K: [{background_range_K[0]}"
                 f" : {background_range_K[1]}]"
-                "###########################################################"
+                "\n###########################################################"
             )
 
         # Start iterating on file to see the shape
         print(
             "\n###########################################################"
-            "Finding smallest common range in L"
-            "Depends on the config file in binoculars-process."
-            "###########################################################"
+            "\nFinding smallest common range in L"
+            "\nDepends on the config file in binoculars-process."
+            "\n###########################################################"
         )
 
         for i, fname in enumerate(scan_files):
@@ -634,29 +638,26 @@ class CTR:
             if verbose:
                 print(
                     "\n###########################################################"
-                    f"Opening file {fname} ..."
-                    "\tRange and stepsize in H: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                    H[1], H[2], H[3])
-                    "\tRange and stepsize in K: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                    K[1], K[2], K[3])
-                    "\tRange and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                    L[1], L[2], L[3])
-                    "###########################################################"
+                    f"\nOpening file {fname} ..."
+                    f"\n\tAxis number, range and stepsize in H: [{H[0]:.3f}: {H[1]:.3f}: {H[2]:.3f}]"
+                    f"\n\tAxis number, range and stepsize in K: [{K[0]:.3f}: {K[1]:.3f}: {K[2]:.3f}]"
+                    f"\n\tAxis number, range and stepsize in L: [{L[0]:.3f}: {L[1]:.3f}: {L[2]:.3f}]"
+                    "\n###########################################################"
                 )
 
             if i == 0:
-                l_min = L[1]
-                l_max = L[2]
+                l_min = np.round(L[1], 3)
+                l_max = np.round(L[2], 3)
                 l_length = 1 + int(L[5] - L[4])
             else:
-                l_min = max(l_min, L[1])
-                l_max = min(l_max, L[2])
+                l_min = np.round(max(l_min, L[1]), 3)
+                l_max = np.round(min(l_max, L[2]), 3)
                 l_length = max(l_length, 1 + int(L[5] - L[4]))
 
         print(
             "\n###########################################################"
-            f"Smallest common range in L is [{l_min} : {l_max}]"
-            "###########################################################"
+            f"\nSmallest common range in L is [{l_min} : {l_max}]"
+            "\n###########################################################"
         )
 
         # Create new L axis
@@ -665,7 +666,7 @@ class CTR:
             l_length = len(l_axis)
 
         # Save final data as numpy array
-        # 0 is x axis, 1 is data, 2 is background
+        # 0 is x axis, 1 is data, 2 is background (compatible with ROD)
         data = np.nan * np.empty((len(scan_files), 3, l_length))
 
         # Iterate on each file now to get the data
@@ -673,7 +674,7 @@ class CTR:
             if verbose:
                 print(
                     "\n###########################################################"
-                    f"Opening file {fname} ..."
+                    f"\nOpening file {fname} ..."
                 )
 
             with tb.open_file(folder + fname, "r") as f:
@@ -683,11 +684,11 @@ class CTR:
 
                 raw_data = np.divide(ct, cont, where=cont != 0)
 
-                # Need to swap the axes
-                raw_data = np.swapaxes(raw_data, 0, 1)
+                # Need to swap the h and k axes
+                # raw_data = np.swapaxes(raw_data, 0, 1)
 
                 # Need to flip K axis in the data
-                raw_data = np.flip(raw_data, axis=(0))
+                # raw_data = np.flip(raw_data, axis=(0))
 
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
@@ -701,93 +702,96 @@ class CTR:
                 L[1], L[2], 1 + int(L[5] - L[4])), 3)
 
             # Need to flip K axis values
-            scan_k_axis = np.flip(scan_k_axis)
+            # scan_k_axis = np.flip(scan_k_axis)
 
             # CTR intensity, define roi indices
             start_H_roi = find_value_in_array(scan_h_axis, CTR_range_H[0])
             end_H_roi = find_value_in_array(scan_h_axis, CTR_range_H[1])
 
-            start_K_roi = find_value_in_array(scan_k_axis, CTR_range_K[1])
-            end_K_roi = find_value_in_array(scan_k_axis, CTR_range_K[0])
+            # CHECK Inverted here ?
+            start_K_roi = find_value_in_array(scan_k_axis, CTR_range_K[0])
+            end_K_roi = find_value_in_array(scan_k_axis, CTR_range_K[1])
 
             if verbose:
                 print(
-                    "Data ROI: [start_k, end_K, start_H, end_H] = \n\t["
-                    f"{start_K_roi[0]}, {end_K_roi[0]}, {start_H_roi[0]}, "
-                    f"{end_H_roi[0]}] \n\t[{start_K_roi[1]}, {end_K_roi[1]}, "
-                    f"{start_H_roi[1]}, {end_H_roi[1]}]"
+                    f"Data ROI (H, K): [{start_H_roi[0]}, {end_H_roi[0]}, "
+                    f"{start_K_roi[0]}, {end_K_roi[0]}] ; [{start_H_roi[1]}, "
+                    f"{end_H_roi[1]}, {start_K_roi[1]}, {end_K_roi[1]}]"
                 )
 
             # Get data only in specific ROI
-            # CAREFUL WITH THE ORDER OF H AND K HERE 
-            # bog ? don't need to change if I flipped the data right ?
+            # CAREFUL WITH THE ORDER OF H AND K HERE
+            # CHECK don't need to change if I flipped the data right ?
             roi_2D = raw_data[
-                        start_K_roi[1]:end_K_roi[1],
-                        start_H_roi[1]:end_H_roi[1],
-                        :]
+                start_H_roi[1]:end_H_roi[1],
+                start_K_roi[1]:end_K_roi[1],
+                :]
 
             # Compute background
             if center_background == HK_peak:
                 # Background intensity, define roi indices
                 start_H_background = find_value_in_array(
-                    scan_h_axis, 
+                    scan_h_axis,
                     background_range_H[0]
                 )
                 end_H_background = find_value_in_array(
-                    scan_h_axis, 
+                    scan_h_axis,
                     background_range_H[1]
                 )
 
                 start_K_background = find_value_in_array(
-                    scan_k_axis, 
+                    scan_k_axis,
                     background_range_K[0]
                 )
                 end_K_background = find_value_in_array(
-                    scan_k_axis, 
+                    scan_k_axis,
                     background_range_K[1]
                 )
 
                 if verbose:
                     print(
-                        f"Background ROI = [{start_H_background[1]}, "
+                        f"Background ROI (H, K): [{start_H_background[0]}, "
+                        f"{end_H_background[0]}, {start_K_background[0]}, "
+                        f"{end_K_background[0]}] ; [{start_H_background[1]}, "
                         f"{end_H_background[1]}, {start_K_background[1]}, "
                         f"{end_K_background[1]}]"
-                        "###########################################################"
+                        "\n###########################################################"
                     )
 
                 # CAREFUL WITH THE ORDER OF H AND K HERE
                 background_roi_0 = raw_data[
-                    start_K_roi[1]:end_K_roi[1],
                     start_H_background[1]:start_H_roi[1],
+                    start_K_roi[1]:end_K_roi[1],
                     :]
 
                 background_roi_1 = raw_data[
-                    start_K_roi[1]:end_K_roi[1],
                     end_H_roi[1]:end_H_background[1],
+                    start_K_roi[1]:end_K_roi[1],
                     :]
 
                 background_roi_2 = raw_data[
-                    start_K_background[1]:start_K_roi[1],
                     start_H_roi[1]:end_H_roi[1],
+                    start_K_background[1]:start_K_roi[1],
                     :]
 
                 background_roi_3 = raw_data[
-                    end_K_roi[1]:end_K_background[1],
                     start_H_roi[1]:end_H_roi[1],
+                    end_K_roi[1]:end_K_background[1],
                     :]
 
-                background_value = np.mean(
-                    background_roi_0.mean(axis=(0, 1)) + \
-                    background_roi_1.mean(axis=(0, 1)) + \
-                    background_roi_2.mean(axis=(0, 1)) + \
-                    background_roi_3.mean(axis=(0, 1)),
-                    axis=(0, 1)
-                )
+                background_values = (
+                    background_roi_0.mean(axis=(0, 1)) +
+                    background_roi_1.mean(axis=(0, 1)) +
+                    background_roi_2.mean(axis=(0, 1)) +
+                    background_roi_3.mean(axis=(0, 1))
+                ) / 4
 
-                # Remove background
-                roi_2D = roi_2D - background_value
+                # Remove background for each pixel in ROI before integrating
+                # roi_2D is a 3D array and background_values a 1D array
+                roi_2D = roi_2D - background_values
 
-            elif isinstance(center_background, list) and center_background != HK_peak:
+            elif isinstance(center_background, list) \
+                    and center_background != HK_peak:
                 # Background intensity, define roi indices
                 start_H_background = find_value_in_array(
                     scan_h_axis, background_range_H[0])
@@ -813,26 +817,22 @@ class CTR:
                     background_2D.shape[1]
 
             # Save background
-            if background_value:
+            try:
                 if isinstance(interpol_step, float):
-                    tck_2D = splrep(
-                        scan_l_axis, background_2D.sum(axis=(0, 1)), s=0)
-                    background_2D_sum = splev(l_axis, tck_2D)
+                    tck = splrep(scan_l_axis, background_values)
+                    background_values = splev(l_axis, tck)
 
-                    # Save background
-                    data[i, 2, :] = background_2D_sum / nb_pixel_background_2D
+                    data[i, 2, :] = background_values
                 else:
-                    background_2D_sum = background_2D.sum(axis=(0, 1))
+                    data[i, 2, :len(scan_l_axis)] = background_values
 
-                    # Save background
-                    data[i, 2, :len(scan_l_axis)] = background_2D_sum / \
-                        nb_pixel_background_2D
+            except NameError:
+                print(
+                    "No background subtracted"
+                    "\n###########################################################"
+                )
 
-            else:
-                print("No background subtracted")
-                print("###########################################################")
-
-            # Save date
+            # Save data
             if isinstance(interpol_step, float):
                 # Save x axis
                 data[i, 0, :] = l_axis
@@ -840,7 +840,7 @@ class CTR:
                 # Save intensities
                 tck = splrep(scan_l_axis, roi_2D.sum(axis=(0, 1)))
                 roi_2D_sum = splev(l_axis, tck)
-                data[i, 1, :] = roi_2D_sum / nb_pixel_roi
+                data[i, 1, :] = roi_2D_sum
 
             else:
                 # Save x axis
@@ -863,25 +863,53 @@ class CTR:
                 plt.title("Intensity summed over L", fontsize=15)
 
                 # Plot data ROI
-                plt.axvline(x=start_H_roi[0], color='red', linestyle="--")
-                plt.axvline(x=end_H_roi[0], color='red', linestyle="--")
+                plt.axvline(
+                    x=start_H_roi[0],
+                    color='red',
+                    linestyle="--"
+                )
+                plt.axvline(
+                    x=end_H_roi[0],
+                    color='red',
+                    linestyle="--"
+                )
 
-                plt.axhline(y=start_K_roi[0], color='red', linestyle="--")
-                plt.axhline(y=end_K_roi[0], color='red',
-                            linestyle="--", label="ROI")
+                plt.axhline(
+                    y=start_K_roi[0],
+                    color='red',
+                    linestyle="--"
+                )
+                plt.axhline(
+                    y=end_K_roi[0],
+                    color='red',
+                    linestyle="--",
+                    label="ROI"
+                )
 
                 if center_background != False:
                     # Plot background ROI
                     plt.axvline(
-                        x=start_H_background[0], color='blue', linestyle="--")
+                        x=start_H_background[0],
+                        color='blue',
+                        linestyle="--"
+                    )
                     plt.axvline(
-                        x=end_H_background[0], color='blue', linestyle="--")
+                        x=end_H_background[0],
+                        color='blue',
+                        linestyle="--"
+                    )
 
                     plt.axhline(
-                        y=start_K_background[0], color='blue', linestyle="--")
+                        y=start_K_background[0],
+                        color='blue',
+                        linestyle="--"
+                    )
                     plt.axhline(
-                        y=end_K_background[0], color='blue', linestyle="--",
-                        label="Bckd")
+                        y=end_K_background[0],
+                        color='blue',
+                        linestyle="--",
+                        label="Background"
+                    )
 
                 # Legend
                 plt.legend()
@@ -889,9 +917,11 @@ class CTR:
                 plt.close()
 
         # Saving
-        print("\n###########################################################")
-        print(f"Saving data as: {folder}{save_name}.npy")
-        print("###########################################################")
+        print(
+            "\n###########################################################"
+            f"\nSaving data as: {folder}{save_name}.npy"
+            "\n###########################################################"
+        )
         np.save(folder + save_name, data)
 
     def load_fitaid_data(
@@ -904,7 +934,10 @@ class CTR:
         verbose=False,
     ):
         """
-        Load CTR integrated via binoculars-fitaid
+        Load CTR integrated via binoculars-fitaid, two columns data with L
+        and the absolute structure factor values.
+
+        Prefer nisf data, detail here the differences
 
         :param folder: path to data folder
         :param scan_indices: list of CTR scans indices
@@ -931,14 +964,18 @@ class CTR:
         scan_files = [f for f in files if any(
             [n in f for n in scan_indices])]
         if verbose:
-            print("\n###########################################################")
-            print(f"Detected files in {folder}:")
+            print(
+                "\n###########################################################"
+                f"\nDetected files in {folder}:"
+            )
             for f in files:
                 print("\t", f)
             print("###########################################################\n")
 
-            print("\n###########################################################")
-            print("Working on the following files:")
+            print(
+                "\n###########################################################"
+                "\nWorking on the following files:"
+            )
             for f in scan_files:
                 print("\t", f)
             print("###########################################################\n")
@@ -953,11 +990,11 @@ class CTR:
 
             if verbose:
                 print(
-                    "\n###########################################################")
-                print(f"Opening file {fname} ...")
-                print("\tRange and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                    min(L), max(L), len(L)))
-                print("###########################################################")
+                    "\n###########################################################"
+                    f"\nOpening file {fname} ..."
+                    f"\n\tRange and stepsize in L: [{min(L):.3f}: {max(L):.3f}: {len(L):.3f}]"
+                    "\n###########################################################"
+                )
 
             if i == 0:
                 l_min = np.round(min(L), 3)
@@ -968,27 +1005,24 @@ class CTR:
                 l_max = np.round(min(l_max, max(L)), 3)
                 l_length = max(l_length, len(L))
 
-        print("\n###########################################################")
-        print(f"Smallest common range in L is [{l_min} : {l_max}]")
-        print("###########################################################")
+        print(
+            "\n###########################################################"
+            f"\nSmallest common range in L is [{l_min} : {l_max}]"
+            "\n###########################################################"
+        )
 
         # Create new x axis for interpolation
         if isinstance(interpol_step, float):
             l_axis = np.arange(l_min, l_max, interpol_step)
+            l_length = len(l_axis)
 
-            # Save final data as numpy array
-            # 0 is x axis, 1 is data, 2 is background
-            data = np.nan * \
-                np.empty((len(scan_files), 3, (len(l_axis))))
-        else:
-            # Save final data as numpy array
-            # 0 is x axis, 1 is data, 2 is background
-            data = np.nan * np.empty((len(scan_files), 3, l_length))
+        # Save final data as numpy array
+        # 0 is x axis, 1 is data, 2 is background
+        data = np.nan * np.empty((len(scan_files), 3, l_length))
 
-        # Background already subtracted, left as nan
+        # Background already subtracted
         # Get l axis and CTR intensity for each file
         for i, fname in enumerate(scan_files):
-
             # Load data
             fitaid_data = np.loadtxt(folder + fname)
             scan_l_axis = fitaid_data[:, 0]
@@ -1006,9 +1040,11 @@ class CTR:
                 data[i, 1, :len(scan_l_axis)] = ctr_data
 
         # Saving
-        print("\n###########################################################")
-        print(f"Saving data as: {folder}{save_name}.npy")
-        print("###########################################################")
+        print(
+            "\n###########################################################"
+            f"\nSaving data as: {folder}{save_name}.npy"
+            "\n###########################################################"
+        )
         np.save(folder + save_name, data)
 
     def load_ROD_data(
@@ -1031,9 +1067,8 @@ class CTR:
         :param scan_indices: indices of maps scans, list
         :param save_name: name of file in which the results are saved, saved in
          folder.
-        :param data_type: type of data to load from binoculars, usually the
-         possibilities are "nisf" or "sf". Prefer nisf data, detail here the
-         differences
+        :param data_column: index of column to plot
+        :param glob_string_match: string used in glob matching of files
         :param interpol_step: step size in interpolation along L, to avoid
          problem with analysing CTR with different steps. No interpolation if
          False, default.
@@ -1051,14 +1086,18 @@ class CTR:
         scan_files = [f for f in files if any(
             [n in f for n in scan_indices])]
         if verbose:
-            print("\n###########################################################")
-            print(f"Detected files in {folder}:")
+            print(
+                "\n###########################################################"
+                f"Detected files in {folder}:"
+            )
             for f in files:
                 print("\t", f)
             print("###########################################################\n")
 
-            print("\n###########################################################")
-            print("Working on the following files:")
+            print(
+                "\n###########################################################"
+                "Working on the following files:"
+            )
             for f in scan_files:
                 print("\t", f)
             print("###########################################################\n")
@@ -1073,11 +1112,11 @@ class CTR:
 
             if verbose:
                 print(
-                    "\n###########################################################")
-                print(f"Opening file {fname} ...")
-                print("\tRange and stepsize in L: [{0:.3f}: {1:.3f}: {2:.3f}]".format(
-                    min(L), max(L), len(L)))
-                print("###########################################################")
+                    "\n###########################################################"
+                    f"\nOpening file {fname} ..."
+                    f"\n\tRange and stepsize in L: [{min(L):.3f}: {max(L):.3f}: {len(L):.3f}]"
+                    "\n###########################################################"
+                )
 
             if i == 0:
                 l_min = np.round(min(L), 3)
@@ -1088,24 +1127,21 @@ class CTR:
                 l_max = np.round(min(l_max, max(L)), 3)
                 l_length = max(l_length, len(L))
 
-        print("\n###########################################################")
-        print(f"Smallest common range in L is [{l_min} : {l_max}]")
-        print("###########################################################")
+        print(
+            "\n###########################################################"
+            f"\nSmallest common range in L is [{l_min} : {l_max}]"
+            "###########################################################"
+        )
 
         # Create new x axis for interpolation
         if isinstance(interpol_step, float):
             l_axis = np.arange(l_min, l_max, interpol_step)
+            l_length = len(l_axis)
 
-            # Save final data as numpy array
-            # 0 is x axis, 1 is data, 2 is background
-            data = np.nan * \
-                np.empty((len(scan_files), 3, (len(l_axis))))
-        else:
-            # Save final data as numpy array
-            # 0 is x axis, 1 is data, 2 is background
-            data = np.nan * np.empty((len(scan_files), 3, l_length))
+        # Save final data as numpy array
+        # 0 is x axis, 1 is data, 2 is background
+        data = np.nan * np.empty((len(scan_files), 3, l_length))
 
-        # Background already subtracted, left as nan
         # Get l axis and CTR intensity for each file
         for i, fname in enumerate(scan_files):
 
@@ -1126,9 +1162,11 @@ class CTR:
                 data[i, 1, :len(scan_l_axis)] = ctr_data
 
         # Saving
-        print("\n###########################################################")
-        print(f"Saving data as: {folder}{save_name}.npy")
-        print("###########################################################")
+        print(
+            "\n###########################################################"
+            f"\nSaving data as: {folder}{save_name}.npy"
+            "###########################################################"
+        )
         np.save(folder + save_name, data)
 
     @ staticmethod
@@ -1509,8 +1547,10 @@ def modify_surface_relaxation(
 
     # Print new file
     if print_new_file:
-        print("\n############### New surface file ###############")
-        print(f"################## r = {relaxation:.3f}  ##################\n")
+        print(
+            "\n############### New surface file ###############"
+            f"################## r = {relaxation:.3f}  ##################\n"
+        )
         for line in new_file_lines:
             print(line, end="")
 
