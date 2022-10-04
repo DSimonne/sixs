@@ -56,7 +56,7 @@ class Map:
             # Get raw data
             ct = f.root.binoculars.counts[...]
             cont = f.root.binoculars.contributions[...]
-            self.raw_data = np.divide(ct, cont, where=cont != 0)
+            self.raw_data = np.where(cont!=0, ct/cont, 0)
 
             # Get which type of projection we are working with
             # HKL
@@ -683,7 +683,7 @@ class CTR:
                 ct = f.root.binoculars.counts[...]
                 cont = f.root.binoculars.contributions[...]
 
-                raw_data = np.divide(ct, cont, where=cont != 0)
+                raw_data = np.where(cont!=0, ct/cont, 0)
 
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
