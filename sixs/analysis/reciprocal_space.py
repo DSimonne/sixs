@@ -515,7 +515,10 @@ class CTR:
             region of interest
             * the data is integrated in the ROI
 
-        Saves the result as a numpy array on disk.
+        Saves the result as a numpy array on disk:
+            * dim 0: L
+            * dim 1: Integrated intensity I(L) along the ROD (~ |F(L)|² )
+            * dim 2: Background removed from each pixel in the ROD ROI.
 
         :param folder: path to data folder
         :param scan_indices: indices of maps scans, list
@@ -555,16 +558,15 @@ class CTR:
         if verbose:
             print(
                 "\n###########################################################"
-                f"Detected files in {folder}:"
+                f"\nDetected files in {folder}:"
             )
             for f in files:
                 print("\t", f)
-            print(
-                "###########################################################\n")
 
             print(
+                "###########################################################\n"
                 "\n###########################################################"
-                "Working on the following files:"
+                "\nWorking on the following files:"
             )
             for f in scan_files:
                 print("\t", f)
@@ -660,7 +662,7 @@ class CTR:
             "\n###########################################################"
         )
 
-        # Create new L axis
+        # Create new L axis for interpolation
         if isinstance(interpol_step, float):
             l_axis = np.arange(l_min, l_max, interpol_step)
             l_length = len(l_axis)
@@ -678,17 +680,10 @@ class CTR:
                 )
 
             with tb.open_file(folder + fname, "r") as f:
-
                 ct = f.root.binoculars.counts[...]
                 cont = f.root.binoculars.contributions[...]
 
                 raw_data = np.divide(ct, cont, where=cont != 0)
-
-                # Need to swap the h and k axes
-                # raw_data = np.swapaxes(raw_data, 0, 1)
-
-                # Need to flip K axis in the data
-                # raw_data = np.flip(raw_data, axis=(0))
 
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
@@ -701,14 +696,9 @@ class CTR:
             scan_l_axis = np.round(np.linspace(
                 L[1], L[2], 1 + int(L[5] - L[4])), 3)
 
-            # Need to flip K axis values
-            # scan_k_axis = np.flip(scan_k_axis)
-
-            # CTR intensity, define roi indices
+            # Define roi indices
             start_H_roi = find_value_in_array(scan_h_axis, CTR_range_H[0])
             end_H_roi = find_value_in_array(scan_h_axis, CTR_range_H[1])
-
-            # CHECK Inverted here ?
             start_K_roi = find_value_in_array(scan_k_axis, CTR_range_K[0])
             end_K_roi = find_value_in_array(scan_k_axis, CTR_range_K[1])
 
@@ -720,8 +710,6 @@ class CTR:
                 )
 
             # Get data only in specific ROI
-            # CAREFUL WITH THE ORDER OF H AND K HERE
-            # CHECK don't need to change if I flipped the data right ?
             roi_2D = raw_data[
                 start_H_roi[1]:end_H_roi[1],
                 start_K_roi[1]:end_K_roi[1],
@@ -1088,7 +1076,7 @@ class CTR:
         if verbose:
             print(
                 "\n###########################################################"
-                f"Detected files in {folder}:"
+                f"\nDetected files in {folder}:"
             )
             for f in files:
                 print("\t", f)
@@ -1096,7 +1084,7 @@ class CTR:
 
             print(
                 "\n###########################################################"
-                "Working on the following files:"
+                "\nWorking on the following files:"
             )
             for f in scan_files:
                 print("\t", f)
