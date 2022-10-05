@@ -17,10 +17,10 @@ Which version to use for binoculars ?
 NOTES ON BINOCULARS-FITAID:
 The resolution parameter in L is very important and gives the range of values
 which will be averaged during the HK projection calculations.
-Smaller value will give better resolution in the final integrated CTR curve, but
-there is a danger that some of the voxels will not have any intensity assigned
-and needs to be interpolated. This due to the fact that the resolution of the
-original scan might not have been sufficient (especially for high Q) and not
+A smaller value will give a better resolution in the final integrated CTR curve,
+but it may be that some of the voxels will not have any intensity assigned and
+need to be interpolated. This is due to the resolution of the original scan
+which might not have been sufficient (especially for high Q) and therefore not
 every voxel in reciprocal space map has an assigned value (Drnec et al.,
 J. Appl. Cryst., 47 (2014), 365-377).
 You can either increase the resolution parameter or rely on the interpolation.
@@ -28,13 +28,14 @@ The best is to use a larger resolution directly in binoculars-process to avoid
 such effects, and then use the same step when integrating the data.
 
 The structure factor for each L can be determined by integrating the reflection
-intensity in the slice. FitAid determines the structure factors by:
+intensity in the slice. Fitaid determines the structure factors by:
 * Fitting the reflection with the function chosen in the dropdown list below the
     slider. The fitting is also used for the determination of the center of the
     reflection.
 * Interpolating the slice in the selected ROI and then integrating within the
     ROI with proper background subtraction.
 * Integrating within the selected ROI without the interpolation.
+Q: What is the range around the point used for interpolation ? 2D or 3D ?
 
 The first step is to try to fit the data with the selected function so that the
 peak tracker, which depends on the center of the reflection determined by the
@@ -48,7 +49,7 @@ peak tracking is not working correctly. In this case the center of the ROI is
 selected by unticking the peak tracker tick box and clicking on the slice in the
 position of desired center of the ROI.
 Selecting the center in one slice selects the same center for all other slices
-within the same rod. Different rods can have different ROI centers.
+within the same rod.
 
 The background selection is important and it is a crucial part for obtaining
 correct structure factors. Three values are calculated for establishing the
@@ -56,16 +57,24 @@ structure factors:
 
 * sf (structure factor): all voxels with no value are interpolated with a scipy
     interpolate function (in the slice ?). Then, the sum is taken over all
-    the values in the area indicated by the ROI(divided by the nb of voxels ?).
+    the values in the area indicated by the ROI.
     The background is calculated by taking the sum of all the values of selected
     background regions, corrected by the number of voxels.
-    sf = sqrt(roi - #roi / #bkg * bkg) ???
-* nisf (no interpolation structure factor: the same calculation is performed as
+    If we have:
+        roi: the integrated intensity in the ROI
+        #roi: the nb of voxels in the ROI
+        bkg: the integrated background
+        #roi: the nb of voxels in the background
+    We have for the structure factor:
+        sf = sqrt[roi - (#roi / #bkg) * bkg]
+* nisf (no interpolation structure factor): the same calculation is performed as
     the sf except that it omits the interpolation of the empty voxels.
 * fitsf: same calculation as with sf except that instead of the raw data, the
     result from the fit is used to do the calculation. It is numerically
     integrating the result of the fit and subtracting the background as selected
     by the ROI and the background regions.
+    Q: What does it exactly ? Use the resulting parameter of the fit to create
+    a peak and then integrate this peak ?
 
 It is also a good idea to check for few L values if the reflections are within
 the ROI and don't spill to the background.
@@ -133,7 +142,6 @@ class Map:
             * Divide counts by contribution where cont != 0
             * Swap the h and k axes to be consistent with the indexing
                 [h, k, l], or [Qx, Qy, Qz].
-            * Flip k axis
 
         :param file_path: full path to .hdf5 file
         """
@@ -141,11 +149,10 @@ class Map:
         self.file_path = file_path
 
         with tb.open_file(self.file_path) as f:
-
             # Get raw data
             ct = f.root.binoculars.counts[...]
             cont = f.root.binoculars.contributions[...]
-            self.raw_data = np.where(cont!=0, ct/cont, 0)
+            self.raw_data = np.where(cont != 0, ct/cont, np.nan)
 
             # Get which type of projection we are working with
             # HKL
@@ -208,13 +215,12 @@ class Map:
                 self.Q = f.root.binoculars.axes.Q[...]
 
             if hkl == True:
-                self.data = np.swapaxes(self.raw_data, 0, 2)
+                self.data = np.swapaxes(self.raw_data, 0, 2)  # l, k, h
                 self.H = f.root.binoculars.axes.H[...]
                 self.K = f.root.binoculars.axes.K[...]
                 self.L = f.root.binoculars.axes.L[...]
 
             if QxQy == True:
-
                 self.data = self.raw_data
                 self.Z = f.root.binoculars.axes.Qz[...]
                 self.X = f.root.binoculars.axes.Qx[...]
@@ -226,15 +232,12 @@ class Map:
                 self.X = f.root.binoculars.axes.Qpar[...]
 
             if Qphi == True:
-                x_axis = np.linspace(
+                self.Q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
-                self.Q_axis = x_axis
-                y_axis = np.linspace(
+                self.Qxyz_axis = np.linspace(
                     self.Qxyz[1], self.Qxyz[2], 1+self.Qxyz[5]-self.Qxyz[4])
-                self.Qxyz_axis = y_axis
-                z_axis = np.linspace(
+                self.Phi_axis = np.linspace(
                     self.Phi[1], self.Phi[2], 1+self.Phi[5]-self.Phi[4])
-                self.Phi_axis = z_axis
 
             if Qindex == True:
                 self.q_axis = np.linspace(
@@ -254,23 +257,20 @@ class Map:
                     self.L[1], self.L[2], 1 + int(self.L[5] - self.L[4])), 3)
 
             if QxQy == True:
-                x_axis = np.linspace(
+                self.Qx_axis = np.linspace(
                     self.X[1], self.X[2], 1 + int(self.X[5]-self.X[4]))
-                self.Qx_axis = x_axis
-                y_axis = np.linspace(
+                self.Qy_axis = np.linspace(
                     self.Y[1], self.Y[2], 1 + int(self.Y[5]-self.Y[4]))
                 self.Qy_axis = y_axis
-                z_axis = np.linspace(
+                self.Qz_axis = np.linspace(
                     self.Z[1], self.Z[2], 1 + int(self.Z[5]-self.Z[4]))
                 self.Qz_axis = z_axis
 
             if QparQper == True:
-                x_axis = np.linspace(
+                self.Qpar = np.linspace(
                     self.X[1], self.X[2], 1+self.X[5]-self.X[4])
-                self.Qpar = x_axis
-                y_axis = np.linspace(
+                self.Qper = np.linspace(
                     self.Y[1], self.Y[2], 1+self.Y[5]-self.Y[4])
-                self.Qper = y_axis
 
             print(
                 "\n############################################################"
@@ -395,7 +395,7 @@ class Map:
         try:
             img = self.projected_data
         except AttributeError:
-            print("Use the methods `project_data` to define the data first.")
+            return("Use the methods `project_data` to define the data first.")
 
         if self.projection_axis == 'H':
             axis1 = self.k_axis
@@ -506,9 +506,14 @@ class Map:
 
 class CTR:
     """
-    Loads an hdf5 file created by binoculars that represents a 3D map of the
+    Loads a hdf5 file created by binoculars that represents a 3D map of the
     reciprocal space and provides integration methods to analyse the diffracted
     intensity along one direction.
+
+    The binocular data is loaded as follow:
+        * Divide counts by contribution where cont != 0
+        * Swap the h and k axes to be consistent with the indexing
+            [h, k, l], or [Qx, Qy, Qz].
 
     For now the classical workflow is the following:
     * process the data with binoculars, creating hdf5 files
@@ -537,9 +542,9 @@ class CTR:
         """
         Init the class with configuration file
 
-        :param configuration_file: False, .yml file that stores metadata
-            specific to the reaction, if False, defaults to self.path_package + 
-            "experiments/ammonia.yml"
+        :param configuration_file: default is False. `.yml` file that stores
+            metadata specific to the reaction, if False, defaults to
+            self.path_package + "experiments/ammonia.yml"
         """
 
         self.path_package = inspect.getfile(sixs).split("__")[0]
@@ -590,23 +595,26 @@ class CTR:
         verbose=False,
     ):
         """
-        Integrate the 3D data along two direction with a specific area.
-
-        The binocular data is loaded as follow:
-            Divide counts by contribution where cont != 0
-            Swap the h and k axes to have a good convention
-            Flip k axis
+        Integrate 3D data along two directions with a specific ROI.
 
         The data is computed as follow:
             * the background intensity is computed from four regions of interest
-            that are squares lying around the data region of interest
+                that are squares lying around the data region of interest
             * the background intensity is subtracted to each pixel in the data
-            region of interest
+                region of interest
             * the data is integrated in the ROI
+
+        If we have:
+            roi: the integrated intensity in the ROI
+            #roi: the nb of voxels in the ROI
+            bkg: the integrated background
+            #roi: the nb of voxels in the background
+        We have for the structure factor:
+            sf = sqrt[roi - (#roi / #bkg) * bkg]
 
         Saves the result as a numpy array on disk:
             * dim 0: L
-            * dim 1: Integrated intensity I(L) along the ROD (~ |F(L)|² )
+            * dim 1: Structure factor F(L) along the ROD, np.sqrt(I(L))
             * dim 2: Background removed from each pixel in the ROD ROI.
 
         :param folder: path to data folder
@@ -772,7 +780,8 @@ class CTR:
                 ct = f.root.binoculars.counts[...]
                 cont = f.root.binoculars.contributions[...]
 
-                raw_data = np.where(cont!=0, ct/cont, 0)
+                raw_data = np.where(cont != 0, ct/cont, np.nan)
+                raw_data = np.swapaxes(raw_data, 0, 2)  # originally l, k, h
 
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
@@ -799,14 +808,24 @@ class CTR:
                 )
 
             # Get data only in specific ROI
-            ROI_2D = raw_data[
-                start_H_ROI[1]:end_H_ROI[1],
-                start_K_ROI[1]:end_K_ROI[1],
-                :]
+            ROI_2D = raw_data[:,
+                              start_K_ROI[1]:end_K_ROI[1],
+                              start_H_ROI[1]:end_H_ROI[1],
+                              ]
+            self.ROI_2D = ROI_2D
+
+            # Integrate the data in the ROI, replace nan by zeroes otherwise
+            # the total is equal to np.nan
+            intensity = np.sum(np.nan_to_num(ROI_2D), axis=(1, 2))
+
+            # Count number of non-np.nan pixels in the ROI
+            # These pixels do not have an intensity (!= from zero intensity),
+            # they were not recorded.
+            roi_pixel_count = np.sum(~np.isnan(ROI_2D), axis=(1, 2))
 
             # Compute background
             if center_background == HK_peak:
-                # Background intensity, define ROI indices
+                # Define background ROIs indices
                 start_H_background = find_value_in_array(
                     scan_h_axis,
                     background_range_H[0]
@@ -835,37 +854,55 @@ class CTR:
                         "\n###########################################################"
                     )
 
-                # Define the background ROIs
+                # Define background ROIs
                 background_ROI_0 = raw_data[
-                    start_H_background[1]:start_H_ROI[1],
+                    :,
                     start_K_ROI[1]:end_K_ROI[1],
-                    :]
+                    start_H_background[1]:start_H_ROI[1],
+                ]
 
                 background_ROI_1 = raw_data[
-                    end_H_ROI[1]:end_H_background[1],
+                    :,
                     start_K_ROI[1]:end_K_ROI[1],
-                    :]
+                    end_H_ROI[1]:end_H_background[1],
+                ]
 
                 background_ROI_2 = raw_data[
-                    start_H_ROI[1]:end_H_ROI[1],
+                    :,
                     start_K_background[1]:start_K_ROI[1],
-                    :]
+                    start_H_ROI[1]:end_H_ROI[1],
+                ]
 
                 background_ROI_3 = raw_data[
-                    start_H_ROI[1]:end_H_ROI[1],
+                    :,
                     end_K_ROI[1]:end_K_background[1],
-                    :]
+                    start_H_ROI[1]:end_H_ROI[1],
+                ]
 
-                background_values = (
-                    background_ROI_0.mean(axis=(0, 1)) +
-                    background_ROI_1.mean(axis=(0, 1)) +
-                    background_ROI_2.mean(axis=(0, 1)) +
-                    background_ROI_3.mean(axis=(0, 1))
-                ) / 4
+                # Integrate the data in the ROIs, replace nan by zeroes
+                # otherwise the total is equal to np.nan
+                background_values = \
+                    np.sum(np.nan_to_num(background_ROI_0), axis=(1, 2)) + \
+                    np.sum(np.nan_to_num(background_ROI_1), axis=(1, 2)) + \
+                    np.sum(np.nan_to_num(background_ROI_2), axis=(1, 2)) + \
+                    np.sum(np.nan_to_num(background_ROI_3), axis=(1, 2))
 
-                # Remove background for each pixel in ROI before integrating
-                # ROI_2D is a 3D array and background_values a 1D array
-                ROI_2D = ROI_2D - background_values
+                # Count number of non-np.nan pixels in the background
+                # These pixels do not # have an intensity (!= from zero
+                # intensity), they were not recorded.
+                background_pixel_count = \
+                    np.sum(~np.isnan(background_ROI_0), axis=(1, 2)) + \
+                    np.sum(~np.isnan(background_ROI_1), axis=(1, 2)) + \
+                    np.sum(~np.isnan(background_ROI_2), axis=(1, 2)) + \
+                    np.sum(~np.isnan(background_ROI_3), axis=(1, 2))
+
+                # Remove background
+                structure_factor = np.nan_to_num(np.where(
+                    background_pixel_count > 0,
+                    np.sqrt(
+                        intensity - ((roi_pixel_count / background_pixel_count) * background_values)),
+                    0
+                ))
 
             elif isinstance(center_background, list) \
                     and center_background != HK_peak:
@@ -900,39 +937,39 @@ class CTR:
 
                 # Define the background ROI
                 background_ROI = raw_data[
-                    start_H_background[1]:end_H_background[1],
+                    :,
                     start_K_background[1]:end_K_background[1],
-                    :]
+                    start_H_background[1]:end_H_background[1],
+                ]
 
-                background_values = background_ROI.mean(axis=(0, 1))
+                background_values = np.sum(background_ROI, axis=(1, 2))
 
-                # Remove background for each pixel in ROI before integrating
-                # ROI_2D is a 3D array and background_values a 1D array
-                ROI_2D = ROI_2D - background_values
-
-            # Save background
-            try:
-                if isinstance(interpol_step, float):
-                    tck = splrep(scan_l_axis, background_values)
-                    background_values = splev(l_axis, tck)
-
-                    data[i, 2, :] = background_values
-                else:
-                    data[i, 2, :len(scan_l_axis)] = background_values
-
-            except NameError:
-                print(
-                    "No background subtracted"
-                    "\n###########################################################"
+                # Count number of non-np.nan pixels in the background
+                # These pixels do not # have an intensity (!= from zero
+                # intensity), they were not recorded.
+                background_pixel_count = np.sum(
+                    ~np.isnan(background_ROI_0) + ~np.isnan(background_ROI_1) +
+                    ~np.isnan(background_ROI_2) + ~np.isnan(background_ROI_3)
                 )
+
+                # Remove background
+                structure_factor = np.nan_to_num(np.where(
+                    background_pixel_count > 0,
+                    np.sqrt(
+                        intensity - ((roi_pixel_count / background_pixel_count) * background_values)),
+                    0
+                ))
+
+            else:
+                structure_factor = np.sqrt(intensity)
 
             # Save data
             if isinstance(interpol_step, float):
                 # Save x axis
                 data[i, 0, :] = l_axis
 
-                # Save intensities
-                tck = splrep(scan_l_axis, ROI_2D.sum(axis=(0, 1)))
+                # Save structure factor
+                tck = splrep(scan_l_axis, structure_factor)
                 ROI_2D_sum = splev(l_axis, tck)
                 data[i, 1, :] = ROI_2D_sum
 
@@ -940,16 +977,38 @@ class CTR:
                 # Save x axis
                 data[i, 0, :len(scan_l_axis)] = scan_l_axis
 
-                # Save intensities
-                data[i, 1, :len(scan_l_axis)] = ROI_2D.sum(axis=(0, 1))
+                # Save structure factor
+                data[i, 1, :len(scan_l_axis)] = structure_factor
 
-            # Resume with a plot
+            # Save background
+            try:
+                if isinstance(interpol_step, float):
+                    tck = splrep(scan_l_axis, background_values /
+                                 background_pixel_count)
+                    background = splev(l_axis, tck)
+
+                    data[i, 2, :] = background
+                else:
+                    data[i, 2, :len(scan_l_axis)] = background
+
+            except NameError:
+                print(
+                    "No background subtracted"
+                    "\n###########################################################"
+                )
+
             if verbose:
+                # Resume with a plot
+                img = np.sum(np.nan_to_num(raw_data),
+                             axis=0)  # sum over L axis
+                # need to flip to have a plot coherent with binoculars
+                img = np.flip(img, axis=0)
+
                 plt.figure(figsize=(8, 8))
                 plt.imshow(
-                    np.sum(raw_data, axis=2),
+                    img,
                     norm=LogNorm(),
-                    cmap="cividis",
+                    cmap="jet",
                     extent=(H[1], H[2], K[1], K[2]),
                 )
                 plt.xlabel("H", fontsize=15)
@@ -1007,6 +1066,7 @@ class CTR:
 
                 # Legend
                 plt.legend()
+                plt.colorbar()
                 plt.show()
                 plt.close()
 
@@ -1030,8 +1090,6 @@ class CTR:
         """
         Load CTR integrated via binoculars-fitaid, two columns data with L
         and the absolute structure factor values.
-
-        Prefer nisf data, detail here the differences
 
         :param folder: path to data folder
         :param scan_indices: list of CTR scans indices
@@ -1287,9 +1345,8 @@ class CTR:
         Plot the CTRs together
 
         :param numpy_array: path to .npy file on disk.
-        TODO problem here, inverting indices in array
             - l
-            - data
+            - data - background
             - background
         :param scan_indices: scan indices of files plotted, in order, used for
          labelling, mandatory because we need to know what we plot!
@@ -1326,12 +1383,7 @@ class CTR:
         for (i, arr), scan_index in zip(enumerate(data), scan_indices):
             # take l again but still or better to keep x values in the same array with y
             l = arr[0, :]  # x axis
-            y = arr[1, :]  # data
-            b = arr[2, :]  # background
-
-            # Remove background
-            # Replace nan by zeroes for background, makes more sense
-            y_plot = y-np.nan_to_num(b)
+            y_plot = arr[1, :]  # data - background
 
             # Add label
             if isinstance(labels, dict):
