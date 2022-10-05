@@ -1381,7 +1381,6 @@ class CTR:
 
         # Iterate on data
         for (i, arr), scan_index in zip(enumerate(data), scan_indices):
-            # take l again but still or better to keep x values in the same array with y
             l = arr[0, :]  # x axis
             y_plot = arr[1, :]  # data - background
 
@@ -1477,7 +1476,9 @@ class CTR:
             if i == fill_first:
                 y_first = y_plot
 
-            elif i == len(data) + fill_last:
+            if fill_last<0 and i == len(data) + fill_last:
+                y_last = y_plot
+            elif fill_last>0 and i == fill_last:
                 y_last = y_plot
 
         # Ticks
@@ -1491,9 +1492,10 @@ class CTR:
         # Filling
         if fill:
             try:
-                # Add filling
-                plt.fill_between(x_axis, y_first, y_last, alpha=0.1)
-            except:
+                # Add filling, works only if same l axis for both
+                plt.fill_between(l, y_first, y_last, alpha=0.1)
+            except Exception as E:
+                raise E
                 print("Could not add filling.")
 
         # Legend and axis labels
