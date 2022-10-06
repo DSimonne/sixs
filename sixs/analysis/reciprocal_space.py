@@ -121,6 +121,7 @@ import shutil
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
+from matplotlib import patches
 from scipy.interpolate import splrep, splev
 
 
@@ -363,13 +364,17 @@ class Map:
         zoom_axis1=[None, None],
         zoom_axis2=[None, None],
         interpolation="none",
-        vmin=0.1,
-        vmax=2000,
+        vmin=None,
+        vmax=None,
         figsize=(16, 9),
         title=None,
         cmap="jet",
-        save_path=False,
         three_d_plot=False,
+        circles=None,
+        arcs=False,
+        lines=False,
+        grid=False,
+        save_path=False,
     ):
         """
         Plot/save a hdf5 map.
@@ -383,14 +388,24 @@ class Map:
          axis.
         :param interpolation: default is 'none'. See plt.imshow? for options,
             other options are 'nearest', 'gouraud', ...
-        :param vmin: default is 0.1
-        :param vmax: default is 2000
+        :param vmin: default is 0.1, you can also use None
+        :param vmax: default is 1000, you can also use None
         :param figsize: default is (16, 9)
         :param title: figure title
         :param cmap: color map used, pick from
             https://matplotlib.org/stable/tutorials/colors/colormaps.html
-        :param save_path: path to save file at
         :param three_d_plot: True to show a 3D plot
+        :param circles: list of tuples of length 5 that follows:
+            (x, y, radius, color, alpha)
+            e.g.: [(1, 1, 0.1, 'r', 0.5),]
+        :param arcs: list of tuples of length 9 that follows:
+            (x, y, width, height, rotation_angle, theta1, theta2, color, alpha)
+            e.g.: [(0, 0, 1, 1, 0 ,270, 360, "r", 0.8),]
+        :param lines: list of tuples of length 6 that follows:
+            (x1, y1, x2, y2, color, alpha),
+            e.g.: [(0, 0, 1, 1, 'r', 0.5)]
+        :param grid: True to show a grid
+        :param save_path: path to save file at
         """
         try:
             img = self.projected_data
@@ -457,6 +472,8 @@ class Map:
         # Plot
         if three_d_plot:
             X, Y = np.meshgrid(axis1, axis2)
+            if vmin is None:
+                vmin = 0.1
             Z = np.where(img > vmin, np.log(img), 0)
 
             fig, ax = plt.subplots(
@@ -474,12 +491,56 @@ class Map:
 
         else:
             fig, ax = plt.subplots(figsize=figsize)
+
+            # Circles
+            if isinstance(circles, list):
+                circles_patches = [
+                    patches.Circle(
+                        xy=(x, y),
+                        radius=r,
+                        color=c,
+                        alpha=al,
+                        fill=False,
+                    )
+                    for (x, y, r, c, al) in circles
+                ]
+
+                for cp in circles_patches:
+                    ax.add_patch(cp)
+
+            # Lines
+            if isinstance(lines, list):
+                for (x1, y1, x2, y2, c, al) in lines:
+                    ax.plot([x1, x2], [y1, y2], color=c, alpha=al)
+
+            # Arc
+            if isinstance(arcs, list):
+                arc_patches = [
+                    patches.Arc(
+                        xy=(x, y),
+                        width=w,
+                        height=h,
+                        angle=ang,
+                        theta1=t1,
+                        theta2=t2,
+                        color=c,
+                        alpha=al,
+                    )
+                    for (x, y, w, h, ang, t1, t2, c, al) in arcs
+                ]
+
+                for ap in arc_patches:
+                    ax.add_patch(ap)
+
+            # Grid
+            if grid:
+                ax.grid(alpha=0.5, which='both', axis="both")
+
             plotted_img = ax.imshow(
                 img,
                 cmap=cmap,
                 interpolation=interpolation,
                 origin="lower",
-                # aspect = 'auto',
                 norm=LogNorm(vmin=vmin, vmax=vmax),
                 extent=[axis1.min(), axis1.max(), axis2.min(), axis2.max()]
             )
@@ -490,10 +551,10 @@ class Map:
         ax.tick_params(axis=('both'), labelsize=20)
 
         # Colorbar
-        cbar = fig.colorbar(plotted_img, shrink=0.5)
+        cbar = fig.colorbar(plotted_img)
         cbar.ax.tick_params(labelsize=20)
 
-        plt.tight_layout()
+        fig.tight_layout()
 
         if isinstance(title, str):
             ax.set_title(title, fontsize=20)
@@ -1115,6 +1176,10 @@ class CTR:
         # Get scans specified with scan_indices
         scan_files = [f for f in files if any(
             [n in f for n in scan_indices])]
+
+        if len(scan_files) == 0:
+            return("No matching files found in folder.")
+
         if verbose:
             print(
                 "\n###########################################################"
@@ -1476,9 +1541,9 @@ class CTR:
             if i == fill_first:
                 y_first = y_plot
 
-            if fill_last<0 and i == len(data) + fill_last:
+            if fill_last < 0 and i == len(data) + fill_last:
                 y_last = y_plot
-            elif fill_last>0 and i == fill_last:
+            elif fill_last > 0 and i == fill_last:
                 y_last = y_plot
 
         # Ticks
