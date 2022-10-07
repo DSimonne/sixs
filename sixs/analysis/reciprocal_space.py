@@ -618,7 +618,7 @@ class CTR:
             else:
                 self.configuration_file = self.path_package + "experiments/ammonia.yml"
                 print(
-                    "Could not find configuration file."
+                    "Could not find configuration file. "
                     "Defaulted to ammonia configuration."
                 )
 
@@ -637,7 +637,7 @@ class CTR:
                     setattr(self, key, yaml_parsed_file[key])
                 print(
                     "Loaded configuration file."
-                    "\n###########################################################\n"
+                    "\n###########################################################"
                 )
 
     def integrate_CTR(
@@ -1134,7 +1134,7 @@ class CTR:
         # Saving
         print(
             "\n###########################################################"
-            f"\nSaving data as: {folder}{save_name}.npy"
+            f"\nSaving data as: {folder}{save_name}"
             "\n###########################################################"
         )
         np.save(folder + save_name, data)
@@ -1259,7 +1259,7 @@ class CTR:
         # Saving
         print(
             "\n###########################################################"
-            f"\nSaving data as: {folder}{save_name}.npy"
+            f"\nSaving data as: {folder}{save_name}"
             "\n###########################################################"
         )
         np.save(folder + save_name, data)
@@ -1347,7 +1347,7 @@ class CTR:
         print(
             "\n###########################################################"
             f"\nSmallest common range in L is [{l_min} : {l_max}]"
-            "###########################################################"
+            "\n###########################################################"
         )
 
         # Create new x axis for interpolation
@@ -1381,8 +1381,8 @@ class CTR:
         # Saving
         print(
             "\n###########################################################"
-            f"\nSaving data as: {folder}{save_name}.npy"
-            "###########################################################"
+            f"\nSaving data as: {folder}{save_name}"
+            "\n###########################################################"
         )
         np.save(folder + save_name, data)
 
@@ -1442,7 +1442,11 @@ class CTR:
 
         # Load np array on disk
         data = np.load(numpy_array)
-        print("Loaded", numpy_array)
+        print(
+            "###########################################################"
+            f"\nLoaded {numpy_array}"
+            "\n###########################################################"
+        )
 
         # Iterate on data
         for (i, arr), scan_index in zip(enumerate(data), scan_indices):
