@@ -1015,7 +1015,8 @@ class CTR:
                 structure_factor = np.nan_to_num(np.where(
                     background_pixel_count > 0,
                     np.sqrt(
-                        intensity - ((roi_pixel_count / background_pixel_count) * background_values)),
+                        intensity - ((roi_pixel_count / background_pixel_count)
+                                     * background_values)),
                     0
                 ))
 
@@ -1042,13 +1043,16 @@ class CTR:
             # Save background
             try:
                 if isinstance(interpol_step, float):
-                    tck = splrep(scan_l_axis, background_values /
-                                 background_pixel_count)
+                    tck = splrep(
+                        scan_l_axis,
+                        background_values / background_pixel_count
+                    )
                     background = splev(l_axis, tck)
 
                     data[i, 2, :] = background
                 else:
-                    data[i, 2, :len(scan_l_axis)] = background
+                    data[i, 2, :len(scan_l_axis)] = background_values / \
+                        background_pixel_count
 
             except NameError:
                 print(
