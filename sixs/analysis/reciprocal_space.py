@@ -122,7 +122,6 @@ import shutil
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import patches
-from scipy.interpolate import splrep, splev
 
 
 class Map:
@@ -401,9 +400,9 @@ class Map:
         :param arcs: list of tuples of length 9 that follows:
             (x, y, width, height, rotation_angle, theta1, theta2, color, alpha)
             e.g.: [(0, 0, 1, 1, 0 ,270, 360, "r", 0.8),]
-        :param lines: list of tuples of length 6 that follows:
-            (x1, y1, x2, y2, color, alpha),
-            e.g.: [(0, 0, 1, 1, 'r', 0.5)]
+        :param lines: list of tuples of length 7 that follows:
+            (x1, y1, x2, y2, color, linestyle, alpha),
+            e.g.: [(0, 0, 1, 1, 'r', "--", 0.5)]
         :param grid: True to show a grid
         :param save_path: path to save file at
         """
@@ -510,8 +509,9 @@ class Map:
 
             # Lines
             if isinstance(lines, list):
-                for (x1, y1, x2, y2, c, al) in lines:
-                    ax.plot([x1, x2], [y1, y2], color=c, alpha=al)
+                for (x1, y1, x2, y2, c, ls, al) in lines:
+                    ax.plot([x1, x2], [y1, y2], color=c,
+                            linestyle=ls, alpha=al)
 
             # Arc
             if isinstance(arcs, list):
@@ -644,7 +644,7 @@ class CTR:
         scan_indices,
         save_name,
         glob_string_match="*.hdf5",
-        interpol_step=False,
+        bin_factor=1,
         CTR_width_H=0.02,
         CTR_width_K=0.02,
         background_width_H=0.01,
@@ -681,9 +681,7 @@ class CTR:
         :param save_name: name of file in which the results are saved, saved in
             folder.
         :param glob_string_match: string pattern used for file matching
-        :param interpol_step: step size in interpolation along L, TO AVOID
-            problem with analysing CTR with different steps. No interpolation if
-            False, default.
+        :param bin_factor: int, binning along L.
         :param CTR_width_H: width in h of CTR in reciprocal space, default is
             0.02.
         :param CTR_width_K: width in k of CTR in reciprocal space, default is
@@ -818,14 +816,13 @@ class CTR:
             "\n###########################################################"
         )
 
-        # Create new L axis for interpolation
-        if isinstance(interpol_step, float):
-            l_axis = np.arange(l_min, l_max, interpol_step)
-            l_length = len(l_axis)
-
         # Save final data as numpy array
         # 0 is x axis, 1 is data, 2 is background (compatible with ROD)
-        data = np.nan * np.empty((len(scan_files), 3, l_length))
+        data = np.nan * np.empty((
+            len(scan_files),
+            3,
+            l_length,
+        ))
 
         # Iterate on each file now to get the data
         for i, fname in enumerate(scan_files):
@@ -1023,115 +1020,126 @@ class CTR:
             else:
                 structure_factor = np.sqrt(intensity)
 
-            # Save data
-            if isinstance(interpol_step, float):
-                # Save x axis
-                data[i, 0, :] = l_axis
+            # Save x axis
+            data[i, 0, :len(scan_l_axis)] = scan_l_axis
 
-                # Save structure factor
-                tck = splrep(scan_l_axis, structure_factor)
-                ROI_2D_sum = splev(l_axis, tck)
-                data[i, 1, :] = ROI_2D_sum
-
-            else:
-                # Save x axis
-                data[i, 0, :len(scan_l_axis)] = scan_l_axis
-
-                # Save structure factor
-                data[i, 1, :len(scan_l_axis)] = structure_factor
+            # Save structure factor
+            data[i, 1, :len(scan_l_axis)] = structure_factor
 
             # Save background
             try:
-                if isinstance(interpol_step, float):
-                    tck = splrep(
-                        scan_l_axis,
-                        background_values / background_pixel_count
-                    )
-                    background = splev(l_axis, tck)
-
-                    data[i, 2, :] = background
-                else:
-                    data[i, 2, :len(scan_l_axis)] = background_values / \
-                        background_pixel_count
+                data[i, 2, :len(scan_l_axis)] = background_values / \
+                    background_pixel_count
 
             except NameError:
                 print(
                     "No background subtracted"
                     "\n###########################################################"
                 )
-
-            if verbose:
-                # Resume with a plot
-                img = np.sum(np.nan_to_num(raw_data),
-                             axis=0)  # sum over L axis
-                # need to flip to have a plot coherent with binoculars
-                img = np.flip(img, axis=0)
-
-                plt.figure(figsize=(8, 8))
-                plt.imshow(
-                    img,
-                    norm=LogNorm(),
-                    cmap="jet",
-                    extent=(H[1], H[2], K[1], K[2]),
+        if isinstance(bin_factor, int) and bin_factor > 1:
+            if l_length % bin_factor != 0:
+                print(
+                    "Cannot reshape array of size {} into shape ({},{}).".format(
+                        l_length,
+                        int(l_length/bin_factor),
+                        bin_factor,
+                    ))
+                extra_values = -(l_length % bin_factor)
+                binned_l_length = int((l_length+extra_values)/bin_factor)
+                print(
+                    f"Removing the last {extra_values} element(s) of the array."
                 )
-                plt.xlabel("H", fontsize=15)
-                plt.ylabel("K", fontsize=15)
-                plt.title("Intensity summed over L", fontsize=15)
 
-                # Plot data ROI
+            else:
+                extra_values = None
+                binned_l_length = int(l_length/bin_factor)
+
+            # Bin the data
+            data = data[:, :, :extra_values].reshape(
+                len(scan_files),
+                3,
+                binned_l_length,
+                bin_factor
+            ).mean(axis=-1)
+
+            print(
+                "\n###########################################################"
+                f"\nBinned data"
+                "\n###########################################################"
+            )
+
+        if verbose:
+            # Resume with a plot for the last dataset
+            img = np.sum(np.nan_to_num(raw_data),
+                         axis=0)  # sum over L axis
+            # need to flip to have a plot coherent with binoculars
+            img = np.flip(img, axis=0)
+
+            plt.figure(figsize=(8, 8))
+            plt.imshow(
+                img,
+                norm=LogNorm(),
+                cmap="jet",
+                extent=(H[1], H[2], K[1], K[2]),
+            )
+            plt.xlabel("H", fontsize=15)
+            plt.ylabel("K", fontsize=15)
+            plt.title("Intensity summed over L", fontsize=15)
+
+            # Plot data ROI
+            plt.axvline(
+                x=start_H_ROI[0],
+                color='red',
+                linestyle="--"
+            )
+            plt.axvline(
+                x=end_H_ROI[0],
+                color='red',
+                linestyle="--"
+            )
+
+            plt.axhline(
+                y=start_K_ROI[0],
+                color='red',
+                linestyle="--"
+            )
+            plt.axhline(
+                y=end_K_ROI[0],
+                color='red',
+                linestyle="--",
+                label="ROI"
+            )
+
+            if center_background != False:
+                # Plot background ROI
                 plt.axvline(
-                    x=start_H_ROI[0],
-                    color='red',
+                    x=start_H_background[0],
+                    color='blue',
                     linestyle="--"
                 )
                 plt.axvline(
-                    x=end_H_ROI[0],
-                    color='red',
+                    x=end_H_background[0],
+                    color='blue',
                     linestyle="--"
                 )
 
                 plt.axhline(
-                    y=start_K_ROI[0],
-                    color='red',
+                    y=start_K_background[0],
+                    color='blue',
                     linestyle="--"
                 )
                 plt.axhline(
-                    y=end_K_ROI[0],
-                    color='red',
+                    y=end_K_background[0],
+                    color='blue',
                     linestyle="--",
-                    label="ROI"
+                    label="Background"
                 )
 
-                if center_background != False:
-                    # Plot background ROI
-                    plt.axvline(
-                        x=start_H_background[0],
-                        color='blue',
-                        linestyle="--"
-                    )
-                    plt.axvline(
-                        x=end_H_background[0],
-                        color='blue',
-                        linestyle="--"
-                    )
-
-                    plt.axhline(
-                        y=start_K_background[0],
-                        color='blue',
-                        linestyle="--"
-                    )
-                    plt.axhline(
-                        y=end_K_background[0],
-                        color='blue',
-                        linestyle="--",
-                        label="Background"
-                    )
-
-                # Legend
-                plt.legend()
-                plt.colorbar()
-                plt.show()
-                plt.close()
+            # Legend
+            plt.legend()
+            plt.colorbar()
+            plt.show()
+            plt.close()
 
         # Saving
         print(
@@ -1147,7 +1155,6 @@ class CTR:
         scan_indices,
         save_name,
         glob_string_match="nisf*.txt",
-        interpol_step=False,
         verbose=False,
     ):
         """
@@ -1162,9 +1169,6 @@ class CTR:
         :param data_type: type of data to load from binoculars, usually the
          possibilities are "nisf" or "sf". Prefer nisf data, detail here the
          differences
-        :param interpol_step: step size in interpolation along L, to avoid
-         problem with analysing CTR with different steps. No interpolation if
-         False, default.
         :param verbose: True for additional informations printed during function
         """
 
@@ -1230,11 +1234,6 @@ class CTR:
             "\n###########################################################"
         )
 
-        # Create new x axis for interpolation
-        if isinstance(interpol_step, float):
-            l_axis = np.arange(l_min, l_max, interpol_step)
-            l_length = len(l_axis)
-
         # Save final data as numpy array
         # 0 is x axis, 1 is data, 2 is background
         data = np.nan * np.empty((len(scan_files), 3, l_length))
@@ -1247,16 +1246,8 @@ class CTR:
             scan_l_axis = fitaid_data[:, 0]
             ctr_data = fitaid_data[:, 1]
 
-            # Interpolate
-            if isinstance(interpol_step, float):
-                data[i, 0, :] = l_axis
-
-                tck = splrep(scan_l_axis, ctr_data, s=0)
-                data[i, 1, :] = splev(l_axis, tck)
-
-            else:
-                data[i, 0, :len(scan_l_axis)] = scan_l_axis
-                data[i, 1, :len(scan_l_axis)] = ctr_data
+            data[i, 0, :len(scan_l_axis)] = scan_l_axis
+            data[i, 1, :len(scan_l_axis)] = ctr_data
 
         # Saving
         print(
@@ -1273,7 +1264,6 @@ class CTR:
         save_name,
         data_column=7,
         glob_string_match="*.dat",
-        interpol_step=False,
         verbose=False,
     ):
         """
@@ -1288,9 +1278,6 @@ class CTR:
          folder.
         :param data_column: index of column to plot
         :param glob_string_match: string used in glob matching of files
-        :param interpol_step: step size in interpolation along L, to avoid
-         problem with analysing CTR with different steps. No interpolation if
-         False, default.
         :param verbose: True for additional informations printed during function
         """
 
@@ -1352,11 +1339,6 @@ class CTR:
             "\n###########################################################"
         )
 
-        # Create new x axis for interpolation
-        if isinstance(interpol_step, float):
-            l_axis = np.arange(l_min, l_max, interpol_step)
-            l_length = len(l_axis)
-
         # Save final data as numpy array
         # 0 is x axis, 1 is data, 2 is background
         data = np.nan * np.empty((len(scan_files), 3, l_length))
@@ -1369,16 +1351,8 @@ class CTR:
             scan_l_axis = rod_data[:, 2]
             ctr_data = rod_data[:, data_column]
 
-            # Interpolate
-            if isinstance(interpol_step, float):
-                data[i, 0, :] = l_axis
-
-                tck = splrep(scan_l_axis, ctr_data, s=0)
-                data[i, 1, :] = splev(l_axis, tck)
-
-            else:
-                data[i, 0, :len(scan_l_axis)] = scan_l_axis
-                data[i, 1, :len(scan_l_axis)] = ctr_data
+            data[i, 0, :len(scan_l_axis)] = scan_l_axis
+            data[i, 1, :len(scan_l_axis)] = ctr_data
 
         # Saving
         print(
