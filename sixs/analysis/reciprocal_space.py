@@ -568,13 +568,8 @@ class Map:
 class CTR:
     """
     Loads a hdf5 file created by binoculars that represents a 3D map of the
-    reciprocal space and provides integration methods to analyse the diffracted
-    intensity along one direction.
-
-    The binocular data is loaded as follow:
-        * Divide counts by contribution where cont != 0
-        * Swap the h and k axes to be consistent with the indexing
-            [h, k, l], or [Qx, Qy, Qz].
+    reciprocal space and provides (optional) integration and plotting methods to
+    analyse the diffracted intensity along one direction.
 
     For now the classical workflow is the following:
     * process the data with binoculars, creating hdf5 files
@@ -582,18 +577,21 @@ class CTR:
     * fit these RODs with the `ROD` program (https://www.esrf.fr/computing/
         scientific/joint_projects/ANA-ROD/RODMAN2.html)
 
-    Since binoculars-fitaid is not reliable at all, I tried to rewrite that part
-    to be able to integrate the RODs with a python function (integrate_CTR()).
-    It does not currently give the same results as when using fitaid, idk why,
-    so it's better to use fitaid at the moment.
-
     Use one the following three methods to load the data:
-        * integrate_CTR(): integrate rods on the data with python
-        * load_fitaid_data(): load the rods integrated via fitaid
+        * load_fitaid_data(): load the rods integrated via fitaid (best option)
+        * integrate_CTR(): integrate rods on the data with python (for tests)
         * load_ROD_data(): load the rods simulated with the ROD program
 
     All these functions create numpy arrays that can then be plotted with the
     plot_CTR() method.
+
+
+    The binocular data is loaded as followin the integrate_CTR() method:
+        * Divide counts by contribution where cont != 0
+        * Swap the h and k axes to be consistent with the indexing
+            [h, k, l], or [Qx, Qy, Qz].
+    If you use this method, to have the best results you should define your step
+    in L directly in binoculars process and use the same step afterwards.
     """
 
     def __init__(
@@ -670,7 +668,7 @@ class CTR:
             #roi: the nb of voxels in the ROI
             bkg: the integrated background
             #roi: the nb of voxels in the background
-        We have for the structure factor:
+        The structure factor is defined as:
             sf = sqrt[roi - (#roi / #bkg) * bkg]
 
         Saves the result as a numpy array on disk:
@@ -683,7 +681,7 @@ class CTR:
         :param save_name: name of file in which the results are saved, saved in
             folder.
         :param glob_string_match: string pattern used for file matching
-        :param interpol_step: step size in interpolation along L, to avoid
+        :param interpol_step: step size in interpolation along L, TO AVOID
             problem with analysing CTR with different steps. No interpolation if
             False, default.
         :param CTR_width_H: width in h of CTR in reciprocal space, default is
@@ -729,7 +727,7 @@ class CTR:
             for f in scan_files:
                 print("\t", f)
             print(
-                "###########################################################\n")
+                "###########################################################")
 
         # ROD range
         CTR_range_H = [
