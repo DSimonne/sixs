@@ -123,6 +123,13 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import patches
 
+from bokeh.layouts import column
+from bokeh.models import ColumnDataSource, Legend, RangeTool, HoverTool, WheelZoomTool, CrosshairTool
+from bokeh.plotting import figure, show
+from bokeh.io import output_notebook, export_png
+
+output_notebook()
+
 
 class Map:
     """
@@ -409,7 +416,7 @@ class Map:
         try:
             img = self.projected_data
         except AttributeError:
-            return("Use the methods `project_data` to define the data first.")
+            return ("Use the methods `project_data` to define the data first.")
 
         if self.projection_axis == 'H':
             axis1 = self.k_axis
@@ -1184,7 +1191,7 @@ class CTR:
             [n in f for n in scan_indices])]
 
         if len(scan_files) == 0:
-            return("No matching files found in folder.")
+            return ("No matching files found in folder.")
 
         if verbose:
             print(
@@ -1366,21 +1373,14 @@ class CTR:
     def plot_CTR(
         numpy_array,
         scan_indices,
-        title=None,
-        filename=None,
-        figsize=(18, 9),
-        ncol=2,
+        title="Plot title",
         color_dict=None,
         labels=None,
-        zoom=[None, None, None, None],
-        fill=False,
-        fill_first=0,
-        fill_last=-1,
-        log_intensities=True,
-        line_plot=True,
-        s=None,
-        marker=None,
-        fontsize=15,
+        y_scale="log",
+        line_dash="dotted",
+        legend_position="right",
+        figure_width=1200,
+        figure_height=500,
     ):
         """
         Plot the CTRs together
@@ -1390,31 +1390,45 @@ class CTR:
             - data - background
             - background
         :param scan_indices: scan indices of files plotted, in order, used for
-         labelling, mandatory because we need to know what we plot!
+            labelling, mandatory because we need to know what we plot!
         :param title: if string, set to figure title
-        :param filename: if string, figure will be saved to this path.
-        :param figsize: figure size, default is (18, 9)
-        :param ncol: columns in label, default is 2
         :param color_dict: dict used for labels, keys are scan index, values are
-         colours for matplotlib.
+            colours for matplotlib.
         :param labels: dict of labels to use, defaulted to scan index if None
-        :param zoom: values used for plot range, default is
-         [None, None, None, None], order is left, right, bottom and top.
-        :param fill: if True, add filling between two plots
-        :param fill_first: index of scan to use for filling
-        :param fill_last: index of scan to use for filling
-        :param log_intensities: if True, y axis is logarithmic
-        :param line_plot: if False, scatter plot
-        :param s: scatter size in scatter plot
-        :param marker: marker used for scatter plot
-        :param fontsize: fontsize in plots
+        :param y_scale: if "log", y axis is logarithmic, else 'lin'
+        :param line_dash: if "dottted", scatter plot, else "solid"
+        :param legend_position: choose in ('left', 'right', 'center', 'above', 
+            'below')
         """
+        matplotlib_colours = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
+            '#e377c2', '#7f7f7f', '#bcbd22',
+            '#17becf'
+        ]
 
         # Create figure
-        plt.figure(figsize=figsize)
-        if log_intensities:
-            plt.semilogy()
-        plt.grid()
+        TOOLTIPS = [
+            (f"L", "$x"),
+            ("Intensity", "$y"),
+        ]
+
+        p = figure(
+            height=figure_height, width=figure_width,
+            tools="xpan, pan, wheel_zoom, box_zoom, reset, undo, redo, crosshair, hover, save",
+            tooltips=TOOLTIPS,
+            title=title,
+            x_axis_label="L",
+            y_axis_label="Intensity",
+            active_scroll="wheel_zoom",
+            y_axis_type=y_scale,
+        )
+        p.add_layout(
+            Legend(
+                click_policy="mute",
+                label_text_font_size="15pt",
+            ),
+            legend_position
+        )
 
         # Load np array on disk
         data = np.load(numpy_array)
@@ -1424,7 +1438,7 @@ class CTR:
             "\n###########################################################"
         )
 
-        # Iterate on data
+        # Iterate on array
         for (i, arr), scan_index in zip(enumerate(data), scan_indices):
             l = arr[0, :]  # x axis
             y_plot = arr[1, :]  # data - background
@@ -1444,122 +1458,37 @@ class CTR:
                 print("Labels must be a dictionnary with keys = scan_indices")
                 label = scan_index
 
-            # Add colour
-            try:
-                if line_plot:
-                    plt.plot(
-                        l,
-                        y_plot,
-                        color=color_dict[int(scan_index)],
-                        label=label,
-                        linewidth=2,
-                    )
-                else:
-                    plt.scatter(
-                        x=l,
-                        y=y_plot,
-                        c=color_dict[int(scan_index)],
-                        label=label,
-                        s=s,
-                        marker=marker
-                    )
+            # Create source
+            source = ColumnDataSource(
+                data=dict(
+                    x=l,
+                    y=y_plot,
+                ))
 
+            # Get color
+            try:
+                color = color_dict[int(scan_index)]
             except (KeyError, ValueError):
-                # Take int(scan_index) in case keys are not strings in the dict
-                try:
-                    if line_plot:
-                        plt.plot(
-                            l,
-                            y_plot,
-                            color=color_dict[scan_index],
-                            label=label,
-                            linewidth=2,
-                        )
-                    else:
-                        plt.scatter(
-                            x=l,
-                            y=y_plot,
-                            c=color_dict[scan_index],
-                            label=label,
-                            s=s,
-                            marker=marker
-                        )
-                except TypeError:  # no color
-                    if line_plot:
-                        plt.plot(
-                            l,
-                            y_plot,
-                            label=label,
-                            linewidth=2,
-                        )
-                    else:
-                        plt.scatter(
-                            x=l,
-                            y=y_plot,
-                            label=label,
-                            s=s,
-                            marker=marker
-                        )
-            except TypeError:  # No special colour
-                if line_plot:
-                    plt.plot(
-                        l,
-                        y_plot,
-                        label=label,
-                        linewidth=2,
-                    )
-                else:
-                    plt.scatter(
-                        x=l,
-                        y=y_plot,
-                        label=label,
-                        s=s,
-                        marker=marker
-                    )
+                color = color_dict[scan_index]
+            except TypeError:
+                color = matplotlib_colours[i]
 
-            # For filling
-            if i == fill_first:
-                y_first = y_plot
+            # Add line
+            p.line(
+                x='x', y='y', source=source, legend_label=label,
+                line_width=1.5, line_color=color, line_alpha=1,
+                hover_line_color=color, hover_line_alpha=1.0,
+                hover_line_width=2.0, muted_alpha=0.1,
+                line_dash=line_dash,
+            )
 
-            if fill_last < 0 and i == len(data) + fill_last:
-                y_last = y_plot
-            elif fill_last > 0 and i == fill_last:
-                y_last = y_plot
-
-        # Ticks
-        plt.xticks(fontsize=fontsize)
-        plt.yticks(fontsize=fontsize)
-
-        # Range
-        plt.xlim(left=zoom[0], right=zoom[1])
-        plt.ylim(bottom=zoom[2], top=zoom[3])
-
-        # Filling
-        if fill:
-            try:
-                # Add filling, works only if same l axis for both
-                plt.fill_between(l, y_first, y_last, alpha=0.1)
-            except Exception as E:
-                raise E
-                print("Could not add filling.")
-
-        # Legend and axis labels
-        plt.legend(fontsize=fontsize, ncol=ncol, markerscale=1.2)
-
-        plt.xlabel("L", fontsize=fontsize)
-        plt.ylabel("Intensity (a.u.)", fontsize=fontsize)
-
-        # Title
-        if isinstance(title, str):
-            plt.title(f"{title}", fontsize=20)
-
-        # Save
-        plt.tight_layout()
-        if filename != None:
-            plt.savefig(f"{filename}", bbox_inches='tight')
-            print(f"Saved as {filename}")
-
-        plt.show()
+        # Show figure
+        p.xaxis.axis_label_text_font_size = "15pt"
+        p.xaxis.major_label_text_font_size = "15pt"
+        p.yaxis.axis_label_text_font_size = "15pt"
+        p.yaxis.major_label_text_font_size = "15pt"
+        p.title.text_font_size = '20pt'
+        show(p)
 
 
 def simulate_rod(
