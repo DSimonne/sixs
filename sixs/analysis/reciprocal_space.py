@@ -1378,6 +1378,7 @@ class CTR:
         labels=None,
         y_scale="log",
         line_dash="dotted",
+        line_width=2,
         legend_position="right",
         figure_width=1200,
         figure_height=500,
@@ -1397,6 +1398,7 @@ class CTR:
         :param labels: dict of labels to use, defaulted to scan index if None
         :param y_scale: if "log", y axis is logarithmic, else 'lin'
         :param line_dash: if "dottted", scatter plot, else "solid"
+        :param line_width: line_width in plot
         :param legend_position: choose in ('left', 'right', 'center', 'above', 
             'below')
         """
@@ -1476,7 +1478,7 @@ class CTR:
             # Add line
             p.line(
                 x='x', y='y', source=source, legend_label=label,
-                line_width=1.5, line_color=color, line_alpha=1,
+                line_width=line_width, line_color=color, line_alpha=1,
                 hover_line_color=color, hover_line_alpha=1.0,
                 hover_line_width=2.0, muted_alpha=0.1,
                 line_dash=line_dash,
