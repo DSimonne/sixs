@@ -185,24 +185,34 @@ class Map:
 
             # Qphi
             try:
-                Index = f.root.binoculars.axes.Phi[...]
-                QxQy = False  # also Qphi can have Qz (or Qx, Qy)
+                Phi = f.root.binoculars.axes.Phi[...]
                 Qphi = True
             except tb.NoSuchNodeError:
-                QxQy = True
                 Qphi = False
 
-            if Qphi == False:  # also Qphi can have Qz (or Qx, Qy)
-                try:
-                    Qz = f.root.binoculars.axes.Qz[...]
-                except tb.NoSuchNodeError:
-                    QxQy = False
+            # QxQyQz
+            try:
+                Qx = f.root.binoculars.axes.Qx[...]
+                Qy = f.root.binoculars.axes.Qy[...]
+                QxQy = True
+            except tb.NoSuchNodeError:
+                QxQy = False
 
-            if Qphi == True:
+            # Angles
+            try:
+                delta = f.root.binoculars.axes.delta[...]
+                gamma = f.root.binoculars.axes.gamma[...]
+                mu = f.root.binoculars.axes.mu[...]
+                Angles = True
+            except tb.NoSuchNodeError:
+                Angles = False
+
+            # Load data
+            if Qphi:  # also Qphi can have Qz (or Qx, Qy)
                 self.data = self.raw_data
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
-                try:
+                try:  # one of the three
                     self.Qxyz = f.root.binoculars.axes.Qx[...]
                 except:
                     pass
@@ -215,30 +225,38 @@ class Map:
                 except:
                     pass
 
-            # Load data
-            if Qindex == True:
+            elif Qindex:
                 self.data = self.raw_data
-                self.index = f.root.binoculars.axes.Index[...]
+                self.Index = f.root.binoculars.axes.Index[...]
                 self.Q = f.root.binoculars.axes.Q[...]
 
-            if hkl == True:
+            elif hkl:
                 self.data = np.swapaxes(self.raw_data, 0, 2)  # l, k, h
                 self.H = f.root.binoculars.axes.H[...]
                 self.K = f.root.binoculars.axes.K[...]
                 self.L = f.root.binoculars.axes.L[...]
 
-            if QxQy == True:
+            elif QxQy:
+                self.data = np.swapaxes(self.raw_data, 0, 2)  # qz, qy, qx
                 self.data = self.raw_data
-                self.Z = f.root.binoculars.axes.Qz[...]
-                self.X = f.root.binoculars.axes.Qx[...]
-                self.Y = f.root.binoculars.axes.Qy[...]
+                self.Qz = f.root.binoculars.axes.Qz[...]
+                self.Qx = f.root.binoculars.axes.Qx[...]
+                self.Qy = f.root.binoculars.axes.Qy[...]
 
-            elif QparQper == True:
+            elif QparQper:
                 self.data = self.raw_data
-                self.Y = f.root.binoculars.axes.Qper[...]
-                self.X = f.root.binoculars.axes.Qpar[...]
+                self.Qper = f.root.binoculars.axes.Qper[...]
+                self.Qpar = f.root.binoculars.axes.Qpar[...]
 
-            if Qphi == True:
+            elif Angles:
+                # self.data = np.swapaxes(self.raw_data, 0, 2)
+                self.data = self.raw_data
+                self.delta = f.root.binoculars.axes.delta[...]
+                self.gamma = f.root.binoculars.axes.gamma[...]
+                self.mu = f.root.binoculars.axes.mu[...]
+
+            # Update axes
+            if Qphi:
                 self.Q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
                 self.Qxyz_axis = np.linspace(
@@ -246,38 +264,41 @@ class Map:
                 self.Phi_axis = np.linspace(
                     self.Phi[1], self.Phi[2], 1+self.Phi[5]-self.Phi[4])
 
-            if Qindex == True:
-                self.q_axis = np.linspace(
+            elif Qindex:
+                self.Q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
-                self.ind_axis = np.linspace(
-                    self.index[1], self.index[2], 1+self.index[5]-self.index[4])
+                self.Index_axis = np.linspace(
+                    self.Index[1], self.Index[2], 1+self.Index[5]-self.Index[4])
 
-            if hkl == True:
-                x_axis = np.arange(self.H[1], self.H[2], 1+self.H[5]-self.H[4])
-                self.h_axis = np.linspace(
-                    self.H[1], self.H[2], 1 + int(self.H[5] - self.H[4]))
-                y_axis = np.arange(self.K[1], self.K[2], 1+self.K[5]-self.K[4])
-                self.k_axis = np.linspace(
-                    self.K[1], self.K[2], 1 + int(self.K[5] - self.K[4]))
-                z_axis = np.arange(self.L[1], self.L[2], 1+self.L[5]-self.L[4])
-                self.l_axis = np.round(np.linspace(
+            elif hkl:
+                self.H_axis = np.round(np.linspace(
+                    self.H[1], self.H[2], 1 + int(self.H[5] - self.H[4])), 3)
+                self.K_axis = np.round(np.linspace(
+                    self.K[1], self.K[2], 1 + int(self.K[5] - self.K[4])), 3)
+                self.L_axis = np.round(np.linspace(
                     self.L[1], self.L[2], 1 + int(self.L[5] - self.L[4])), 3)
 
-            if QxQy == True:
-                self.Qx_axis = np.linspace(
-                    self.X[1], self.X[2], 1 + int(self.X[5]-self.X[4]))
-                self.Qy_axis = np.linspace(
-                    self.Y[1], self.Y[2], 1 + int(self.Y[5]-self.Y[4]))
-                self.Qy_axis = y_axis
+            elif QxQy:
                 self.Qz_axis = np.linspace(
-                    self.Z[1], self.Z[2], 1 + int(self.Z[5]-self.Z[4]))
-                self.Qz_axis = z_axis
+                    self.Qz[1], self.Qz[2], 1 + int(self.Qz[5]-self.Qz[4]))
+                self.Qx_axis = np.linspace(
+                    self.Qx[1], self.Qx[2], 1 + int(self.Qx[5]-self.Qx[4]))
+                self.Qy_axis = np.linspace(
+                    self.Qy[1], self.Qy[2], 1 + int(self.Qy[5]-self.Qy[4]))
 
-            if QparQper == True:
-                self.Qpar = np.linspace(
-                    self.X[1], self.X[2], 1+self.X[5]-self.X[4])
-                self.Qper = np.linspace(
-                    self.Y[1], self.Y[2], 1+self.Y[5]-self.Y[4])
+            elif QparQper:
+                self.Qper_axis = np.linspace(
+                    self.Qper[1], self.Qper[2], 1+self.Qper[5]-self.Qper[4])
+                self.Qpar_axis = np.linspace(
+                    self.Qpar[1], self.Qpar[2], 1+self.Qpar[5]-self.Qpar[4])
+
+            elif Angles:
+                self.delta_axis = np.round(np.linspace(
+                    self.delta[1], self.delta[2], 1 + int(self.delta[5] - self.delta[4])), 3)
+                self.gamma_axis = np.round(np.linspace(
+                    self.gamma[1], self.gamma[2], 1 + int(self.gamma[5] - self.gamma[4])), 3)
+                self.mu_axis = np.round(np.linspace(
+                    self.mu[1], self.mu[2], 1 + int(self.mu[5] - self.mu[4])), 3)
 
             print(
                 "\n############################################################"
@@ -287,6 +308,7 @@ class Map:
                 f"\n\tQparQper data: {QparQper}"
                 f"\n\tQphi data: {Qphi}"
                 f"\n\tQindex: {Qindex}"
+                f"\n\tAngles: {Angles}"
                 f"\n###########################################################"
             )
 
@@ -310,18 +332,24 @@ class Map:
             "H": 2,
             "K": 1,
             "L": 0,
-            "Qz": 2,
+            "Qx": 2,
             "Qy": 1,
-            "Qx": 0,
+            "Qz": 0,
+            "delta": 2,
+            "gamma": 1,
+            "mu": 0,
         }[self.projection_axis]
 
         projection_axis_name = {
             "H": "h_axis",
             "K": "k_axis",
             "L": "l_axis",
-            "Qz": "Qz_axis",
-            "Qy": "Qy_axis",
             "Qx": "Qx_axis",
+            "Qy": "Qy_axis",
+            "Qz": "Qz_axis",
+            "delta": "delta_axis",
+            "gamma": "gamma_axis",
+            "mu": "mu_axis",
         }[self.projection_axis]
 
         projection_axis_values = getattr(self, projection_axis_name)
@@ -330,7 +358,7 @@ class Map:
             start_value = find_value_in_array(
                 projection_axis_values,
                 projection_axis_range[0]
-            )[0]
+            )[1]
         else:
             start_value = 0
 
@@ -338,32 +366,20 @@ class Map:
             end_value = find_value_in_array(
                 projection_axis_values,
                 projection_axis_range[1]
-            )[0]
+            )[1]
         else:
             end_value = -1
 
-        if self.projection_axis == 'H':
+        if self.projection_axis in ('H', "Qx", "delta"):
             datanan = self.data[:, :, start_value:end_value]
 
-        elif self.projection_axis == 'K':
+        elif self.projection_axis in ('K', "Qy", "gamma"):
             datanan = self.data[:, start_value:end_value, :]
 
-        elif self.projection_axis == 'L':
+        elif self.projection_axis in ('L', "Qz", "mu"):
             datanan = self.data[start_value:end_value, :, :]
 
-        elif self.projection_axis == 'Qz':
-            # swap_data = np.swapaxes(self.raw_data, 0, 1)
-            datanan = self.data[:, :, start_value:end_value]
-
-        elif self.projection_axis == 'Qy':
-            # swap_data = np.swapaxes(self.raw_data, 0, 2)
-            datanan = self.data[:, start_value:end_value, :]
-
-        elif self.projection_axis == 'Qx':
-            # swap_data = np.swapaxes(self.raw_data, 1, 2)
-            datanan = self.data[start_value:end_value, :, :]
-
-        self.projected_data = np.nanmean(datanan, axis=projection_axis_index)
+        self.projected_data = np.nansum(datanan, axis=projection_axis_index)
 
     def plot_map(
         self,
@@ -459,6 +475,24 @@ class Map:
             axis2 = self.Qy_axis
             axis_name1 = 'Qx'
             axis_name2 = 'Qy'
+
+        elif self.projection_axis == 'delta':
+            axis1 = self.gamma_axis
+            axis2 = self.mu_axis
+            axis_name1 = 'gamma'
+            axis_name2 = 'mu'
+
+        elif self.projection_axis == 'gamma':
+            axis1 = self.delta_axis
+            axis2 = self.mu_axis
+            axis_name1 = 'delta'
+            axis_name2 = 'mu'
+
+        elif self.projection_axis == 'mu':
+            axis1 = self.delta_axis
+            axis2 = self.gamma_axis
+            axis_name1 = 'delta'
+            axis_name2 = 'gamma'
 
         # Zoom
         if zoom_axis1[0] != None:
@@ -1493,6 +1527,163 @@ class CTR:
         show(p)
 
 
+def change_nb_unit_cells(
+    save_as,
+    nb_surf_unit_cells=1,
+    comment=None,
+    spacing=None,
+):
+    """
+
+    Change spacing between bulk and surface structures
+    """
+
+    # Keep same lattice parameter as bulk Pt
+    lines = [comment]
+    lines.append(f", {nb_surf_unit_cells} unit cells.\n")
+
+    # crystal lattice
+    lines.append("3.92 3.92 3.92 90.0 90.0 90.0\n")
+
+    # first layer at z = 0
+    lines.append("Pt 1 0 0\n")
+    lines.append("Pt 0 1 0\n")
+    lines.append("Pt 0.5 0.5 0\n")
+
+    # non z = 0 layers inside the first unit cell
+    ## values in z
+    z = (5.66/3.92)
+    z0 = 0.25*z
+    z1 = 0.5*z
+    z2 = 0.75*z
+    z3 = 1*z
+
+    first_unit_cell = [
+        f"O 0.5 0 {z0}\n",
+        f"O 0 0.5 {z0}\n",
+
+        f"Pt 0 0 {z1}\n",
+        f"Pt 1 1 {z1}\n",
+        f"Pt 0.5 0.5 {z1}\n",
+
+        f"O 0.5 0 {z2}\n",
+        f"O 0 0.5 {z2}\n",
+
+        f"Pt 1 0 {z3}\n",
+        f"Pt 0 1 {z3}\n",
+        f"Pt 0.5 0.5 {z3}\n",
+    ]
+    for l in first_unit_cell:
+        lines.append(l)
+
+    # Add other unit cells
+    for n in range(2, nb_surf_unit_cells+1):
+        print("\nAdding unit cell number", n)
+
+        extra_lines = [
+            f"O 0.5 0 {(n-1)*z+z0}\n",
+            f"O 0 0.5 {(n-1)*z+z0}\n",
+
+            f"Pt 0 0 {(n-1)*z+z1}\n",
+            f"Pt 1 1 {(n-1)*z+z1}\n",
+            f"Pt 0.5 0.5 {(n-1)*z+z1}\n",
+
+            f"O 0.5 0 {(n-1)*z+z2}\n",
+            f"O 0 0.5 {(n-1)*z+z2}\n",
+
+            f"Pt 1 0 {(n-1)*z+z3}\n",
+            f"Pt 0 1 {(n-1)*z+z3}\n",
+            f"Pt 0.5 0.5 {(n-1)*z+z3}\n",
+        ]
+        for l in extra_lines:
+            print(l)
+            lines.append(l)
+
+    with open(save_as, "w") as f:
+        f.writelines(lines)
+
+
+def modify_surface_relaxation(
+    base_file,
+    save_as,
+    lines_to_edit=[3],
+    columns_to_edit=["z"],
+    relaxation=0.99,
+    round_order=3,
+    sep=" ",
+    print_old_file=False,
+    print_new_file=True,
+):
+    """
+    The files must use only one space between characters to split properly !!!
+
+    :param base_file: file to edit
+    :param save_as: save new file at this path
+    :param lines_to_edit: list of lines to edit in the file
+    :param columns_to_edit: list of columns to edit in the file,
+     e.g. ["x", "y", "z"]
+    :param relaxation: values are multipled by this float number
+    :param round_order: to avoid weird float values, the relaxation is rounded
+    :param sep: str, separator between the columns, e.g. " " is one space
+    :param print_old_file: bool, True to see lines in old file
+    :param print_new_file: bool, True to see lines in new file
+    """
+    # Open old file
+    with open(base_file) as f:
+        old_file_lines = f.readlines()
+
+    # Print old file
+    if print_old_file:
+        print("############### Old surface file ###############\n")
+        for line in old_file_lines:
+            print(line, end="")
+
+        print("\n############### Old surface file ###############")
+
+    # Make copy
+    new_file_lines = old_file_lines.copy()
+
+    # Modify lines
+    for l in lines_to_edit:
+
+        # Split line
+        try:
+            line = old_file_lines[l].split(sep)
+        except IndexError:
+            print("l out of range, try to change lines_to_edit")
+
+        # Modify parameter
+        for c in columns_to_edit:
+            c_index = {"x": 1, "y": 2, "z": 3}[c]
+            line[c_index] = str(float(line[c_index]) *
+                                np.round(relaxation, round_order))
+
+        # Join line
+        line = sep.join(line)
+
+        # Bog when changing the last column
+        if not line.endswith("\n"):
+            line += "\n"
+
+        # Save changes in new lines
+        new_file_lines[l] = line
+
+    # Print new file
+    if print_new_file:
+        print(
+            "\n############### New surface file ###############"
+            f"################## r = {relaxation:.3f}  ##################\n"
+        )
+        for line in new_file_lines:
+            print(line, end="")
+
+        print("\n############### New surface file ###############")
+
+    # Create new file
+    with open(save_as, "w") as f:
+        f.writelines(new_file_lines)
+
+
 def simulate_rod(
     filename,
     bulk_file=None,
@@ -1515,7 +1706,7 @@ def simulate_rod(
         https://www.esrf.fr/computing/scientific/joint_projects/
         ANA-ROD/RODMAN2.html
 
-    Will generate the following files the first time it is run in a folder:
+    It will generate the following files the first time it is run in a folder:
         - pgplot.ps
         - plotinit.mac
         - rod_init.mac
@@ -1602,87 +1793,6 @@ def simulate_rod(
 
     # Run macro in folder
     os.system(f'cd {save_folder} && rod < {macro_file}')
-
-
-def modify_surface_relaxation(
-    base_file,
-    save_as,
-    lines_to_edit=[3],
-    columns_to_edit=["z"],
-    relaxation=0.99,
-    round_order=3,
-    sep=" ",
-    print_old_file=False,
-    print_new_file=True,
-):
-    """
-    The files must use only one space between characters to split properly !!!
-
-    :param base_file: file to edit
-    :param save_as: save new file at this path
-    :param lines_to_edit: list of lines to edit in the file
-    :param columns_to_edit: list of columns to edit in the file,
-     e.g. ["x", "y", "z"]
-    :param relaxation: values are multipled by this float number
-    :param round_order: to avoid weird float values, the relaxation is rounded
-    :param sep: str, separator between the columns, e.g. " " is one space
-    :param print_old_file: bool, True to see lines in old file
-    :param print_new_file: bool, True to see lines in new file
-    """
-    # Open old file
-    with open(base_file) as f:
-        old_file_lines = f.readlines()
-
-    # Print old file
-    if print_old_file:
-        print("############### Old surface file ###############\n")
-        for line in old_file_lines:
-            print(line, end="")
-
-        print("\n############### Old surface file ###############")
-
-    # Make copy
-    new_file_lines = old_file_lines.copy()
-
-    # Modify lines
-    for l in lines_to_edit:
-
-        # Split line
-        try:
-            line = old_file_lines[l].split(sep)
-        except IndexError:
-            print("l out of range, try to change lines_to_edit")
-
-        # Modify parameter
-        for c in columns_to_edit:
-            c_index = {"x": 1, "y": 2, "z": 3}[c]
-            line[c_index] = str(float(line[c_index]) *
-                                np.round(relaxation, round_order))
-
-        # Join line
-        line = sep.join(line)
-
-        # Bog when changing the last column
-        if not line.endswith("\n"):
-            line += "\n"
-
-        # Save changes in new lines
-        new_file_lines[l] = line
-
-    # Print new file
-    if print_new_file:
-        print(
-            "\n############### New surface file ###############"
-            f"################## r = {relaxation:.3f}  ##################\n"
-        )
-        for line in new_file_lines:
-            print(line, end="")
-
-        print("\n############### New surface file ###############")
-
-    # Create new file
-    with open(save_as, "w") as f:
-        f.writelines(new_file_lines)
 
 
 def find_value_in_array(array, value):
