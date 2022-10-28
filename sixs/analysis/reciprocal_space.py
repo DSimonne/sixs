@@ -341,9 +341,9 @@ class Map:
         }[self.projection_axis]
 
         projection_axis_name = {
-            "H": "h_axis",
-            "K": "k_axis",
-            "L": "l_axis",
+            "H": "H_axis",
+            "K": "K_axis",
+            "L": "L_axis",
             "Qx": "Qx_axis",
             "Qy": "Qy_axis",
             "Qz": "Qz_axis",
@@ -435,20 +435,20 @@ class Map:
             return ("Use the methods `project_data` to define the data first.")
 
         if self.projection_axis == 'H':
-            axis1 = self.k_axis
-            axis2 = self.l_axis
+            axis1 = self.K_axis
+            axis2 = self.L_axis
             axis_name1 = 'K (rlu)'
             axis_name2 = 'L (rlu)'
 
         elif self.projection_axis == 'K':
-            axis1 = self.h_axis
-            axis2 = self.l_axis
+            axis1 = self.H_axis
+            axis2 = self.L_axis
             axis_name1 = 'H (rlu)'
             axis_name2 = 'L (rlu)'
 
         elif self.projection_axis == 'L':
-            axis1 = self.h_axis
-            axis2 = self.k_axis
+            axis1 = self.H_axis
+            axis2 = self.K_axis
             axis_name1 = 'H (rlu)'
             axis_name2 = 'K (rlu)'
 
