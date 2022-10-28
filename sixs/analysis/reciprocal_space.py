@@ -192,8 +192,8 @@ class Map:
 
             # QxQyQz
             try:
-                Qx = f.root.binoculars.axes.Qx[...]
-                Qy = f.root.binoculars.axes.Qy[...]
+                Qx = f.root.binoculars.axes.qx[...]
+                Qy = f.root.binoculars.axes.qy[...]
                 QxQy = True
             except tb.NoSuchNodeError:
                 QxQy = False
@@ -213,15 +213,15 @@ class Map:
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
                 try:  # one of the three
-                    self.Qxyz = f.root.binoculars.axes.Qx[...]
+                    self.Qxyz = f.root.binoculars.axes.qx[...]
                 except:
                     pass
                 try:
-                    self.Qxyz = f.root.binoculars.axes.Qy[...]
+                    self.Qxyz = f.root.binoculars.axes.qy[...]
                 except:
                     pass
                 try:
-                    self.Qxyz = f.root.binoculars.axes.Qz[...]
+                    self.Qxyz = f.root.binoculars.axes.qz[...]
                 except:
                     pass
 
@@ -239,9 +239,9 @@ class Map:
             elif QxQy:
                 self.data = np.swapaxes(self.raw_data, 0, 2)  # qz, qy, qx
                 self.data = self.raw_data
-                self.Qz = f.root.binoculars.axes.Qz[...]
-                self.Qx = f.root.binoculars.axes.Qx[...]
-                self.Qy = f.root.binoculars.axes.Qy[...]
+                self.Qz = f.root.binoculars.axes.qz[...]
+                self.Qx = f.root.binoculars.axes.qx[...]
+                self.Qy = f.root.binoculars.axes.qy[...]
 
             elif QparQper:
                 self.data = self.raw_data
