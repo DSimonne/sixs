@@ -3,7 +3,7 @@ import tables as tb
 import glob
 import os
 import pandas as pd
-
+import sys
 
 def extract_orientation_matrix(glob_string, save_as=False):
     """
@@ -48,7 +48,7 @@ def extract_orientation_matrix(glob_string, save_as=False):
                     uy = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Uy[0]
                     uz = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Uz[0]
             row = pd.DataFrame({
-                "Index": [scan_index],
+                "Scan index": [scan_index],
                 "a": [a],
                 "Ux": [ux],
                 "Uy": [uy],
@@ -56,7 +56,7 @@ def extract_orientation_matrix(glob_string, save_as=False):
             }
             )
 
-            df = df.append(row, ignore_index=True)
+            df = pd.concat([df, row], ignore_index=True)
 
     # Save
     if isinstance(save_as, str):
