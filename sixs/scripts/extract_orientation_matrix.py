@@ -5,6 +5,7 @@ import os
 import pandas as pd
 import sys
 
+
 def extract_orientation_matrix(glob_string, save_as=False):
     """
     Ignores scans of type ("init", "pitch", "gap", "bragg", "ssl", "omega")

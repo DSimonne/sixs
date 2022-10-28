@@ -1412,9 +1412,9 @@ class CTR:
         labels=None,
         y_scale="log",
         line_dash="dotted",
-        line_width=2,
+        size=2,
         legend_position="right",
-        figure_width=1200,
+        figure_width=900,
         figure_height=500,
     ):
         """
@@ -1429,10 +1429,10 @@ class CTR:
         :param title: if string, set to figure title
         :param color_dict: dict used for labels, keys are scan index, values are
             colours for matplotlib.
-        :param labels: dict of labels to use, defaulted to scan index if None
+        :param labels: dict of labels to use, defaults to scan_index list if None
         :param y_scale: if "log", y axis is logarithmic, else 'lin'
         :param line_dash: if "dottted", scatter plot, else "solid"
-        :param line_width: line_width in plot
+        :param size: size of markers
         :param legend_position: choose in ('left', 'right', 'center', 'above', 
             'below')
         """
@@ -1449,7 +1449,8 @@ class CTR:
         ]
 
         p = figure(
-            height=figure_height, width=figure_width,
+            height=figure_height,
+            width=figure_width,
             tools="xpan, pan, wheel_zoom, box_zoom, reset, undo, redo, crosshair, hover, save",
             tooltips=TOOLTIPS,
             title=title,
@@ -1489,7 +1490,7 @@ class CTR:
                     print("Dict not valid for labels, using scan_indices")
                     label = scan_index
             elif labels == None:
-                label = scan_index
+                label = str(scan_index)
             else:
                 print("Labels must be a dictionnary with keys = scan_indices")
                 label = scan_index
@@ -1509,14 +1510,33 @@ class CTR:
             except TypeError:
                 color = matplotlib_colours[i]
 
-            # Add line
-            p.line(
-                x='x', y='y', source=source, legend_label=label,
-                line_width=line_width, line_color=color, line_alpha=1,
-                hover_line_color=color, hover_line_alpha=1.0,
-                hover_line_width=2.0, muted_alpha=0.1,
-                line_dash=line_dash,
+            # Add scatter plot
+            p.scatter(
+                x='x',
+                y='y',
+                source=source,
+                legend_label=label,
+                size=size,
+                alpha=0.7,
+                color=matplotlib_colours[i],
+                muted_alpha=0.1,
+                hover_alpha=1,
             )
+
+            # p.line(
+            #     x='x',
+            #     y='y',
+            #     source=source,
+            #     legend_label=label,
+            #     line_width=line_width,
+            #     line_color=color,
+            #     line_alpha=1,
+            #     hover_line_color=color,
+            #     hover_line_alpha=1.0,
+            #     hover_line_width=2.0,
+            #     muted_alpha=0.1,
+            #     line_dash=line_dash,
+            # )
 
         # Show figure
         p.xaxis.axis_label_text_font_size = "15pt"
