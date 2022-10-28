@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import pandas as pd
-from sixs_nxsread import ReadNxs4 as rd
+from sixs import ReadNxs4 as rd
 import ast
 import sys
 import os
