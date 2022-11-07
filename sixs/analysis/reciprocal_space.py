@@ -300,17 +300,20 @@ class Map:
                 self.mu_axis = np.round(np.linspace(
                     self.mu[1], self.mu[2], 1 + int(self.mu[5] - self.mu[4])), 3)
 
-            print(
-                "\n############################################################"
-                f"\nData shape: {self.data.shape}"
-                f"\n\tHKL data: {hkl}"
-                f"\n\tQxQy data: {QxQy}"
-                f"\n\tQparQper data: {QparQper}"
-                f"\n\tQphi data: {Qphi}"
-                f"\n\tQindex: {Qindex}"
-                f"\n\tAngles: {Angles}"
-                f"\n###########################################################"
-            )
+            try:
+                print(
+                    "\n############################################################"
+                    f"\nData shape: {self.data.shape}"
+                    f"\n\tHKL data: {hkl}"
+                    f"\n\tQxQy data: {QxQy}"
+                    f"\n\tQparQper data: {QparQper}"
+                    f"\n\tQphi data: {Qphi}"
+                    f"\n\tQindex: {Qindex}"
+                    f"\n\tAngles: {Angles}"
+                    f"\n###########################################################"
+                )
+            except AttributeError:
+                print("Data type not supported")
 
     def project_data(
         self,
