@@ -141,7 +141,10 @@ class Map:
         * plot_map(): plot the data with matplotlib.
     """
 
-    def __init__(self, file_path):
+    def __init__(
+        self,
+        file_path,
+    ):
         """
         Loads the binoculars file.
 
@@ -391,7 +394,7 @@ class Map:
         interpolation="none",
         vmin=None,
         vmax=None,
-        figsize=(16, 9),
+        figsize=(10, 10),
         title=None,
         cmap="jet",
         three_d_plot=False,
@@ -508,7 +511,9 @@ class Map:
         if zoom_axis2[1] != None:
             zoom_axis2[1] = find_value_in_array(axis2, zoom_axis2[1])[-1]
 
-        img = img[zoom_axis2[0]:zoom_axis2[1], zoom_axis1[0]:zoom_axis1[1]]
+        self.img = img[zoom_axis2[0]:zoom_axis2[1], zoom_axis1[0]:zoom_axis1[1]]
+        if self.img.shape == (0, 0):
+            raise ValueError("Try zoom_axis = [b, a] instead of [a, b]")
         axis1 = axis1[zoom_axis1[0]:zoom_axis1[1]]
         axis2 = axis2[zoom_axis2[0]:zoom_axis2[1]]
 
@@ -517,7 +522,7 @@ class Map:
             X, Y = np.meshgrid(axis1, axis2)
             if vmin is None:
                 vmin = 0.1
-            Z = np.where(img > vmin, np.log(img), 0)
+            Z = np.where(self.img > vmin, np.log(self.img), 0)
 
             fig, ax = plt.subplots(
                 figsize=figsize,
@@ -581,7 +586,7 @@ class Map:
                 ax.grid(alpha=0.5, which='both', axis="both")
 
             plotted_img = ax.imshow(
-                img,
+                self.img,
                 cmap=cmap,
                 interpolation=interpolation,
                 origin="lower",
@@ -1415,7 +1420,7 @@ class CTR:
         labels=None,
         y_scale="log",
         line_dash="dotted",
-        size=2,
+        size=4,
         legend_position="right",
         figure_width=900,
         figure_height=500,
