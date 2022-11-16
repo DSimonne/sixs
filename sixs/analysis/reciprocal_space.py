@@ -1526,7 +1526,7 @@ class CTR:
                 legend_label=label,
                 size=size,
                 alpha=0.7,
-                color=matplotlib_colours[i],
+                color=color,
                 muted_alpha=0.1,
                 hover_alpha=1,
             )
