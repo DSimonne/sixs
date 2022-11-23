@@ -118,6 +118,8 @@ import inspect
 import yaml
 import sixs
 import shutil
+from h5glance import H5Glance
+from IPython.display import display
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -144,6 +146,7 @@ class Map:
     def __init__(
         self,
         file_path,
+        show_tree=False,
     ):
         """
         Loads the binoculars file.
@@ -158,6 +161,9 @@ class Map:
 
         self.file_path = file_path
 
+        if show_tree:
+            H5Glance(file_path)
+
         with tb.open_file(self.file_path) as f:
             # Get raw data
             ct = f.root.binoculars.counts[...]
@@ -165,19 +171,12 @@ class Map:
             self.raw_data = np.where(cont != 0, ct/cont, np.nan)
 
             # Get which type of projection we are working with
-            # HKL
+            # Qphi
             try:
-                H = f.root.binoculars.axes.H[...]
-                hkl = True
+                Phi = f.root.binoculars.axes.Phi[...]
+                Qphi = True
             except tb.NoSuchNodeError:
-                hkl = False
-
-            ## Qpar, Qper
-            try:
-                Qpar = f.root.binoculars.axes.Qpar[...]
-                QparQper = True
-            except tb.NoSuchNodeError:
-                QparQper = False
+                Qphi = False
 
             # Qindex
             try:
@@ -186,12 +185,12 @@ class Map:
             except tb.NoSuchNodeError:
                 Qindex = False
 
-            # Qphi
+            # HKL
             try:
-                Phi = f.root.binoculars.axes.Phi[...]
-                Qphi = True
+                H = f.root.binoculars.axes.H[...]
+                hkl = True
             except tb.NoSuchNodeError:
-                Qphi = False
+                hkl = False
 
             # QxQyQz
             try:
@@ -200,6 +199,22 @@ class Map:
                 QxQy = True
             except tb.NoSuchNodeError:
                 QxQy = False
+
+            # Q, xp, yp
+            try:
+                Q = f.root.binoculars.axes.Q[...]
+                xp = f.root.binoculars.axes.xp[...]
+                yp = f.root.binoculars.axes.yp[...]
+                QXpYp = True
+            except tb.NoSuchNodeError:
+                QXpYp = False
+
+            ## Qpar, Qper
+            try:
+                Qpar = f.root.binoculars.axes.Qpar[...]
+                QparQper = True
+            except tb.NoSuchNodeError:
+                QparQper = False
 
             # Angles
             try:
@@ -246,6 +261,12 @@ class Map:
                 self.Qx = f.root.binoculars.axes.qx[...]
                 self.Qy = f.root.binoculars.axes.qy[...]
 
+            elif QXpYp:
+                self.data = self.raw_data
+                self.Q = f.root.binoculars.axes.Q[...]
+                self.xp = f.root.binoculars.axes.xp[...]
+                self.yp = f.root.binoculars.axes.yp[...]
+
             elif QparQper:
                 self.data = self.raw_data
                 self.Qper = f.root.binoculars.axes.Qper[...]
@@ -289,6 +310,14 @@ class Map:
                 self.Qy_axis = np.linspace(
                     self.Qy[1], self.Qy[2], 1 + int(self.Qy[5]-self.Qy[4]))
 
+            elif QXpYp:
+                self.Q_axis = np.linspace(
+                    self.Q[1], self.Q[2], 1 + int(self.Q[5]-self.Q[4]))
+                self.xp_axis = np.linspace(
+                    self.xp[1], self.xp[2], 1 + int(self.xp[5]-self.xp[4]))
+                self.yp_axis = np.linspace(
+                    self.yp[1], self.yp[2], 1 + int(self.yp[5]-self.yp[4]))
+
             elif QparQper:
                 self.Qper_axis = np.linspace(
                     self.Qper[1], self.Qper[2], 1+self.Qper[5]-self.Qper[4])
@@ -307,11 +336,12 @@ class Map:
                 print(
                     "\n############################################################"
                     f"\nData shape: {self.data.shape}"
-                    f"\n\tHKL data: {hkl}"
-                    f"\n\tQxQy data: {QxQy}"
-                    f"\n\tQparQper data: {QparQper}"
                     f"\n\tQphi data: {Qphi}"
                     f"\n\tQindex: {Qindex}"
+                    f"\n\tHKL data: {hkl}"
+                    f"\n\tQxQy data: {QxQy}"
+                    f"\n\tQXpYp data: {QXpYp}"
+                    f"\n\tQparQper data: {QparQper}"
                     f"\n\tAngles: {Angles}"
                     f"\n###########################################################"
                 )
@@ -511,7 +541,8 @@ class Map:
         if zoom_axis2[1] != None:
             zoom_axis2[1] = find_value_in_array(axis2, zoom_axis2[1])[-1]
 
-        self.img = img[zoom_axis2[0]:zoom_axis2[1], zoom_axis1[0]:zoom_axis1[1]]
+        self.img = img[zoom_axis2[0]:zoom_axis2[1],
+                       zoom_axis1[0]:zoom_axis1[1]]
         if self.img.shape == (0, 0):
             raise ValueError("Try zoom_axis = [b, a] instead of [a, b]")
         axis1 = axis1[zoom_axis1[0]:zoom_axis1[1]]
