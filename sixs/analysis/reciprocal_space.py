@@ -394,14 +394,14 @@ class Map:
         interpolation="none",
         vmin=None,
         vmax=None,
-        figsize=(10, 10),
+        figsize=(10, 8),
         title=None,
         cmap="jet",
         three_d_plot=False,
         circles=None,
         arcs=False,
         lines=False,
-        grid=False,
+        grid=True,
         save_path=False,
     ):
         """
@@ -600,7 +600,7 @@ class Map:
         ax.tick_params(axis=('both'), labelsize=20)
 
         # Colorbar
-        cbar = fig.colorbar(plotted_img)
+        cbar = fig.colorbar(plotted_img, ax=ax)
         cbar.ax.tick_params(labelsize=20)
 
         fig.tight_layout()
@@ -1415,7 +1415,7 @@ class CTR:
     def plot_CTR(
         numpy_array,
         scan_indices,
-        title="Plot title",
+        title=None,
         color_dict=None,
         labels=None,
         y_scale="log",
@@ -1551,7 +1551,9 @@ class CTR:
         p.xaxis.major_label_text_font_size = "15pt"
         p.yaxis.axis_label_text_font_size = "15pt"
         p.yaxis.major_label_text_font_size = "15pt"
-        p.title.text_font_size = '20pt'
+        if isinstance(title, str):
+            p.title.text_font_size = '20pt'
+
         show(p)
 
 
