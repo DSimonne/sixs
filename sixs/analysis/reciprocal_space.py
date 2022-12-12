@@ -511,7 +511,8 @@ class Map:
         if zoom_axis2[1] != None:
             zoom_axis2[1] = find_value_in_array(axis2, zoom_axis2[1])[-1]
 
-        self.img = img[zoom_axis2[0]:zoom_axis2[1], zoom_axis1[0]:zoom_axis1[1]]
+        self.img = img[zoom_axis2[0]:zoom_axis2[1],
+                       zoom_axis1[0]:zoom_axis1[1]]
         if self.img.shape == (0, 0):
             raise ValueError("Try zoom_axis = [b, a] instead of [a, b]")
         axis1 = axis1[zoom_axis1[0]:zoom_axis1[1]]

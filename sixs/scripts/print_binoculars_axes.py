@@ -1,14 +1,18 @@
 #!/usr/bin/python3
 import h5py
-import ast
 import sys
 import os
 import glob
 
 
-def show_axes(file):
+def print_binocular_axes(filename):
+    """
+    Print binoculars axes in the filename
 
-    with h5py.File(file) as f:
+    :param filename: string, absolute path to data
+    """
+    print(f"Opening {filename}")
+    with h5py.File(filename) as f:
         axes = f["binoculars"]["axes"]
         print("File axes are:")
         for k in (axes.keys()):
@@ -18,7 +22,6 @@ def show_axes(file):
 
 # If used as script, iterate on glob string
 if __name__ == "__main__":
-
     # Print help if error raised
     try:
         print(
@@ -26,24 +29,22 @@ if __name__ == "__main__":
             f"\nGlob string, {sys.argv[1]}"
             "\n#####################################################\n"
         )
+
+        files = sorted(
+            glob.glob(
+                glob_string,
+                recursive=True
+            ),
+            key=os.path.getmtime
+        )
+
     except IndexError:
-        print("""
+        print(
+            """
             Arg 1: Glob string, relative path to nexus file, e.g. "1335*.nxs"
             """)
         exit()
 
-    try:
-        cd = os.getcwd()
-        files = glob.glob(sys.argv[1])
-
-        for f in files:
-            print(
-                f"#####################################################\n{f}")
-            show_axes(f)
-            print(f"#####################################################\n")
-
-    except IndexError:
-        print("""
-            Arg 1: Glob string, relative path to nexus file, e.g. "1335*.nxs"
-            """)
-        exit()
+    # Iterate on file list
+    for f in files:
+        print_binocular_axes(f)
