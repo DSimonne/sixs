@@ -350,16 +350,27 @@ class Map:
     ):
         """
         Project the data on one of the measured axis, the result is saved as 
-        attribute `.projected_data`.
+        a numpy.array() attribute `.projected_data`.
 
         The projection is done by summing the counts and contribution over the 
-        defined range and then by deviding counts by contribution.
+        defined range and then by dividing the summed counts by the summed
+        contribution.
 
         Be very careful of the selected range to not drown signal.
 
-        This is exactly the same as what is performed in binoculars for the 
-        version installed at SixS: 0.0.11-1~bpo11+1soleil1
+        In general, the binning should be done in binoculars process.
 
+        This is exactly the same as what is performed in binoculars for the 
+        version installed at SixS: `0.0.11-1~bpo11+1soleil1`.
+
+        If you want to save the data manually, you can use :
+
+        ```python
+        import numpy as np
+        np.save("my_data.npy", Map.projected_data)
+        ```
+        
+        For ASCII file, use np.savetxt instead.
 
         :param projection_axis: string in ("H", "K", "L", "Qx", "Qy", "Qz")
         :param axis_range_1: list or tuple of length two, defines the positions
