@@ -14,9 +14,9 @@ setuptools.setup(
                       "sixs/alias_dict_2022.txt",                      
                       ])],
     scripts=[
-        "sixs/scripts/print_pos.py",
-        "sixs/scripts/show_axes.py",
-        "sixs/scripts/extract_orientation_matrix.py",
+        "sixs/scripts/print_binoculars_axes.py",
+        "sixs/scripts/print_orientation_matrix.py",
+        "sixs/scripts/print_scan_metadata.py",
     ],
     url="https://github.com/DSimonne/sixs/tree/main",
     classifiers=[
