@@ -4,7 +4,7 @@ import glob
 import os
 import pandas as pd
 import sys
-
+import numpy as np
 
 def extract_orientation_matrix(
     filename,
