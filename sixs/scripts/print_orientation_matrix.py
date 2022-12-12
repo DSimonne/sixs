@@ -89,4 +89,4 @@ if __name__ == "__main__":
     )
 
     # Print array, use pretty printer ?
-    print(data.to_string())
+    print(df.to_string())

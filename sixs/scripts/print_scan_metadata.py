@@ -77,7 +77,7 @@ if __name__ == "__main__":
         [find_pos(f) for f in files]
     )
 
-    data = pd.DataFrame(
+    df = pd.DataFrame(
         pos,
         columns=[
             "scan_index",
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         ],
         dtype=float
     )
-    data = data.round(3)
+    df = df.round(3)
 
     # Print array, use pretty printer ?
-    print(data.to_string())
+    print(df.to_string())
