@@ -118,6 +118,8 @@ import inspect
 import yaml
 import sixs
 import shutil
+from h5glance import H5Glance
+from IPython.display import display
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -144,40 +146,37 @@ class Map:
     def __init__(
         self,
         file_path,
+        show_tree=False,
     ):
         """
         Loads the binoculars file.
 
-        The binocular data is loaded as follow:
-            * Divide counts by contribution where cont != 0
-            * Swap the h and k axes to be consistent with the indexing
-                [h, k, l], or [Qx, Qy, Qz].
+        Two arrays are loaded:
+            * `ct`: counts, total intensity count in a region of reciprocal 
+                space 
+            * `cont`: contribution, number of voxels that contributed to 
+                this region in reciprocal space
 
         :param file_path: full path to .hdf5 file
         """
 
         self.file_path = file_path
 
+        if show_tree:
+            display(H5Glance(file_path))
+
         with tb.open_file(self.file_path) as f:
             # Get raw data
-            ct = f.root.binoculars.counts[...]
-            cont = f.root.binoculars.contributions[...]
-            self.raw_data = np.where(cont != 0, ct/cont, np.nan)
+            self.ct = f.root.binoculars.counts[...]
+            self.cont = f.root.binoculars.contributions[...]
 
             # Get which type of projection we are working with
-            # HKL
+            # Qphi
             try:
-                H = f.root.binoculars.axes.H[...]
-                hkl = True
+                Phi = f.root.binoculars.axes.Phi[...]
+                Qphi = True
             except tb.NoSuchNodeError:
-                hkl = False
-
-            ## Qpar, Qper
-            try:
-                Qpar = f.root.binoculars.axes.Qpar[...]
-                QparQper = True
-            except tb.NoSuchNodeError:
-                QparQper = False
+                Qphi = False
 
             # Qindex
             try:
@@ -186,12 +185,12 @@ class Map:
             except tb.NoSuchNodeError:
                 Qindex = False
 
-            # Qphi
+            # HKL
             try:
-                Phi = f.root.binoculars.axes.Phi[...]
-                Qphi = True
+                H = f.root.binoculars.axes.H[...]
+                hkl = True
             except tb.NoSuchNodeError:
-                Qphi = False
+                hkl = False
 
             # QxQyQz
             try:
@@ -200,6 +199,22 @@ class Map:
                 QxQy = True
             except tb.NoSuchNodeError:
                 QxQy = False
+
+            # Q, xp, yp
+            try:
+                Q = f.root.binoculars.axes.Q[...]
+                xp = f.root.binoculars.axes.xp[...]
+                yp = f.root.binoculars.axes.yp[...]
+                QXpYp = True
+            except tb.NoSuchNodeError:
+                QXpYp = False
+
+            ## Qpar, Qper
+            try:
+                Qpar = f.root.binoculars.axes.Qpar[...]
+                QparQper = True
+            except tb.NoSuchNodeError:
+                QparQper = False
 
             # Angles
             try:
@@ -212,7 +227,6 @@ class Map:
 
             # Load data
             if Qphi:  # also Qphi can have Qz (or Qx, Qy)
-                self.data = self.raw_data
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
                 try:  # one of the three
@@ -229,31 +243,33 @@ class Map:
                     pass
 
             elif Qindex:
-                self.data = self.raw_data
                 self.Index = f.root.binoculars.axes.Index[...]
                 self.Q = f.root.binoculars.axes.Q[...]
 
             elif hkl:
-                self.data = np.swapaxes(self.raw_data, 0, 2)  # l, k, h
+                self.ct = np.swapaxes(self.ct, 0, 2)  # l, k, h
+                self.cont = np.swapaxes(self.cont, 0, 2)  # l, k, h
                 self.H = f.root.binoculars.axes.H[...]
                 self.K = f.root.binoculars.axes.K[...]
                 self.L = f.root.binoculars.axes.L[...]
 
             elif QxQy:
-                self.data = np.swapaxes(self.raw_data, 0, 2)  # qz, qy, qx
-                self.data = self.raw_data
+                self.ct = np.swapaxes(self.ct, 0, 2)  # qz, qy, qx
+                self.cont = np.swapaxes(self.cont, 0, 2)  # qz, qy, qx
                 self.Qz = f.root.binoculars.axes.qz[...]
                 self.Qx = f.root.binoculars.axes.qx[...]
                 self.Qy = f.root.binoculars.axes.qy[...]
 
+            elif QXpYp:
+                self.Q = f.root.binoculars.axes.Q[...]
+                self.xp = f.root.binoculars.axes.xp[...]
+                self.yp = f.root.binoculars.axes.yp[...]
+
             elif QparQper:
-                self.data = self.raw_data
                 self.Qper = f.root.binoculars.axes.Qper[...]
                 self.Qpar = f.root.binoculars.axes.Qpar[...]
 
             elif Angles:
-                # self.data = np.swapaxes(self.raw_data, 0, 2)
-                self.data = self.raw_data
                 self.delta = f.root.binoculars.axes.delta[...]
                 self.gamma = f.root.binoculars.axes.gamma[...]
                 self.mu = f.root.binoculars.axes.mu[...]
@@ -289,6 +305,14 @@ class Map:
                 self.Qy_axis = np.linspace(
                     self.Qy[1], self.Qy[2], 1 + int(self.Qy[5]-self.Qy[4]))
 
+            elif QXpYp:
+                self.Q_axis = np.linspace(
+                    self.Q[1], self.Q[2], 1 + int(self.Q[5]-self.Q[4]))
+                self.xp_axis = np.linspace(
+                    self.xp[1], self.xp[2], 1 + int(self.xp[5]-self.xp[4]))
+                self.yp_axis = np.linspace(
+                    self.yp[1], self.yp[2], 1 + int(self.yp[5]-self.yp[4]))
+
             elif QparQper:
                 self.Qper_axis = np.linspace(
                     self.Qper[1], self.Qper[2], 1+self.Qper[5]-self.Qper[4])
@@ -303,20 +327,21 @@ class Map:
                 self.mu_axis = np.round(np.linspace(
                     self.mu[1], self.mu[2], 1 + int(self.mu[5] - self.mu[4])), 3)
 
-            try:
-                print(
-                    "\n############################################################"
-                    f"\nData shape: {self.data.shape}"
-                    f"\n\tHKL data: {hkl}"
-                    f"\n\tQxQy data: {QxQy}"
-                    f"\n\tQparQper data: {QparQper}"
-                    f"\n\tQphi data: {Qphi}"
-                    f"\n\tQindex: {Qindex}"
-                    f"\n\tAngles: {Angles}"
-                    f"\n###########################################################"
-                )
-            except AttributeError:
-                print("Data type not supported")
+        try:
+            print(
+                "\n############################################################"
+                f"\nData shape: {self.ct.shape}"
+                f"\n\tQphi data: {Qphi}"
+                f"\n\tQindex: {Qindex}"
+                f"\n\tHKL data: {hkl}"
+                f"\n\tQxQy data: {QxQy}"
+                f"\n\tQXpYp data: {QXpYp}"
+                f"\n\tQparQper data: {QparQper}"
+                f"\n\tAngles: {Angles}"
+                f"\n###########################################################"
+            )
+        except AttributeError:
+            print("Data type not supported")
 
     def project_data(
         self,
@@ -327,12 +352,21 @@ class Map:
         Project the data on one of the measured axis, the result is saved as 
         attribute `.projected_data`.
 
+        The projection is done by summing the counts and contribution over the 
+        defined range and then by deviding counts by contribution.
+
+        Be very careful of the selected range to not drown signal.
+
+        This is exactly the same as what is performed in binoculars for the 
+        version installed at SixS: 0.0.11-1~bpo11+1soleil1
+
+
         :param projection_axis: string in ("H", "K", "L", "Qx", "Qy", "Qz")
         :param axis_range_1: list or tuple of length two, defines the positions
             of the value to be used in the array on the desired axis, use [None,
             None] to use the whole range.
         """
-        # Start with first axis
+        # Get axis
         self.projection_axis = projection_axis
         projection_axis_index = {
             "H": 2,
@@ -360,32 +394,43 @@ class Map:
 
         projection_axis_values = getattr(self, projection_axis_name)
 
+        # Get start and end indices
         if projection_axis_range[0] != None:
-            start_value = find_value_in_array(
+            start_index = find_value_in_array(
                 projection_axis_values,
                 projection_axis_range[0]
             )[1]
         else:
-            start_value = 0
+            start_index = 0
 
         if projection_axis_range[1] != None:
-            end_value = find_value_in_array(
+            end_index = find_value_in_array(
                 projection_axis_values,
                 projection_axis_range[1]
             )[1]
         else:
-            end_value = -1
+            end_index = -1
 
+        # Only take values that are within the axis range
         if self.projection_axis in ('H', "Qx", "delta"):
-            datanan = self.data[:, :, start_value:end_value]
+            sliced_ct = self.ct[:, :, start_index:end_index]
+            sliced_cont = self.cont[:, :, start_index:end_index]
 
         elif self.projection_axis in ('K', "Qy", "gamma"):
-            datanan = self.data[:, start_value:end_value, :]
+            sliced_ct = self.ct[:, start_index:end_index, :]
+            sliced_cont = self.cont[:, start_index:end_index, :]
 
         elif self.projection_axis in ('L', "Qz", "mu"):
-            datanan = self.data[start_value:end_value, :, :]
+            sliced_ct = self.ct[start_index:end_index, :, :]
+            sliced_cont = self.cont[start_index:end_index, :, :]
 
-        self.projected_data = np.nansum(datanan, axis=projection_axis_index)
+        # Sum the ct and cont
+        summed_ct = np.sum(sliced_ct, axis=projection_axis_index)
+        summed_cont = np.sum(sliced_cont, axis=projection_axis_index)
+
+        # Compute the final data over the selected range
+        self.projected_data = np.where(
+            summed_cont != 0, summed_ct/summed_cont, np.nan)
 
     def plot_map(
         self,

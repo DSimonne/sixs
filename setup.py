@@ -39,6 +39,7 @@ setuptools.setup(
         "scipy",
         "xrayutilities",
         "tables",
-        "PyQt5"
+        "PyQt5",
+        "h5glance",
     ]
 )
