@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
         files = sorted(
             glob.glob(
-                glob_string,
+                sys.argv[1],
                 recursive=True
             ),
             key=os.path.getmtime
