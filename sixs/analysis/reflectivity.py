@@ -17,7 +17,7 @@ from ipywidgets import interact, Button, Layout, interactive, fixed
 from scipy import interpolate
 
 import sixs
-from sixs_nxsread import ReadNxs4 as rn4
+from sixs import ReadNxs4 as rn4
 
 import xrayutilities as xu
 

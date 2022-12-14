@@ -9,7 +9,7 @@ import glob
 
 def find_pos(filename):
     """
-    Print file metadata
+    Print file metadata, works for rocking curves only
 
     :param filename: string, absolute path to data
 
