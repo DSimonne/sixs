@@ -40,7 +40,7 @@ class Reflectivity:
         """
         :param folder: path to data folder
         :param scan_indices: indices of reflectivity scans, list
-        :param data_format: hdf5 (after binoculars) or nxs (raw data)
+        :param data_format: 'hdf5' (after binoculars) or 'nxs' (raw data)
         :param var: "l", variable used as x axis to plot data
         :param configuration_file: False, .yml file that stores metadata
          specific to the reaction, if False, default to
