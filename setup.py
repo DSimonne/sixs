@@ -17,6 +17,7 @@ setuptools.setup(
         "sixs/scripts/print_binoculars_axes.py",
         "sixs/scripts/print_orientation_matrix.py",
         "sixs/scripts/print_scan_metadata.py",
+        "sixs/scripts/print_scan_angles.py",
     ],
     url="https://github.com/DSimonne/sixs/tree/main",
     classifiers=[

@@ -369,7 +369,7 @@ class Map:
         import numpy as np
         np.save("my_data.npy", Map.projected_data)
         ```
-        
+
         For ASCII file, use np.savetxt instead.
 
         :param projection_axis: string in ("H", "K", "L", "Qx", "Qy", "Qz")
