@@ -5,9 +5,10 @@ import os
 import glob
 from sixs.experiments import coherence as coh
 import tables as tb
+from prettytable import PrettyTable
 
 
-def print_scan_angles(filename):
+def get_scan_angles(filename):
     """
     Print binoculars axes in the filename
 
@@ -15,15 +16,15 @@ def print_scan_angles(filename):
     """
     with tb.open_file(filename) as f:
         try:
+            beta = f.root.com.scan_data.beta[...][0]
+            mu = f.root.com.scan_data.mu[...][0]
             gamma = f.root.com.scan_data.gamma[...][0]
+            delta = f.root.com.scan_data.delta[...][0]
+
         except tb.NoSuchNodeError:
             pass
-        print(
-            "\n########################################"
-            f"\nOpening {filename}"
-            f"\n\tgamma = {gamma:.3f}"
-            "\n########################################"
-        )
+
+        return os.path.basename(filename), beta, mu, gamma, delta
 
 
 # If used as script, iterate on glob string
@@ -59,5 +60,12 @@ if __name__ == "__main__":
         exit()
 
     # Iterate on file list
-    for f in files:
-        print_scan_angles(sys.argv[1] + f)
+    table = PrettyTable(
+        field_names=["Filename", "Beta", "Mu", "Gamma", "Delta"],
+        header=True,
+        float_format=".3"
+    )
+    for i, f in enumerate(files):
+        table.add_row(get_scan_angles(sys.argv[1] + f))
+
+    print(table)
