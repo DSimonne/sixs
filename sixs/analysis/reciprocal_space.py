@@ -149,7 +149,7 @@ class Map:
         show_tree=False,
     ):
         """
-        Loads the binoculars file.
+        Loads the data arrays from the binoculars file.
 
         Two arrays are loaded:
             * `ct`: counts, total intensity count in a region of reciprocal 
@@ -158,6 +158,7 @@ class Map:
                 this region in reciprocal space
 
         :param file_path: full path to .hdf5 file
+        :param show_tree: True to display the hdf5 tree in a Jupyter Notebook
         """
 
         self.file_path = file_path
@@ -352,11 +353,12 @@ class Map:
         Project the data on one of the measured axis, the result is saved as 
         a numpy.array() attribute `.projected_data`.
 
-        The projection is done by summing the counts and contribution over the 
-        defined range and then by dividing the summed counts by the summed
+        The projection is done by FIRST summing the counts and contribution over
+        the defined range and THEN by dividing the summed counts by the summed
         contribution.
 
-        Be very careful of the selected range to not drown signal.
+        Be very careful of the selected range to not drown signal. Especially in 
+        L.
 
         In general, the binning should be done in binoculars process.
 
@@ -489,7 +491,7 @@ class Map:
             (x1, y1, x2, y2, color, linestyle, alpha),
             e.g.: [(0, 0, 1, 1, 'r', "--", 0.5)]
         :param grid: True to show a grid
-        :param save_path: path to save file at
+        :param save_path: path to save file
         """
         try:
             img = self.projected_data
@@ -705,7 +707,8 @@ class CTR:
         configuration_file=False,
     ):
         """
-        Init the class with configuration file
+        Init the class with a configuration file that is usefull to keep the 
+        same colors depending on the conditions.
 
         :param configuration_file: default is False. `.yml` file that stores
             metadata specific to the reaction, if False, defaults to
@@ -728,10 +731,13 @@ class CTR:
 
         except TypeError:
             self.configuration_file = self.path_package + "experiments/ammonia.yml"
-            print("Defaulted to ammonia configuration.")
+            print(
+                "Could not load configuration file. "
+                "Defaulted to ammonia configuration."
+            )
 
         finally:
-            print(self.configuration_file)
+            print("Using", self.configuration_file)
             with open(self.configuration_file) as filepath:
                 yaml_parsed_file = yaml.load(
                     filepath,
@@ -836,12 +842,12 @@ class CTR:
 
         # ROD range
         CTR_range_H = [
-            np.round(HK_peak[0] - CTR_width_H, 3),
-            np.round(HK_peak[0] + CTR_width_H, 3)
+            np.round(HK_peak[0] - CTR_width_H/2, 3),
+            np.round(HK_peak[0] + CTR_width_H/2, 3)
         ]
         CTR_range_K = [
-            np.round(HK_peak[1] - CTR_width_K, 3),
-            np.round(HK_peak[1] + CTR_width_K, 3)
+            np.round(HK_peak[1] - CTR_width_K/2, 3),
+            np.round(HK_peak[1] + CTR_width_K/2, 3)
         ]
 
         print(
@@ -854,24 +860,24 @@ class CTR:
         # Background range
         if center_background == HK_peak:
             background_range_H = [
-                np.round(CTR_range_H[0] - background_width_H, 3),
-                np.round(CTR_range_H[1] + background_width_H, 3)
+                np.round(CTR_range_H[0] - background_width_H/2, 3),
+                np.round(CTR_range_H[1] + background_width_H/2, 3)
             ]
             background_range_K = [
-                np.round(CTR_range_K[0] - background_width_K, 3),
-                np.round(CTR_range_K[1] + background_width_K, 3)
+                np.round(CTR_range_K[0] - background_width_K/2, 3),
+                np.round(CTR_range_K[1] + background_width_K/2, 3)
             ]
 
         elif isinstance(center_background, list) \
                 and center_background != HK_peak:
 
             background_range_H = [
-                center_background[0] - background_width_H,
-                center_background[0] + background_width_H
+                center_background[0] - background_width_H/2,
+                center_background[0] + background_width_H/2
             ]
             background_range_K = [
-                center_background[1] - background_width_K,
-                center_background[1] + background_width_K
+                center_background[1] - background_width_K/2,
+                center_background[1] + background_width_K/2
             ]
 
         if verbose and isinstance(center_background, list):
