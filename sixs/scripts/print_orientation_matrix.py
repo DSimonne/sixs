@@ -69,6 +69,8 @@ if __name__ == "__main__":
     except IndexError:
         print(
             """
+            Print the orientation matrix used to compute hkl positions during the scan.
+
             Arg 1: Glob string, relative path to nexus file, e.g. "1335*.nxs"
             """)
         exit()

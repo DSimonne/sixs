@@ -41,6 +41,8 @@ if __name__ == "__main__":
     except IndexError:
         print(
             """
+            Print the axes stored in the binoculars process output file and their respective range.
+
             Arg 1: Glob string, relative path to nexus file, e.g. "1335*.nxs"
             """)
         exit()

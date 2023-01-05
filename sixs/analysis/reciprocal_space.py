@@ -731,6 +731,7 @@ class CTR:
             print("Defaulted to ammonia configuration.")
 
         finally:
+            print(self.configuration_file)
             with open(self.configuration_file) as filepath:
                 yaml_parsed_file = yaml.load(
                     filepath,

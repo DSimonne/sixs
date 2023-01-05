@@ -8,6 +8,7 @@ import tables as tb
 from prettytable import PrettyTable
 import numpy as np
 
+
 def get_scan_angles(filename):
     """
     Print binoculars axes in the filename
@@ -43,16 +44,19 @@ if __name__ == "__main__":
             "\n#####################################################\n"
         )
 
-        files = coh.get_file_range(
+        files = sorted(coh.get_file_range(
             sys.argv[1],
             int(sys.argv[2]),
             int(sys.argv[3]),
             sys.argv[4],
-        )
+        ))
 
     except IndexError:
         print(
             """
+            Print the position of the diffractometer angles at the beginning of the scan
+            and the respective hkl miller indices.
+             
             Arg 1: Directory
             Arg 2: Start number
             Arg 3: End number
@@ -65,7 +69,8 @@ if __name__ == "__main__":
     # Iterate on file list
     print("Printing the first value in the list.")
     table = PrettyTable(
-        field_names=["Filename", "Beta", "Mu", "Gamma", "Delta", "h", "k", "l"],
+        field_names=["Filename", "Beta", "Mu",
+                     "Gamma", "Delta", "h", "k", "l"],
         header=True,
         float_format=".3"
     )
