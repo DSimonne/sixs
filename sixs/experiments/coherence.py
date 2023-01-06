@@ -6,11 +6,11 @@ Functions to use in the ipy3 environment of srv4:
     get_file_range(): get a list of file in a directory, that is then
         used as entry in show_map()
     show_map(): show a map performed with the hexapod
-    plot_2d_scan(): plot a 2d scan, usually in x and y, and prints the command
+    plot_xy_hexapod_scan(): plot a 2d scan, usually in x and y, and prints the command
         to align the sample
     plot_rocking_curve(): plot rocking curve in mu or omega and prints the command
         to align the sample
-    plot_position_evolution(): plot the evolution of the particle position
+    plot_sample_position_evolution(): plot the evolution of the particle position
         taken from hexapod alignment scans
 
 Other functions used in the module:
@@ -25,14 +25,14 @@ How to test these functions on srv4:
     Position evolution:
 
         file_list_position_evolution = coh.get_file_range(directory=test_dir, start_number=1090,end_number=1160, pattern="*hexapod*.nxs")
-        coh.plot_position_evolution(directory=test_dir, file_list=file_list_position_evolution)
+        coh.plot_sample_position_evolution(directory=test_dir, file_list=file_list_position_evolution)
     
     Map:
         file_list_map = coh.get_file_range(directory=test_dir, start_number=470,end_number=1070)
         coh.show_map(file_list = file_list_map, directory=test_dir)
     
     2d scan:
-        coh.plot_2d_scan(file="B18S1P1_bis_hexapod_scan_00692.nxs", directory=test_dir)
+        coh.plot_xy_hexapod_scan(file="B18S1P1_bis_hexapod_scan_00692.nxs", directory=test_dir)
 """
 
 import matplotlib.pyplot as plt
@@ -60,7 +60,7 @@ except ModuleNotFoundError:
 
 
 def load_nexus_attribute(key, file, directory=None):
-    "Get attribute values from nexus file in f.com.scan_data"
+    """Get attribute values from nexus file in f.com.scan_data"""
     if not isinstance(key, str):
         print("param 'key' must be a string")
         return None
@@ -89,9 +89,10 @@ def load_nexus_attribute(key, file, directory=None):
 
 def get_file_range(directory, start_number, end_number, pattern='*.nxs'):
     """
-    It select a files range with the numeration at the end of the file,
-    once is specified the file expention, default is nxs, splitting character is: "_"
-    It returns a file list with the desired numbers
+    Select a file range based on the scan number, selection is made using 
+    the get_scan_number() function.
+
+    :return: file list
     """
     print("Using as directory:", directory)
     all_file_list = sorted(
@@ -479,7 +480,7 @@ def plot_mesh(
     plt.show(block=False)
 
 
-def plot_2d_scan(
+def plot_xy_hexapod_scan(
     file,
     directory=None,
     colormap='jet',
@@ -585,7 +586,7 @@ def plot_2d_scan(
 
 def plot_rocking_curve(
     file: str,
-    directory=None,
+    directory: str = None,
     roi_key: str = "roi1_merlin",
     motor_key: str = "mu",
     method: str = "com",
@@ -673,7 +674,7 @@ def plot_rocking_curve(
         plt.show(block=False)
 
 
-def plot_position_evolution(
+def plot_sample_position_evolution(
     file_list,
     directory=None,
     roi_key="roi1_merlin",
@@ -683,8 +684,8 @@ def plot_position_evolution(
     cmap="RdYlBu",
 ):
     """
-    Plot the evolution of the position of the sample taken from the alignment scans
-    as a function of the scan number
+    Plot the evolution of the position of the sample taken from the alignment 
+    scans as a function of the scan number
 
     :param file_list: list of .nxs files in param directory
     :param directory: directory in which file are, default is None
@@ -694,8 +695,7 @@ def plot_position_evolution(
      default value depends on 'map_type'
     :param y_key: str, key used in f.root.com.scan_data for y
      default value depends on 'map_type'
-    :param method: the method used to find the position of interest
-        (str).
+    :param method: the method used to find the position of interest (str).
     :param cmap: cmap for color in plots
     """
 

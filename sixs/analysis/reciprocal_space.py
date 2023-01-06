@@ -119,11 +119,14 @@ import yaml
 import sixs
 import shutil
 from h5glance import H5Glance
-from IPython.display import display
+from IPython.display import display, clear_output
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import patches
+
+import ipywidgets as widgets
+from ipywidgets import interact, interactive, fixed, Layout
 
 from bokeh.layouts import column
 from bokeh.models import ColumnDataSource, Legend, RangeTool, HoverTool, WheelZoomTool, CrosshairTool
@@ -147,6 +150,7 @@ class Map:
         self,
         file_path,
         show_tree=False,
+        verbose=False,
     ):
         """
         Loads the data arrays from the binoculars file.
@@ -159,6 +163,7 @@ class Map:
 
         :param file_path: full path to .hdf5 file
         :param show_tree: True to display the hdf5 tree in a Jupyter Notebook
+        :param verbose: True to print informations about the file
         """
 
         self.file_path = file_path
@@ -329,18 +334,21 @@ class Map:
                     self.mu[1], self.mu[2], 1 + int(self.mu[5] - self.mu[4])), 3)
 
         try:
-            print(
-                "\n############################################################"
-                f"\nData shape: {self.ct.shape}"
-                f"\n\tQphi data: {Qphi}"
-                f"\n\tQindex: {Qindex}"
-                f"\n\tHKL data: {hkl}"
-                f"\n\tQxQy data: {QxQy}"
-                f"\n\tQXpYp data: {QXpYp}"
-                f"\n\tQparQper data: {QparQper}"
-                f"\n\tAngles: {Angles}"
-                f"\n###########################################################"
-            )
+            if verbose:
+                print(
+                    "\n##############################"
+                    "##############################"
+                    f"\nData shape: {self.ct.shape}"
+                    f"\n\tQphi data: {Qphi}"
+                    f"\n\tQindex: {Qindex}"
+                    f"\n\tHKL data: {hkl}"
+                    f"\n\tQxQy data: {QxQy}"
+                    f"\n\tQXpYp data: {QXpYp}"
+                    f"\n\tQparQper data: {QparQper}"
+                    f"\n\tAngles: {Angles}"
+                    f"\n#############################"
+                    "##############################"
+                )
         except AttributeError:
             print("Data type not supported")
 
@@ -820,7 +828,25 @@ class CTR:
                  for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
 
         # Get scans specified with scan_indices
-        scan_files = [f for f in files if any([n in f for n in scan_indices])]
+        self.scan_files = [f for f in files if any(
+            [n in f for n in scan_indices])]
+
+        # Initialize interactive plot
+        self.interactive_plot = interactive(
+            self.view_ctr,
+            file=widgets.Dropdown(
+                options=self.scan_files,
+                value=self.scan_files[0],
+                description="Choose a file",
+            ),
+            projection_axis=widgets.Dropdown(
+                options=["H", "K", "L"],
+                value="L",
+                description='Axis:',
+            ),
+        )
+
+        print("Use self.interactive_plot to visualize CTR slice by slice.")
 
         if verbose:
             print(
@@ -835,7 +861,7 @@ class CTR:
                 "\n###########################################################"
                 "\nWorking on the following files:"
             )
-            for f in scan_files:
+            for f in self.scan_files:
                 print("\t", f)
             print(
                 "###########################################################")
@@ -898,7 +924,7 @@ class CTR:
             "\n###########################################################"
         )
 
-        for i, fname in enumerate(scan_files):
+        for i, fname in enumerate(self.scan_files):
             with tb.open_file(folder + fname, "r") as f:
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
@@ -932,13 +958,13 @@ class CTR:
         # Save final data as numpy array
         # 0 is x axis, 1 is data, 2 is background (compatible with ROD)
         data = np.nan * np.empty((
-            len(scan_files),
+            len(self.scan_files),
             3,
             l_length,
         ))
 
         # Iterate on each file now to get the data
-        for i, fname in enumerate(scan_files):
+        for i, fname in enumerate(self.scan_files):
             if verbose:
                 print(
                     "\n###########################################################"
@@ -1169,7 +1195,7 @@ class CTR:
 
             # Bin the data
             data = data[:, :, :extra_values].reshape(
-                len(scan_files),
+                len(self.scan_files),
                 3,
                 binned_l_length,
                 bin_factor
@@ -1183,76 +1209,51 @@ class CTR:
 
         if verbose:
             # Resume with a plot for the last dataset
-            img = np.sum(np.nan_to_num(raw_data),
-                         axis=0)  # sum over L axis
-            # need to flip to have a plot coherent with binoculars
-            img = np.flip(img, axis=0)
+            lines = [
+                (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] +
+                 CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 0.8),
+                (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] -
+                 CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 0.8),
+                (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0] +
+                 CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 0.8),
+                (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0] -
+                 CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 0.8),
 
-            plt.figure(figsize=(8, 8))
-            plt.imshow(
-                img,
-                norm=LogNorm(),
-                cmap="jet",
-                extent=(H[1], H[2], K[1], K[2]),
+                (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] -
+                 CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+                (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K /
+                 2, HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 0.8),
+                (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K /
+                 2, HK_peak[0]-CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+
+                (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] +
+                 CTR_width_H/2+background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+                (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]-CTR_width_K /
+                 2, HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 0.8),
+                (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]+CTR_width_K /
+                 2, HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+
+                (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2+background_width_K/2, HK_peak[0] -
+                 CTR_width_H/2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
+                (HK_peak[0]-CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0]-CTR_width_H /
+                 2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
+                (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0]+CTR_width_H /
+                 2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
+
+                (HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2-background_width_K/2, HK_peak[0] -
+                 CTR_width_H/2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
+                (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0]-CTR_width_H /
+                 2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
+                (HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0]+CTR_width_H /
+                 2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
+            ]
+
+            mappo = Map(folder + fname)
+            mappo.project_data("L")
+            mappo.plot_map(
+                lines=lines,
+                title="CTR data projected on L axis"
             )
-            plt.xlabel("H", fontsize=15)
-            plt.ylabel("K", fontsize=15)
-            plt.title("Intensity summed over L", fontsize=15)
-
-            # Plot data ROI
-            plt.axvline(
-                x=start_H_ROI[0],
-                color='red',
-                linestyle="--"
-            )
-            plt.axvline(
-                x=end_H_ROI[0],
-                color='red',
-                linestyle="--"
-            )
-
-            plt.axhline(
-                y=start_K_ROI[0],
-                color='red',
-                linestyle="--"
-            )
-            plt.axhline(
-                y=end_K_ROI[0],
-                color='red',
-                linestyle="--",
-                label="ROI"
-            )
-
-            if center_background != False:
-                # Plot background ROI
-                plt.axvline(
-                    x=start_H_background[0],
-                    color='blue',
-                    linestyle="--"
-                )
-                plt.axvline(
-                    x=end_H_background[0],
-                    color='blue',
-                    linestyle="--"
-                )
-
-                plt.axhline(
-                    y=start_K_background[0],
-                    color='blue',
-                    linestyle="--"
-                )
-                plt.axhline(
-                    y=end_K_background[0],
-                    color='blue',
-                    linestyle="--",
-                    label="Background"
-                )
-
-            # Legend
-            plt.legend()
-            plt.colorbar()
-            plt.show()
-            plt.close()
 
         # Saving
         print(
@@ -1619,6 +1620,50 @@ class CTR:
             p.title.text_font_size = '20pt'
 
         show(p)
+
+    @ staticmethod
+    def view_ctr(file, projection_axis):
+        """
+        Plot a slice of the CTR depending on the axis,
+        uses the Map class
+        """
+
+        # Create 2D slice of CTR
+        ctr_as_map = Map(file)
+        axis = getattr(ctr_as_map, f"{projection_axis}_axis")
+
+        # Create widget and handler
+        range_widget = widgets.FloatRangeSlider(
+            value=[axis[0], axis[-1]],
+            min=min(axis),
+            max=max(axis),
+            step=np.mean(axis[1:] - axis[:-1]),
+            description='Axis range:',
+            continuous_update=False,
+            orientation='horizontal',
+            readout=True,
+            readout_format='.3f',
+            layout=Layout(width="50%")
+        )
+
+        def on_range_change(change):
+            """Update the range in the plot"""
+            plt.close()
+            clear_output()
+            interact(
+                ctr_as_map.project_data,
+                projection_axis_range=range_widget,
+                projection_axis=fixed(projection_axis)
+            )
+            ctr_as_map.plot_map()
+
+        range_widget.observe(on_range_change, names='value')
+
+        interact(
+            ctr_as_map.project_data,
+            projection_axis_range=range_widget,
+            projection_axis=fixed(projection_axis)
+        )
 
 
 def change_nb_unit_cells(
