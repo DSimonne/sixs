@@ -259,6 +259,18 @@ class Map:
                 self.K = f.root.binoculars.axes.K[...]
                 self.L = f.root.binoculars.axes.L[...]
 
+                if verbose:
+                    print(
+                        "\n###########################################################"
+                        "\nAxis number, range and stepsize in H: "
+                        f"[{self.H[0]:.3f}: {self.H[1]:.3f}: {self.H[2]:.3f}]"
+                        "\nAxis number, range and stepsize in K: "
+                        f"[{self.K[0]:.3f}: {self.K[1]:.3f}: {self.K[2]:.3f}]"
+                        "\nAxis number, range and stepsize in L: "
+                        f"[{self.L[0]:.3f}: {self.L[1]:.3f}: {self.L[2]:.3f}]"
+                        "\n###########################################################"
+                    )
+
             elif QxQy:
                 self.ct = np.swapaxes(self.ct, 0, 2)  # qz, qy, qx
                 self.cont = np.swapaxes(self.cont, 0, 2)  # qz, qy, qx
@@ -483,7 +495,7 @@ class Map:
         :param interpolation: default is 'none'. See plt.imshow? for options,
             other options are 'nearest', 'gouraud', ...
         :param vmin: default is 0.1, you can also use None
-        :param vmax: default is 1000, you can also use None
+        :param vmax: default is max, you can also use None
         :param figsize: default is (16, 9)
         :param title: figure title
         :param cmap: color map used, pick from
@@ -667,8 +679,11 @@ class Map:
         ax.tick_params(axis=('both'), labelsize=20)
 
         # Colorbar
-        cbar = fig.colorbar(plotted_img, ax=ax)
-        cbar.ax.tick_params(labelsize=20)
+        try:
+            cbar = fig.colorbar(plotted_img, ax=ax)
+            cbar.ax.tick_params(labelsize=20)
+        except ValueError:
+            print("Could not display colorbar, change scale values.")
 
         fig.tight_layout()
 
@@ -678,7 +693,10 @@ class Map:
         if save_path:
             plt.savefig(save_path)
 
-        plt.show()
+        try:
+            plt.show()
+        except ValueError:
+            pass
 
     def view_space(
         self,
@@ -1068,9 +1086,9 @@ class CTR:
                 print(
                     "\n###########################################################"
                     f"\nOpening file {fname} ..."
-                    f"\n\tAxis number, range and stepsize in H: [{H[0]:.3f}: {H[1]:.3f}: {H[2]:.3f}]"
-                    f"\n\tAxis number, range and stepsize in K: [{K[0]:.3f}: {K[1]:.3f}: {K[2]:.3f}]"
-                    f"\n\tAxis number, range and stepsize in L: [{L[0]:.3f}: {L[1]:.3f}: {L[2]:.3f}]"
+                    f"\nAxis number, range and stepsize in H: [{H[0]:.3f}: {H[1]:.3f}: {H[2]:.3f}]"
+                    f"\nAxis number, range and stepsize in K: [{K[0]:.3f}: {K[1]:.3f}: {K[2]:.3f}]"
+                    f"\nAxis number, range and stepsize in L: [{L[0]:.3f}: {L[1]:.3f}: {L[2]:.3f}]"
                     "\n###########################################################"
                 )
 
@@ -1141,13 +1159,12 @@ class CTR:
                               start_K_ROI[1]:end_K_ROI[1],
                               start_H_ROI[1]:end_H_ROI[1],
                               ]
-            self.ROI_2D = ROI_2D
 
             # Integrate the data in the ROI, replace nan by zeroes otherwise
             # the total is equal to np.nan
             intensity = np.sum(np.nan_to_num(ROI_2D), axis=(1, 2))
 
-            # Count number of non-np.nan pixels in the ROI
+            # Count number of np.nan pixels in the ROI
             # These pixels do not have an intensity (!= from zero intensity),
             # they were not recorded.
             roi_pixel_count = np.sum(~np.isnan(ROI_2D), axis=(1, 2))
