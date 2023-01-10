@@ -680,6 +680,117 @@ class Map:
 
         plt.show()
 
+    def view_space(
+        self,
+        projection_axis,
+        figsize=(10, 10),
+        cmap="jet",
+    ):
+        """
+        """
+
+        # Project data on one axis
+        axis = getattr(self, f"{projection_axis}_axis")
+
+        @ interact(
+            projection_axis_range=widgets.FloatRangeSlider(
+                value=[axis[0], axis[-1]],
+                min=min(axis),
+                max=max(axis),
+                step=np.mean(axis[1:] - axis[:-1]),
+                description='Projection axis range:',
+                continuous_update=False,
+                orientation='horizontal',
+                readout=True,
+                readout_format='.3f',
+                layout=Layout(width="50%"),
+                style={'description_width': 'initial'},
+
+            ),
+            projection_axis=fixed(projection_axis),
+            figsize=fixed(figsize),
+            cmap=fixed(cmap),
+        )
+        def change_file_and_axis(
+            projection_axis_range,
+            projection_axis,
+            figsize,
+            cmap,
+        ):
+            """Update the space range"""
+            self.project_data(
+                projection_axis_range=projection_axis_range,
+                projection_axis=projection_axis,
+            )
+
+            # Get the two other axes
+            axis1 = getattr(self, f"H_axis")
+            axis2 = getattr(self, f"K_axis")
+
+            @ interact(
+                zoom_axis1=widgets.FloatRangeSlider(
+                    value=[axis1[0], axis1[-1]],
+                    min=min(axis1),
+                    max=max(axis1),
+                    step=np.mean(axis1[1:] - axis1[:-1]),
+                    description='First axis range:',
+                    continuous_update=False,
+                    orientation='horizontal',
+                    readout=True,
+                    readout_format='.3f',
+                    layout=Layout(width="50%"),
+                    style={'description_width': 'initial'},
+                ),
+                zoom_axis2=widgets.FloatRangeSlider(
+                    value=[axis2[0], axis2[-1]],
+                    min=min(axis2),
+                    max=max(axis2),
+                    step=np.mean(axis2[1:] - axis2[:-1]),
+                    description='Second axis range:',
+                    continuous_update=False,
+                    orientation='horizontal',
+                    readout=True,
+                    readout_format='.3f',
+                    layout=Layout(width="50%"),
+                    style={'description_width': 'initial'},
+                ),
+                data_range=widgets.FloatRangeSlider(
+                    value=[
+                        np.nanmin(self.projected_data),
+                        np.nanmax(self.projected_data),
+                    ],
+                    min=np.nanmin(self.projected_data),
+                    max=np.nanmax(self.projected_data),
+                    description='Data range:',
+                    continuous_update=False,
+                    orientation='horizontal',
+                    readout=True,
+                    readout_format='.1f',
+                    layout=Layout(width="50%"),
+                    style={'description_width': 'initial'},
+                ),
+                figsize=fixed(figsize),
+                cmap=fixed(cmap),
+            )
+            def interactive_plot(
+                zoom_axis1,
+                zoom_axis2,
+                data_range,
+                figsize,
+                cmap,
+            ):
+                """Plot the space"""
+
+                vmin, vmax = data_range
+                self.plot_map(
+                    zoom_axis1=list(zoom_axis1),
+                    zoom_axis2=list(zoom_axis2),
+                    vmin=vmin,
+                    vmax=vmax,
+                    figsize=figsize,
+                    cmap=cmap,
+                )
+
 
 class CTR:
     """
@@ -831,23 +942,6 @@ class CTR:
         self.scan_files = [f for f in files if any(
             [n in f for n in scan_indices])]
 
-        # Initialize interactive plot
-        self.interactive_plot = interactive(
-            self.view_ctr,
-            file=widgets.Dropdown(
-                options=self.scan_files,
-                value=self.scan_files[0],
-                description="Choose a file",
-            ),
-            projection_axis=widgets.Dropdown(
-                options=["H", "K", "L"],
-                value="L",
-                description='Axis:',
-            ),
-        )
-
-        print("Use self.interactive_plot to visualize CTR slice by slice.")
-
         if verbose:
             print(
                 "\n###########################################################"
@@ -915,6 +1009,46 @@ class CTR:
                 f" : {background_range_K[1]}]"
                 "\n###########################################################"
             )
+
+        # Define the lines around the ROI and the background
+        ROI_lines = [
+            (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] +
+             CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 0.8),
+            (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] -
+             CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 0.8),
+            (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0] +
+             CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 0.8),
+            (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0] -
+             CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 0.8),
+
+            (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] -
+             CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+            (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K /
+             2, HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 0.8),
+            (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K /
+             2, HK_peak[0]-CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+
+            (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] +
+             CTR_width_H/2+background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+            (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]-CTR_width_K /
+             2, HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 0.8),
+            (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]+CTR_width_K /
+             2, HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+
+            (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2+background_width_K/2, HK_peak[0] -
+             CTR_width_H/2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
+            (HK_peak[0]-CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0]-CTR_width_H /
+             2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
+            (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0]+CTR_width_H /
+             2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
+
+            (HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2-background_width_K/2, HK_peak[0] -
+             CTR_width_H/2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
+            (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0]-CTR_width_H /
+             2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
+            (HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0]+CTR_width_H /
+             2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
+        ]
 
         # Start iterating on file to see the shape
         print(
@@ -1175,6 +1309,16 @@ class CTR:
                     "No background subtracted"
                     "\n###########################################################"
                 )
+
+            if verbose:
+                # Resume with a plot for the last dataset
+                mappo = Map(folder + fname)
+                mappo.project_data("L")
+                mappo.plot_map(
+                    lines=ROI_lines,
+                    title="CTR data projected on L axis"
+                )
+
         if isinstance(bin_factor, int) and bin_factor > 1:
             if l_length % bin_factor != 0:
                 print(
@@ -1205,54 +1349,6 @@ class CTR:
                 "\n###########################################################"
                 f"\nBinned data"
                 "\n###########################################################"
-            )
-
-        if verbose:
-            # Resume with a plot for the last dataset
-            lines = [
-                (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] +
-                 CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 0.8),
-                (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] -
-                 CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 0.8),
-                (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0] +
-                 CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 0.8),
-                (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0] -
-                 CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 0.8),
-
-                (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] -
-                 CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
-                (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K /
-                 2, HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 0.8),
-                (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K /
-                 2, HK_peak[0]-CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
-
-                (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] +
-                 CTR_width_H/2+background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
-                (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]-CTR_width_K /
-                 2, HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 0.8),
-                (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]+CTR_width_K /
-                 2, HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
-
-                (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2+background_width_K/2, HK_peak[0] -
-                 CTR_width_H/2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
-                (HK_peak[0]-CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0]-CTR_width_H /
-                 2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
-                (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0]+CTR_width_H /
-                 2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
-
-                (HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2-background_width_K/2, HK_peak[0] -
-                 CTR_width_H/2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
-                (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0]-CTR_width_H /
-                 2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
-                (HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0]+CTR_width_H /
-                 2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
-            ]
-
-            mappo = Map(folder + fname)
-            mappo.project_data("L")
-            mappo.plot_map(
-                lines=lines,
-                title="CTR data projected on L axis"
             )
 
         # Saving
@@ -1620,50 +1716,6 @@ class CTR:
             p.title.text_font_size = '20pt'
 
         show(p)
-
-    @ staticmethod
-    def view_ctr(file, projection_axis):
-        """
-        Plot a slice of the CTR depending on the axis,
-        uses the Map class
-        """
-
-        # Create 2D slice of CTR
-        ctr_as_map = Map(file)
-        axis = getattr(ctr_as_map, f"{projection_axis}_axis")
-
-        # Create widget and handler
-        range_widget = widgets.FloatRangeSlider(
-            value=[axis[0], axis[-1]],
-            min=min(axis),
-            max=max(axis),
-            step=np.mean(axis[1:] - axis[:-1]),
-            description='Axis range:',
-            continuous_update=False,
-            orientation='horizontal',
-            readout=True,
-            readout_format='.3f',
-            layout=Layout(width="50%")
-        )
-
-        def on_range_change(change):
-            """Update the range in the plot"""
-            plt.close()
-            clear_output()
-            interact(
-                ctr_as_map.project_data,
-                projection_axis_range=range_widget,
-                projection_axis=fixed(projection_axis)
-            )
-            ctr_as_map.plot_map()
-
-        range_widget.observe(on_range_change, names='value')
-
-        interact(
-            ctr_as_map.project_data,
-            projection_axis_range=range_widget,
-            projection_axis=fixed(projection_axis)
-        )
 
 
 def change_nb_unit_cells(
