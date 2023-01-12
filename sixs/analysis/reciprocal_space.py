@@ -894,7 +894,6 @@ class CTR:
         scan_indices,
         save_name,
         glob_string_match="*.hdf5",
-        bin_factor=1,
         CTR_width_H=0.02,
         CTR_width_K=0.02,
         background_width_H=0.01,
@@ -931,7 +930,6 @@ class CTR:
         :param save_name: name of file in which the results are saved, saved in
             folder.
         :param glob_string_match: string pattern used for file matching
-        :param bin_factor: int, binning along L.
         :param CTR_width_H: width in h of CTR in reciprocal space, default is
             0.02.
         :param CTR_width_K: width in k of CTR in reciprocal space, default is
@@ -1104,6 +1102,7 @@ class CTR:
         print(
             "\n###########################################################"
             f"\nSmallest common range in L is [{l_min} : {l_max}]"
+            f"\nMaximum number of points is {l_length}"
             "\n###########################################################"
         )
 
@@ -1112,7 +1111,7 @@ class CTR:
         data = np.nan * np.empty((
             len(self.scan_files),
             3,
-            l_length,
+            l_length-1,  # FITAID CORRECTION
         ))
 
         # Iterate on each file now to get the data
@@ -1123,29 +1122,18 @@ class CTR:
                     f"\nOpening file {fname} ..."
                 )
 
-            with tb.open_file(folder + fname, "r") as f:
-                ct = f.root.binoculars.counts[...]
-                cont = f.root.binoculars.contributions[...]
+            # Use Map class to avoid mistakes
+            dataset = Map(folder + fname, verbose=False)
 
-                raw_data = np.where(cont != 0, ct/cont, np.nan)
-                raw_data = np.swapaxes(raw_data, 0, 2)  # originally l, k, h
-
-                H = f.root.binoculars.axes.H[:]
-                K = f.root.binoculars.axes.K[:]
-                L = f.root.binoculars.axes.L[:]
-
-            scan_h_axis = np.round(np.linspace(
-                H[1], H[2], 1 + int(H[5] - H[4])), 3)
-            scan_k_axis = np.round(np.linspace(
-                K[1], K[2], 1 + int(K[5] - K[4])), 3)
-            scan_l_axis = np.round(np.linspace(
-                L[1], L[2], 1 + int(L[5] - L[4])), 3)
+            # FITAID CORRECTION
+            scan_l_length = len(dataset.L_axis)
+            scan_l_axis = (dataset.L_axis[:-1]+dataset.L_axis[1:])/2
 
             # Define ROI indices
-            start_H_ROI = find_value_in_array(scan_h_axis, CTR_range_H[0])
-            end_H_ROI = find_value_in_array(scan_h_axis, CTR_range_H[1])
-            start_K_ROI = find_value_in_array(scan_k_axis, CTR_range_K[0])
-            end_K_ROI = find_value_in_array(scan_k_axis, CTR_range_K[1])
+            start_H_ROI = find_value_in_array(dataset.H_axis, CTR_range_H[0])
+            end_H_ROI = find_value_in_array(dataset.H_axis, CTR_range_H[1])
+            start_K_ROI = find_value_in_array(dataset.K_axis, CTR_range_K[0])
+            end_K_ROI = find_value_in_array(dataset.K_axis, CTR_range_K[1])
 
             if verbose:
                 print(
@@ -1155,171 +1143,189 @@ class CTR:
                 )
 
             # Get data only in specific ROI
-            ROI_2D = raw_data[
-                :,
-                start_K_ROI[1]:end_K_ROI[1],
-                start_H_ROI[1]:end_H_ROI[1],
-            ]
+            intensity = np.empty(scan_l_length-1)
+            roi_pixel_count = np.empty(scan_l_length-1)
+            background_values = np.empty(scan_l_length-1)
+            background_pixel_count = np.empty(scan_l_length-1)
+            structure_factor = np.empty(scan_l_length-1)
 
-            # Integrate the data in the ROI, replace nan by zeroes otherwise
-            # the total is equal to np.nan, np.nansum ?
-            intensity = np.sum(np.nan_to_num(ROI_2D), axis=(1, 2))
-
-            # Count number of np.nan pixels in the ROI
-            # These pixels do not have an intensity (!= from zero intensity),
-            # they were not recorded.
-            roi_pixel_count = np.sum(~np.isnan(ROI_2D), axis=(1, 2))
-
-            # Compute background
-            if center_background == HK_peak:
-                # Define background ROIs indices
-                start_H_background = find_value_in_array(
-                    scan_h_axis,
-                    background_range_H[0]
-                )
-                end_H_background = find_value_in_array(
-                    scan_h_axis,
-                    background_range_H[1]
+            for (l_index_min, l_index_max) in zip(
+                range(0, scan_l_length-1),
+                range(1, scan_l_length),
+            ):
+                dataset.project_data(
+                    "L",
+                    projection_axis_range=[
+                        dataset.L_axis[l_index_min],
+                        dataset.L_axis[l_index_max],
+                    ]
                 )
 
-                start_K_background = find_value_in_array(
-                    scan_k_axis,
-                    background_range_K[0]
-                )
-                end_K_background = find_value_in_array(
-                    scan_k_axis,
-                    background_range_K[1]
+                # Integrate the data in the ROI, replace nan by zeroes otherwise
+                # the total is equal to np.nan
+                intensity[l_index_min] = np.nansum(
+                    dataset.projected_data[
+                        start_K_ROI[1]:end_K_ROI[1],
+                        start_H_ROI[1]:end_H_ROI[1],
+                    ],
+                    axis=(0, 1),
                 )
 
-                if verbose:
-                    print(
-                        f"Background ROI (H, K): [{start_H_background[0]}, "
-                        f"{end_H_background[0]}, {start_K_background[0]}, "
-                        f"{end_K_background[0]}] ; [{start_H_background[1]}, "
-                        f"{end_H_background[1]}, {start_K_background[1]}, "
-                        f"{end_K_background[1]}]"
-                        "\n###########################################################"
+                # Count number of np.nan pixels in the ROI
+                # These pixels do not have an intensity (!= from zero intensity),
+                # they were not recorded.
+                roi_pixel_count[l_index_min] = np.sum(
+                    ~np.isnan(
+                        dataset.projected_data[
+                            start_K_ROI[1]:end_K_ROI[1],
+                            start_H_ROI[1]:end_H_ROI[1],
+                        ],
+                    ),
+                    axis=(0, 1),
+                )
+
+                # Compute background
+                if center_background == HK_peak:
+                    # Define background ROIs indices
+                    start_H_background = find_value_in_array(
+                        dataset.H_axis,
+                        background_range_H[0]
+                    )
+                    end_H_background = find_value_in_array(
+                        dataset.H_axis,
+                        background_range_H[1]
                     )
 
-                # Define background ROIs
-                background_ROI_0 = raw_data[
-                    :,
-                    start_K_ROI[1]:end_K_ROI[1],
-                    start_H_background[1]:start_H_ROI[1],
-                ]
-
-                background_ROI_1 = raw_data[
-                    :,
-                    start_K_ROI[1]:end_K_ROI[1],
-                    end_H_ROI[1]:end_H_background[1],
-                ]
-
-                background_ROI_2 = raw_data[
-                    :,
-                    start_K_background[1]:start_K_ROI[1],
-                    start_H_ROI[1]:end_H_ROI[1],
-                ]
-
-                background_ROI_3 = raw_data[
-                    :,
-                    end_K_ROI[1]:end_K_background[1],
-                    start_H_ROI[1]:end_H_ROI[1],
-                ]
-
-                # Integrate the data in the ROIs, replace nan by zeroes
-                # otherwise the total is equal to np.nan
-                background_values = \
-                    np.sum(np.nan_to_num(background_ROI_0), axis=(1, 2)) + \
-                    np.sum(np.nan_to_num(background_ROI_1), axis=(1, 2)) + \
-                    np.sum(np.nan_to_num(background_ROI_2), axis=(1, 2)) + \
-                    np.sum(np.nan_to_num(background_ROI_3), axis=(1, 2))
-
-                # Count number of non-np.nan pixels in the background
-                # These pixels do not # have an intensity (!= from zero
-                # intensity), they were not recorded.
-                background_pixel_count = \
-                    np.sum(~np.isnan(background_ROI_0), axis=(1, 2)) + \
-                    np.sum(~np.isnan(background_ROI_1), axis=(1, 2)) + \
-                    np.sum(~np.isnan(background_ROI_2), axis=(1, 2)) + \
-                    np.sum(~np.isnan(background_ROI_3), axis=(1, 2))
-
-                # Remove background
-                structure_factor = np.nan_to_num(np.where(
-                    background_pixel_count > 0,
-                    np.sqrt(
-                        intensity - ((roi_pixel_count / background_pixel_count) * background_values)),
-                    0
-                ))
-
-            elif isinstance(center_background, list) \
-                    and center_background != HK_peak:
-                # Background intensity, define ROI indices
-                start_H_background = find_value_in_array(
-                    scan_h_axis,
-                    background_range_H[0]
-                )
-                end_H_background = find_value_in_array(
-                    scan_h_axis,
-                    background_range_H[1]
-                )
-
-                start_K_background = find_value_in_array(
-                    scan_k_axis,
-                    background_range_K[0]
-                )
-                end_K_background = find_value_in_array(
-                    scan_k_axis,
-                    background_range_K[1]
-                )
-
-                if verbose:
-                    print(
-                        f"Background ROI (H, K): [{start_H_background[0]}, "
-                        f"{end_H_background[0]}, {start_K_background[0]}, "
-                        f"{end_K_background[0]}] ; [{start_H_background[1]}, "
-                        f"{end_H_background[1]}, {start_K_background[1]}, "
-                        f"{end_K_background[1]}]"
-                        "\n###########################################################"
+                    start_K_background = find_value_in_array(
+                        dataset.K_axis,
+                        background_range_K[0]
+                    )
+                    end_K_background = find_value_in_array(
+                        dataset.K_axis,
+                        background_range_K[1]
                     )
 
-                # Define the background ROI
-                background_ROI = raw_data[
-                    :,
-                    start_K_background[1]:end_K_background[1],
-                    start_H_background[1]:end_H_background[1],
-                ]
+                    if verbose and l_index_min == 0:
+                        print(
+                            f"Background ROI (H, K): [{start_H_background[0]}, "
+                            f"{end_H_background[0]}, {start_K_background[0]}, "
+                            f"{end_K_background[0]}] ; [{start_H_background[1]}, "
+                            f"{end_H_background[1]}, {start_K_background[1]}, "
+                            f"{end_K_background[1]}]"
+                            "\n###########################################################"
+                        )
 
-                background_values = np.sum(background_ROI, axis=(1, 2))
+                    # Define background ROIs
+                    background_ROI_0 = dataset.projected_data[
+                        start_K_ROI[1]:end_K_ROI[1],
+                        start_H_background[1]:start_H_ROI[1],
+                    ]
 
-                # Count number of non-np.nan pixels in the background
-                # These pixels do not # have an intensity (!= from zero
-                # intensity), they were not recorded.
-                background_pixel_count = np.sum(
-                    ~np.isnan(background_ROI_0) + ~np.isnan(background_ROI_1) +
-                    ~np.isnan(background_ROI_2) + ~np.isnan(background_ROI_3)
-                )
+                    background_ROI_1 = dataset.projected_data[
+                        start_K_ROI[1]:end_K_ROI[1],
+                        end_H_ROI[1]:end_H_background[1],
+                    ]
 
-                # Remove background
-                structure_factor = np.nan_to_num(np.where(
-                    background_pixel_count > 0,
-                    np.sqrt(
-                        intensity - ((roi_pixel_count / background_pixel_count)
-                                     * background_values)),
-                    0
-                ))
+                    background_ROI_2 = dataset.projected_data[
+                        start_K_background[1]:start_K_ROI[1],
+                        start_H_ROI[1]:end_H_ROI[1],
+                    ]
 
-            else:
-                structure_factor = np.sqrt(intensity)
+                    background_ROI_3 = dataset.projected_data[
+                        end_K_ROI[1]:end_K_background[1],
+                        start_H_ROI[1]:end_H_ROI[1],
+                    ]
+
+                    # Integrate the data in the ROIs, replace nan by zeroes
+                    # otherwise the total is equal to np.nan
+                    background_values[l_index_min] = \
+                        np.nansum(background_ROI_0, axis=(0, 1)) + \
+                        np.nansum(background_ROI_1, axis=(0, 1)) + \
+                        np.nansum(background_ROI_2, axis=(0, 1)) + \
+                        np.nansum(background_ROI_3, axis=(0, 1))
+
+                    # Count number of non-np.nan pixels in the background
+                    # These pixels do not # have an intensity (!= from zero
+                    # intensity), they were not recorded.
+                    background_pixel_count[l_index_min] = \
+                        np.sum(~np.isnan(background_ROI_0), axis=(0, 1)) + \
+                        np.sum(~np.isnan(background_ROI_1), axis=(0, 1)) + \
+                        np.sum(~np.isnan(background_ROI_2), axis=(0, 1)) + \
+                        np.sum(~np.isnan(background_ROI_3), axis=(0, 1))
+
+                    # Remove background
+                    structure_factor[l_index_min] = np.nan_to_num(np.where(
+                        background_pixel_count[l_index_min] > 0,
+                        np.sqrt(
+                            intensity[l_index_min] - roi_pixel_count[l_index_min] * (background_values[l_index_min] / background_pixel_count[l_index_min])),
+                        0
+                    ))
+
+                elif isinstance(center_background, list) \
+                        and center_background != HK_peak:
+                    # Background intensity, define ROI indices
+                    start_H_background = find_value_in_array(
+                        dataset.H_axis,
+                        background_range_H[0]
+                    )
+                    end_H_background = find_value_in_array(
+                        dataset.H_axis,
+                        background_range_H[1]
+                    )
+
+                    start_K_background = find_value_in_array(
+                        dataset.K_axis,
+                        background_range_K[0]
+                    )
+                    end_K_background = find_value_in_array(
+                        dataset.K_axis,
+                        background_range_K[1]
+                    )
+
+                    if verbose and l_index_min == 0:
+                        print(
+                            f"Background ROI (H, K): [{start_H_background[0]}, "
+                            f"{end_H_background[0]}, {start_K_background[0]}, "
+                            f"{end_K_background[0]}] ; [{start_H_background[1]}, "
+                            f"{end_H_background[1]}, {start_K_background[1]}, "
+                            f"{end_K_background[1]}]"
+                            "\n###########################################################"
+                        )
+
+                    # Define the background ROI
+                    background_ROI = dataset.projected_data[
+                        start_K_background[1]:end_K_background[1],
+                        start_H_background[1]:end_H_background[1],
+                    ]
+
+                    background_values = np.nansum(background_ROI, axis=(0, 1))
+
+                    # Count number of non-np.nan pixels in the background
+                    # These pixels do not # have an intensity (!= from zero
+                    # intensity), they were not recorded.
+                    background_pixel_count = np.sum(
+                        ~np.isnan(background_ROI), axis=(0, 1))
+
+                    # Remove background
+                    structure_factor[l_index_min] = np.nan_to_num(np.where(
+                        background_pixel_count[l_index_min] > 0,
+                        np.sqrt(
+                            intensity[l_index_min] - roi_pixel_count[l_index_min] * (background_values[l_index_min] / background_pixel_count[l_index_min])),
+                        0
+                    ))
+
+                else:
+                    structure_factor = np.sqrt(intensity)
 
             # Save x axis
-            data[i, 0, :len(scan_l_axis)] = scan_l_axis
+            data[i, 0, :scan_l_length-1] = scan_l_axis # TODO, assumes same starting value
 
             # Save structure factor
-            data[i, 1, :len(scan_l_axis)] = structure_factor
+            data[i, 1, :scan_l_length-1] = structure_factor
 
             # Save background
             try:
-                data[i, 2, :len(scan_l_axis)] = background_values / \
+                data[i, 2, :scan_l_length-1] = background_values / \
                     background_pixel_count
 
             except NameError:
@@ -1336,38 +1342,6 @@ class CTR:
                     lines=ROI_lines,
                     title="CTR data projected on L axis",
                 )
-
-        if isinstance(bin_factor, int) and bin_factor > 1:
-            if l_length % bin_factor != 0:
-                print(
-                    "Cannot reshape array of size {} into shape ({},{}).".format(
-                        l_length,
-                        int(l_length/bin_factor),
-                        bin_factor,
-                    ))
-                extra_values = -(l_length % bin_factor)
-                binned_l_length = int((l_length+extra_values)/bin_factor)
-                print(
-                    f"Removing the last {extra_values} element(s) of the array."
-                )
-
-            else:
-                extra_values = None
-                binned_l_length = int(l_length/bin_factor)
-
-            # Bin the data
-            data = data[:, :, :extra_values].reshape(
-                len(self.scan_files),
-                3,
-                binned_l_length,
-                bin_factor
-            ).mean(axis=-1)
-
-            print(
-                "\n###########################################################"
-                f"\nBinned data"
-                "\n###########################################################"
-            )
 
         # Saving
         print(
@@ -1709,21 +1683,6 @@ class CTR:
                 muted_alpha=0.1,
                 hover_alpha=1,
             )
-
-            # p.line(
-            #     x='x',
-            #     y='y',
-            #     source=source,
-            #     legend_label=label,
-            #     line_width=line_width,
-            #     line_color=color,
-            #     line_alpha=1,
-            #     hover_line_color=color,
-            #     hover_line_alpha=1.0,
-            #     hover_line_width=2.0,
-            #     muted_alpha=0.1,
-            #     line_dash=line_dash,
-            # )
 
         # Show figure
         p.xaxis.axis_label_text_font_size = "15pt"
