@@ -1112,7 +1112,7 @@ class CTR:
         data = np.nan * np.empty((
             len(self.scan_files),
             3,
-            l_length,
+            l_length-1, # FITAID CORRECTION
         ))
 
         # Iterate on each file now to get the data
@@ -1140,6 +1140,7 @@ class CTR:
                 K[1], K[2], 1 + int(K[5] - K[4])), 3)
             scan_l_axis = np.round(np.linspace(
                 L[1], L[2], 1 + int(L[5] - L[4])), 3)
+            scan_l_axis = (scan_l_axis[:-1]+scan_l_axis[1:])/2 # FITAID CORRECTION
 
             # Define ROI indices
             start_H_ROI = find_value_in_array(scan_h_axis, CTR_range_H[0])
