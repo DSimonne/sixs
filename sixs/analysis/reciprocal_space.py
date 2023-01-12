@@ -442,20 +442,20 @@ class Map:
                 projection_axis_range[1]
             )[1]
         else:
-            end_index = -1
+            end_index = len(projection_axis_values)-1
 
         # Only take values that are within the axis range
         if self.projection_axis in ('H', "Qx", "delta"):
-            sliced_ct = self.ct[:, :, start_index:end_index]
-            sliced_cont = self.cont[:, :, start_index:end_index]
+            sliced_ct = self.ct[:, :, start_index:end_index+1]
+            sliced_cont = self.cont[:, :, start_index:end_index+1]
 
         elif self.projection_axis in ('K', "Qy", "gamma"):
-            sliced_ct = self.ct[:, start_index:end_index, :]
-            sliced_cont = self.cont[:, start_index:end_index, :]
+            sliced_ct = self.ct[:, start_index:end_index+1, :]
+            sliced_cont = self.cont[:, start_index:end_index+1, :]
 
         elif self.projection_axis in ('L', "Qz", "mu"):
-            sliced_ct = self.ct[start_index:end_index, :, :]
-            sliced_cont = self.cont[start_index:end_index, :, :]
+            sliced_ct = self.ct[start_index:end_index+1, :, :]
+            sliced_cont = self.cont[start_index:end_index+1, :, :]
 
         # Sum the ct and cont
         summed_ct = np.sum(sliced_ct, axis=projection_axis_index)
@@ -978,7 +978,7 @@ class CTR:
             print(
                 "###########################################################")
 
-        # ROD range
+        # Define ROD range
         CTR_range_H = [
             np.round(HK_peak[0] - CTR_width_H/2, 3),
             np.round(HK_peak[0] + CTR_width_H/2, 3)
@@ -995,7 +995,7 @@ class CTR:
             "\n###########################################################"
         )
 
-        # Background range
+        # Define background range
         if center_background == HK_peak:
             background_range_H = [
                 np.round(CTR_range_H[0] - background_width_H/2, 3),
@@ -1068,7 +1068,7 @@ class CTR:
              2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
         ]
 
-        # Start iterating on file to see the shape
+        # Start iterating on the files to see the shape
         print(
             "\n###########################################################"
             "\nFinding smallest common range in L"
@@ -1155,13 +1155,14 @@ class CTR:
                 )
 
             # Get data only in specific ROI
-            ROI_2D = raw_data[:,
-                              start_K_ROI[1]:end_K_ROI[1],
-                              start_H_ROI[1]:end_H_ROI[1],
-                              ]
+            ROI_2D = raw_data[
+                :,
+                start_K_ROI[1]:end_K_ROI[1],
+                start_H_ROI[1]:end_H_ROI[1],
+            ]
 
             # Integrate the data in the ROI, replace nan by zeroes otherwise
-            # the total is equal to np.nan
+            # the total is equal to np.nan, np.nansum ?
             intensity = np.sum(np.nan_to_num(ROI_2D), axis=(1, 2))
 
             # Count number of np.nan pixels in the ROI
@@ -1333,7 +1334,7 @@ class CTR:
                 mappo.project_data("L")
                 mappo.plot_map(
                     lines=ROI_lines,
-                    title="CTR data projected on L axis"
+                    title="CTR data projected on L axis",
                 )
 
         if isinstance(bin_factor, int) and bin_factor > 1:
