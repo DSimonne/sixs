@@ -1192,16 +1192,6 @@ class Reflectivity:
             ax[1].set_ylabel("Y (Gamma)", fontsize=15)
             ax[1].set_xlabel("X (Delta)", fontsize=15)
 
-            # ax[0].text(x=1.5,
-            #            y=-25,
-            #            s="Parameters : gamma = {:.3f}, mu = {:.3f}, hkl = ({:.3f}, {:.3f}, {:.3f}), Q = {:3f}, qpar, qper = ({:3f}, {:3f})".format(
-            #                Refl.gamma[index], Refl.mu[index], Refl.h[index], Refl.k[index], Refl.l[index], Refl.Q[index], Refl.qPar[index], Refl.qPer[index]),
-            #            #color = diverging_colors_1["E"],
-            #            weight='bold',
-            #            rotation=0,
-            #            backgroundcolor='#f0f0f0',
-            #            fontsize="20")
-
             ax[1].imshow(
                 data[index, b:b+d, a:a+c],
                 norm=LogNorm(vmin=v_min_log, vmax=v_max_log)

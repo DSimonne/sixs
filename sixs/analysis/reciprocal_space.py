@@ -502,8 +502,8 @@ class Map:
             https://matplotlib.org/stable/tutorials/colors/colormaps.html
         :param three_d_plot: True to show a 3D plot
         :param circles: list of tuples of length 5 that follows:
-            (x, y, radius, color, alpha)
-            e.g.: [(1, 1, 0.1, 'r', 0.5),]
+            (x, y, radius, color, alpha, linewidth)
+            e.g.: [(1, 1, 0.1, 'r', 0.5, 2),]
         :param arcs: list of tuples of length 9 that follows:
             (x, y, width, height, rotation_angle, theta1, theta2, color, alpha)
             e.g.: [(0, 0, 1, 1, 0 ,270, 360, "r", 0.8),]
@@ -628,8 +628,9 @@ class Map:
                         color=c,
                         alpha=al,
                         fill=False,
+                        lw=lw,
                     )
-                    for (x, y, r, c, al) in circles
+                    for (x, y, r, c, al, lw) in circles
                 ]
 
                 for cp in circles_patches:
@@ -1318,7 +1319,8 @@ class CTR:
                     structure_factor = np.sqrt(intensity)
 
             # Save x axis
-            data[i, 0, :scan_l_length-1] = scan_l_axis # TODO, assumes same starting value
+            # TODO, assumes same starting value
+            data[i, 0, :scan_l_length-1] = scan_l_axis
 
             # Save structure factor
             data[i, 1, :scan_l_length-1] = structure_factor
@@ -1577,6 +1579,10 @@ class CTR:
         legend_position="right",
         figure_width=900,
         figure_height=500,
+        label_text_font_size="20pt",
+        axis_label_text_font_size="20pt",
+        axis_major_label_text_font_size="20pt",
+        title_text_font_size="25pt",
     ):
         """
         Plot the CTRs together
@@ -1596,6 +1602,12 @@ class CTR:
         :param size: size of markers
         :param legend_position: choose in ('left', 'right', 'center', 'above', 
             'below')
+        :param figure_width: in pixels, default is 900
+        :param figure_height: in pixels, default is 500
+        :param label_text_font_size: e.g. '15pt'
+        :param axis_label_text_font_size: e.g '15pt'
+        :param axis_major_label_text_font_size: e.g '15pt'
+        :param title_text_font_size: e.g '15pt'
         """
         matplotlib_colours = [
             '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b',
@@ -1623,7 +1635,7 @@ class CTR:
         p.add_layout(
             Legend(
                 click_policy="mute",
-                label_text_font_size="15pt",
+                label_text_font_size=label_text_font_size,
             ),
             legend_position
         )
@@ -1685,12 +1697,12 @@ class CTR:
             )
 
         # Show figure
-        p.xaxis.axis_label_text_font_size = "15pt"
-        p.xaxis.major_label_text_font_size = "15pt"
-        p.yaxis.axis_label_text_font_size = "15pt"
-        p.yaxis.major_label_text_font_size = "15pt"
+        p.xaxis.axis_label_text_font_size = axis_label_text_font_size
+        p.xaxis.major_label_text_font_size = axis_major_label_text_font_size
+        p.yaxis.axis_label_text_font_size = axis_label_text_font_size
+        p.yaxis.major_label_text_font_size = axis_major_label_text_font_size
         if isinstance(title, str):
-            p.title.text_font_size = '20pt'
+            p.title.text_font_size = title_text_font_size
 
         show(p)
 
