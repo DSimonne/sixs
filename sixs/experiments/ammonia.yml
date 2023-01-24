@@ -1,16 +1,27 @@
 ammonia_reaction_colors:
     Argon: "#008fd5"
     Ar: "#008fd5"
-    A: "#fc4f30"
-    B: "#e5ae38"
-    C: "#6d904f"
-    D: "#8b8b8b"
-    E: "#810f7c"
-    CondA: "#fc4f30"
-    CondB: "#e5ae38"
-    CondC: "#6d904f"
-    CondD: "#8b8b8b"
-    CondE: "#810f7c"
+    A: "#1f77b4"
+    B: "#ff7f0e"
+    C: "#2ca02c"
+    D: "#d62728"
+    E: "#9467bd"
+    F: "8c564b"
+    G: "e377c2"
+    CondA: "#1f77b4"
+    CondB: "#ff7f0e"
+    CondC: "#2ca02c"
+    CondD: "#d62728"
+    CondE: "#9467bd"
+    CondF: "#8c564b"
+    CondG: "#e377c2"
+    "1 NH3": "#fc4f30"
+    "1 NH3 + 0.5 O2": "#ff7f0e"
+    "1 NH3 + 1 O2": "#2ca02c"
+    "1 NH3 + 2 O2": "#d62728"
+    "1 NH3 + 8 O2": "#9467bd"
+    "8 O2": "#8c564b"
+    "0.5 O2": "#e377c2"
     NH3: "#df65b0"
     O2: "#fc4f30"
     Oxygen: "#fc4f30"
@@ -22,7 +33,18 @@ ammonia_reaction_colors:
     Nitrogen: "#810f7c"
     NH: "#d8b365"
 
-gas_colors:
+carrier_pressure_correction_ratio:
+    'Ar': 1
+    '1 NH3': 0.98
+    '1 NH3 + 0.5 O2': 0.97
+    '1 NH3 + 1 O2': 0.96
+    '1 NH3 + 2 O2': 0.94
+    '1 NH3 + 8 O2': 0.82
+    '8 O2': 0.84
+    '0.5 O2': 0.99
+
+
+other_colors:
     "Ar": '#1f77b4'
     "Argon": '#1f77b4'
     "NH3": '#ff7f0e'

@@ -17,19 +17,25 @@ from scipy.optimize import curve_fit
 
 
 class XCAT:
-    """Combines data from the mass flow controller and the mass spectrometer
+    """
+    Combines data from the mass flow controller and the mass spectrometer
     to compare the input flow in the reactor cell and the products of the
     reaction.
-    All the data is transformed to pandas.DataFrame objects.
+    All the data is transformed to pandas.DataFrame() objects.
 
     What's left to do?
-    See if we can create a routine to normalize the data by the coefficient of
-    the leak that is linked to the temperature. It can be extracted from the
-    experiment without any products but just a temperature change.
+    * See if we can create a routine to normalize the data by the coefficient of
+      the leak that is linked to the temperature. It can be extracted from the
+      experiment without any products but just a temperature change.
     """
 
-    def __init__(self, configuration_file=False):
-        """Initialize the module with a configuration file
+    def __init__(
+        self,
+        configuration_file=False
+    ):
+        """
+        Initialize the Class with a configuration file
+
         Typical workflow after init (Class methods):
         * load_mass_flow_controller_file()
         * separate_mass_flow_dataframes()
@@ -40,8 +46,7 @@ class XCAT:
         * plot_mass_flow_valves()
         * plot_mass_spec()
 
-        :param configuration_file: .yml file,
-         stores metadata specific to the reaction
+        :param configuration_file: `.yml` file, stores metadata
         """
 
         self.path_package = inspect.getfile(sixs).split("__")[0]
@@ -73,17 +78,19 @@ class XCAT:
         # Time for the gaz to travel from cell to detector
         self.gaz_travel_time = 12
         print(
-            f"Travel time from cell to detector defaulted to {self.gaz_travel_time} seconds.")
-        print(
-            "\n#####################################################################\n")
+            "\n################################################################"
+            "\nTravel time from cell to detector defaulted to "
+            f"{self.gaz_travel_time} seconds."
+        )
 
         # Time shift between computers
         self.time_shift = 502  # jan 2022
         # self.time_shift = 1287 # experiment in 2021
         print(
-            f"Travel shift between computers defaulted to {self.time_shift} seconds.")
-        print(
-            "\n#####################################################################\n")
+            "Travel shift between computers defaulted to "
+            f"{self.time_shift} seconds.\n"
+            "#################################################################\n"
+        )
 
     def load_mass_flow_controller_file(
         self,
@@ -171,7 +178,7 @@ class XCAT:
 
         # Create DataFrame
         try:
-            self.df = pd.read_csv(
+            self.mass_flow_df = pd.read_csv(
                 self.mass_flow_file,
                 header=None,
                 delimiter="\t",
@@ -184,16 +191,16 @@ class XCAT:
 
         # Change time to unix epoch
         for column_name in self.time_columns:
-            column = getattr(self.df, column_name)
+            column = getattr(self.mass_flow_df, column_name)
 
             column -= 2082844800
         print("Changed time to unix epoch for all time columns")
-        self.mass_flow_start_time_epoch = self.df.iloc[0, 0]
+        self.mass_flow_start_time_epoch = self.mass_flow_df.iloc[0, 0]
         self.mass_flow_start_time = datetime.fromtimestamp(
-            self.df.iloc[0, 0]).strftime('%Y-%m-%d %H:%M:%S')
-        self.mass_flow_end_time_epoch = self.df.iloc[0, 0]
+            self.mass_flow_df.iloc[0, 0]).strftime('%Y-%m-%d %H:%M:%S')
+        self.mass_flow_end_time_epoch = self.mass_flow_df.iloc[0, 0]
         self.mass_flow_end_time = datetime.fromtimestamp(
-            self.df.iloc[-1, 0]).strftime('%Y-%m-%d %H:%M:%S')
+            self.mass_flow_df.iloc[-1, 0]).strftime('%Y-%m-%d %H:%M:%S')
 
         print(
             f"Mass flow. starting time: {self.mass_flow_start_time_epoch} "
@@ -206,15 +213,18 @@ class XCAT:
         print("\n#####################################################################\n")
 
         # Show preview of DataFrame
-        display(self.df.head())
-        display(self.df.tail())
+        display(self.mass_flow_df.head())
+        display(self.mass_flow_df.tail())
 
         # two times shunt valve ? TODO
         # INJ ?
         # OUT ?
         self.separate_mass_flow_dataframes()
 
-    def separate_mass_flow_dataframes(self, mass_list=False):
+    def separate_mass_flow_dataframes(
+        self,
+        mass_list=False
+    ):
         """
         Create new dataframes based on the gases that were analyzed
          Important otherwise the original data frame is too big
@@ -249,45 +259,49 @@ class XCAT:
         try:
             for entry in self.mass_list:
                 if entry == "no":
-                    self.no_df = self.df.iloc[:, 0:4].copy()
+                    self.no_df = self.mass_flow_df.iloc[:, 0:4].copy()
                     print(f"New DataFrame created starting  or NO.")
 
                 if entry == "h2":
-                    self.h2_df = self.df.iloc[:, 4:8].copy()
+                    self.h2_df = self.mass_flow_df.iloc[:, 4:8].copy()
                     print(f"New DataFrame created starting for H2.")
 
                 if entry == "o2":
-                    self.o2_df = self.df.iloc[:, 8:12].copy()
+                    self.o2_df = self.mass_flow_df.iloc[:, 8:12].copy()
                     print(f"New DataFrame created starting for O2.")
 
                 if entry == "co":
-                    self.co_df = self.df.iloc[:, 12:16].copy()
+                    self.co_df = self.mass_flow_df.iloc[:, 12:16].copy()
                     print(f"New DataFrame created starting for CO.")
 
                 if entry == "ar":
-                    self.ar_df = self.df.iloc[:, 16:20].copy()
+                    self.ar_df = self.mass_flow_df.iloc[:, 16:20].copy()
                     print(f"New DataFrame created starting for Ar.")
 
                 if entry == "shunt":
-                    self.shunt_df = self.df.iloc[:, 20:24].copy()
+                    self.shunt_df = self.mass_flow_df.iloc[:, 20:24].copy()
                     print(f"New DataFrame created starting for shunt.")
 
                 if entry == "reactor":
-                    self.reactor_df = self.df.iloc[:, 24:28].copy()
+                    self.reactor_df = self.mass_flow_df.iloc[:, 24:28].copy()
                     print(f"New DataFrame created starting for reactor.")
 
                 if entry == "drain":
-                    self.drain_df = self.df.iloc[:, 28:32].copy()
+                    self.drain_df = self.mass_flow_df.iloc[:, 28:32].copy()
                     print(f"New DataFrame created starting for drain.")
 
                 if entry == "valve":
-                    self.valve_df = self.df.iloc[:, 32:35].copy()
+                    self.valve_df = self.mass_flow_df.iloc[:, 32:35].copy()
                     print(f"New DataFrame created starting for valve.")
 
         except Exception as e:
             raise e
 
-    def load_mass_spectrometer_file(self, mass_spec_file, skiprows=33):
+    def load_mass_spectrometer_file(
+        self,
+        mass_spec_file,
+        skiprows=33
+    ):
         """
         Find timestamp of the mass spectrometer (Resifual Gas Analyzer - RGA)
          file and load the file as a DataFrame.
@@ -426,7 +440,9 @@ class XCAT:
         # Directly interpolate the data of the mass flow spectrometer
         self.interpolate_mass_flow_df()
 
-    def truncate_mass_flow_df(self):
+    def truncate_mass_flow_df(
+        self
+    ):
         """Truncate mass-specific mass flow DataFrame based on timestamp and
          time range if given (otherwise from timestamp to end).
         """
@@ -459,7 +475,9 @@ class XCAT:
             raise e
         print("#######################################################\n")
 
-    def interpolate_mass_flow_df(self):
+    def interpolate_mass_flow_df(
+        self
+    ):
         """Interpolate the data in seconds."""
 
         print("\n#######################################################")
@@ -853,21 +871,20 @@ class XCAT:
         self,
         mass_list=None,
         df="interpolated",
-        heater_file=None,
-        figsize=(16, 9),
-        fontsize=15,
         norm_ptot=False,
         ptot_mass_list=False,
         norm_carrier=False,
-        pressure_carrier=False,
+        carrier_pressure=0.5,
+        figsize=(16, 9),
+        fontsize=15,
         zoom=None,
         color_dict="gas_colors",
         cursor_positions=[None],
         cursor_labels=[None],
         text_dict=None,
         hours=True,
-        save=False,
-        fig_name="rga_df",
+        heater_file=None,
+        save_as=False,
         title="Pressure in XCAT reactor cell for each mass",
     ):
         """
@@ -876,34 +893,32 @@ class XCAT:
          overlap.
 
         :param mass_list: list of mass to be plotted (if set up prior to the
-         experiment for detection).
+            experiment for detection).
         :param df: DataFrame from which the data will be plotted. Default is
-         "interpolated" which corresponds to the data truncated on the mass
-         spectrometer time range and in seconds.
-        :param norm_ptot: False, normalize the data by total pressure if float.
+            "interpolated" which corresponds to the data truncated on the mass
+            spectrometer time range and in seconds.
+        :param norm_ptot: False, normalize the data by total pressure if float
+            (in bar).
         :param ptot_mass_list: False, list of mass to use for normalization, if
-         False same as mass_list, used with norm_ptot
+            False same as mass_list, used with norm_ptot, e.g. ["Ar", "NH3",
+            "O2"]
         :param norm_carrier: False, normalize the data by carrier gas
-         (norm_carrier) pressure if str. Choose a gas in mass_list.
-        :param pressure_carrier: False. Pressure of the carrier gas (bar) in the
-         reactor (e.g. p_Argon = 0.5 bar). Allows to normalize the data by this
-         value to find the pressures in the reactor cell. used with norm_carrier
+            (norm_carrier) pressure if str. Choose a gas in mass_list.
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title have +2.
         :param zoom: list of 4 integers to zoom, [xmin, xmax, ymin, ymax]
         :param color_dict: str, name of dict from the configuration file that
-         will be used for the colors.
+            will be used for the colors.
         :param cursor_positions: add cursors using these positions
         :param cursor_labels: colour of the cursors, same length as
-         cursor_positions
+            cursor_positions
         :param text_dict: Add text on plot, same length as
-         cursor_positions, e.g. {"ar": [45, 3.45], "argon": [45, 3.45],
-         "o2": [5, 2], "h2": [5, 2]}
+            cursor_positions, combine labels and (x_pos, y_pos), e.g. {"ar":
+            (1, 3.45)}
         :param hours: True to show x scale in hours instead of seconds
         :param heater_file: path to heater data, in csv format, must contain
-         a time and a temperature column.
-        :param save: True to save the plot:
-        :param fig_name: figure name when saving
+            a time and a temperature column.
+        :param save_as: str instance to save the plot, figure name when saving
         :param title: figure title
         """
 
@@ -930,28 +945,31 @@ class XCAT:
         # Use all comlumns if none specified
         if mass_list is None:
             mass_list = list(self.norm_df.columns[1:-1])
-            print(mass_list)
             print("Defaulted mass_list to all columns")
 
         # Normalize data by total pressure
+        # Making the hypothesis that the sum of the pressure of all the gases
+        # in mass_list is equal to the reactor pressure, which is controlled
+        # independently, dangerous bc we are looking at partial pressures
+        # in the UHV chamber
         if isinstance(norm_ptot, float):
             self.ptot = norm_ptot
 
             # Total pressure
             print(
-                f"Using P={self.ptot} (bar)for total pressure in the reactor.")
+                f"Using P={self.ptot} bar for total pressure in the reactor.")
 
             # What gases do we use for the normalization ?
-            if isinstance(ptot_mass_list, list):  # list if specified
+            if isinstance(ptot_mass_list, list):
                 self.ptot_mass_list = ptot_mass_list
                 print("Using columns specified with ptot_mass_list for normalization.")
 
-            elif isinstance(mass_list, list):  # otherwise list of mass to plot
+            elif isinstance(mass_list, list):
                 self.ptot_mass_list = mass_list
-                print("""
-                    \nUsing columns specified with mass_list for normalization. \
-                    \nIf you want to use other gases, use ptot_mass_list.
-                    """)
+                print(
+                    "Using columns specified with mass_list for normalization."
+                    "\nIf you want to use other gases, use ptot_mass_list."
+                )
 
             # Get data
             used_arr = self.norm_df[self.ptot_mass_list].values
@@ -976,54 +994,60 @@ class XCAT:
             y_units = "bar"
 
         # Normalize data by carrier gas
-        if isinstance(norm_carrier, str):
+        elif isinstance(norm_carrier, str):
             self.carrier_gaz = norm_carrier
-
-            # Carrier gas
             print(
                 f"Using {self.carrier_gaz} as carrier gas for normalization.")
 
-            # Remove carrier gas from list to avoid division by 1
+            # Check if it is in the list, and remove it otherwise there is a bog
             try:
+                self.norm_df[self.carrier_gaz]
                 mass_list.remove(self.carrier_gaz)
-            except ValueError:
-                # Not in the list
-                pass
+            except KeyError:
+                raise KeyError("This gas is not in the list.")
 
-            # Normalize
-            try:
-                for mass in mass_list:
-                    y = self.norm_df[mass] / self.norm_df[self.carrier_gaz]
+            # Normalize by carrier gas partial pressure
+            for mass in mass_list:
+                self.norm_df[mass] /= self.norm_df[self.carrier_gaz]
 
-                    # Multiply by carrier pressure if known
-                    if isinstance(pressure_carrier, float):
-                        self.norm_df[mass] = y * pressure_carrier
-                    else:
-                        self.norm_df[mass] = y
-
-            except Exception as E:
-                raise E
-
-            # Now modify the carrier gas pressure
-            if isinstance(pressure_carrier, float):
-                self.norm_df[self.carrier_gaz] = np.ones(
-                    len(self.norm_df)) * pressure_carrier
-            else:
-                self.norm_df[self.carrier_gaz] = np.ones(len(self.norm_df))
-
+            self.norm_df[self.carrier_gaz] = np.ones(self.norm_df.shape[0])
             # Put the carrier gas back in the list of mass to plot
             mass_list.append(self.carrier_gaz)
+
+            # We must know the different conditions to properly correct the data
+            # Otherwise the pressure is not correct
+            correction_ratio_values = np.ones(self.norm_df.shape[0])
+            # Apply a correction ratio for each condition
+            for x1, x2, cursor_label in zip(
+                cursor_positions[:-1],
+                cursor_positions[1:],
+                cursor_labels,
+            ):
+                x1 = x1*3600  # in secs
+                x2 = x2*3600  # in secs
+
+                idx1 = find_nearest(self.norm_df.Time.values, x1)
+                idx2 = find_nearest(self.norm_df.Time.values, x2)
+
+                correction_ratio_values[idx1:idx2] = self.carrier_pressure_correction_ratio[cursor_label]
+
+                for mass in mass_list:
+                    self.norm_df[mass][idx1:idx2] *= self.carrier_pressure_correction_ratio[cursor_label] * carrier_pressure
+
+            # Create a new column for the correction ratio
+            self.norm_df["correction_ratio"] = correction_ratio_values
 
             print("Normalized RGA pressure by carrier gas pressure.")
             display(self.norm_df.head())
 
             # Change y scale
-            y_units = "bar" if isinstance(pressure_carrier, float) else None
+            y_units = "bar"
 
         # Normalize data by leak pressure
         # TODO
 
-        # No normalisation
+        # No normalisation, meaning we are looking at the partial pressure
+        # after the leak in the UHV chamber
         else:
             y_units = "mbar"
 
@@ -1129,8 +1153,8 @@ class XCAT:
             # Dict for y positions of text depending on the valve
             try:
                 ax.text(
-                    x1 + (x2-x1)/2,
-                    y=text_dict[cursor_label],
+                    x=text_dict[cursor_label][0],
+                    y=text_dict[cursor_label][1],
                     s=cursor_label,
                     fontsize=fontsize+5
                 )
@@ -1152,10 +1176,10 @@ class XCAT:
         ax.grid(True, which='minor', linestyle='--')
 
         fig.tight_layout()
-        if save:
-            plt.savefig(f"{fig_name}.png")
-            plt.savefig(f"{fig_name}.pdf")
-            print(f"Saved as {fig_name} in (png, pdf) formats.")
+        if isinstance(save_as, str):
+            plt.savefig(f"{save_as}.png")
+            plt.savefig(f"{save_as}.pdf")
+            print(f"Saved as {save_as} in (png, pdf) formats.")
 
         plt.show()
 
@@ -1352,3 +1376,9 @@ class XCAT:
             plt.title(
                 "Temperature vs pressure graphs fitted with error functions")
             plt.show()
+
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
