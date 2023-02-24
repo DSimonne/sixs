@@ -144,6 +144,7 @@ class Map:
     Methods in class:
         * project_data(): projects the data on one axis, with a given range.
         * plot_map(): plot the data with matplotlib.
+        * view_space(): interactive plot with widgets
     """
 
     def __init__(
@@ -215,7 +216,7 @@ class Map:
             except tb.NoSuchNodeError:
                 QXpYp = False
 
-            ## Qpar, Qper
+            # Qpar, Qper
             try:
                 Qpar = f.root.binoculars.axes.Qpar[...]
                 QparQper = True
@@ -225,8 +226,6 @@ class Map:
             # Angles
             try:
                 delta = f.root.binoculars.axes.delta[...]
-                gamma = f.root.binoculars.axes.gamma[...]
-                mu = f.root.binoculars.axes.mu[...]
                 Angles = True
             except tb.NoSuchNodeError:
                 Angles = False
@@ -263,11 +262,11 @@ class Map:
                     print(
                         "\n###########################################################"
                         "\nAxis number, range and stepsize in H: "
-                        f"[{self.H[0]:.3f}: {self.H[1]:.3f}: {self.H[2]:.3f}]"
+                        f"\n\t{self.H[0]} [{self.H[1]:.3f}: {self.H[2]:.3f}], {self.H[3]:.3f}"
                         "\nAxis number, range and stepsize in K: "
-                        f"[{self.K[0]:.3f}: {self.K[1]:.3f}: {self.K[2]:.3f}]"
+                        f"\n\t{self.K[0]} [{self.K[1]:.3f}: {self.K[2]:.3f}], {self.K[3]:.3f}"
                         "\nAxis number, range and stepsize in L: "
-                        f"[{self.L[0]:.3f}: {self.L[1]:.3f}: {self.L[2]:.3f}]"
+                        f"\n\t{self.L[0]} [{self.L[1]:.3f}: {self.L[2]:.3f}], {self.L[3]:.3f}"
                         "\n###########################################################"
                     )
 
@@ -290,7 +289,31 @@ class Map:
             elif Angles:
                 self.delta = f.root.binoculars.axes.delta[...]
                 self.gamma = f.root.binoculars.axes.gamma[...]
-                self.mu = f.root.binoculars.axes.mu[...]
+                if verbose:
+                    print(
+                        "\n###########################################################"
+                        "\nAxis number, range and stepsize in delta: "
+                        f"\n\t{self.delta[0]}, [{self.delta[1]:.3f}: {self.delta[2]:.3f}], {self.delta[3]:.3f}"
+                        "\nAxis number, range and stepsize in gamma: "
+                        f"\n\t{self.gamma[0]}, [{self.gamma[1]:.3f}: {self.gamma[2]:.3f}], {self.gamma[3]:.3f}"
+                    )
+                try:
+                    self.mu = f.root.binoculars.axes.mu[...]  # mu scan
+                    if verbose:
+                        print(
+                            "Axis number, range and stepsize in mu: "
+                            f"\n\t{self.mu[0]}, [{self.mu[1]:.3f}: {self.mu[2]:.3f}], {self.mu[3]:.3f}"
+                            "\n###########################################################"
+                        )
+                except tb.NoSuchNodeError:
+                    # omega scan
+                    self.omega = f.root.binoculars.axes.omega[...]
+                    if verbose:
+                        print(
+                            "Axis number, range and stepsize in omega: "
+                            f"\n\t{self.omega[0]}, [{self.omega[1]:.3f}: {self.omega[2]:.3f}], {self.omega[3]:.3f}"
+                            "\n###########################################################"
+                        )
 
             # Update axes
             if Qphi:
@@ -342,8 +365,12 @@ class Map:
                     self.delta[1], self.delta[2], 1 + int(self.delta[5] - self.delta[4])), 3)
                 self.gamma_axis = np.round(np.linspace(
                     self.gamma[1], self.gamma[2], 1 + int(self.gamma[5] - self.gamma[4])), 3)
-                self.mu_axis = np.round(np.linspace(
-                    self.mu[1], self.mu[2], 1 + int(self.mu[5] - self.mu[4])), 3)
+                try:
+                    self.mu_axis = np.round(np.linspace(
+                        self.mu[1], self.mu[2], 1 + int(self.mu[5] - self.mu[4])), 3)
+                except AttributeError:
+                    self.omega_axis = np.round(np.linspace(
+                        self.omega[1], self.omega[2], 1 + int(self.omega[5] - self.omega[4])), 3)
 
         try:
             if verbose:
@@ -371,7 +398,7 @@ class Map:
     ):
         """
         Project the data on one of the measured axis, the result is saved as 
-        a numpy.array() attribute `.projected_data`.
+        a numpy.array() attribute :`projected_data`.
 
         The projection is done by FIRST summing the counts and contribution over
         the defined range and THEN by dividing the summed counts by the summed
@@ -411,6 +438,7 @@ class Map:
             "delta": 2,
             "gamma": 1,
             "mu": 0,
+            "omega": 0,
         }[self.projection_axis]
 
         projection_axis_name = {
@@ -423,6 +451,7 @@ class Map:
             "delta": "delta_axis",
             "gamma": "gamma_axis",
             "mu": "mu_axis",
+            "omega": "omega_axis",
         }[self.projection_axis]
 
         projection_axis_values = getattr(self, projection_axis_name)
@@ -453,7 +482,7 @@ class Map:
             sliced_ct = self.ct[:, start_index:end_index+1, :]
             sliced_cont = self.cont[:, start_index:end_index+1, :]
 
-        elif self.projection_axis in ('L', "Qz", "mu"):
+        elif self.projection_axis in ('L', "Qz", "mu", "omega"):
             sliced_ct = self.ct[start_index:end_index+1, :, :]
             sliced_cont = self.cont[start_index:end_index+1, :, :]
 
@@ -484,6 +513,8 @@ class Map:
     ):
         """
         Plot/save a hdf5 map.
+
+        Saves the zoomed image as `img` attribute.
 
         You can use the command `%matplotlib notebook` to use a cursor in the 
         notebook cell (change figsize to (8,8)).
@@ -518,65 +549,7 @@ class Map:
         except AttributeError:
             return ("Use the methods `project_data` to define the data first.")
 
-        if self.projection_axis == 'H':
-            axis1 = self.K_axis
-            axis2 = self.L_axis
-            axis_name1 = 'K (rlu)'
-            axis_name2 = 'L (rlu)'
-
-        elif self.projection_axis == 'K':
-            axis1 = self.H_axis
-            axis2 = self.L_axis
-            axis_name1 = 'H (rlu)'
-            axis_name2 = 'L (rlu)'
-
-        elif self.projection_axis == 'L':
-            axis1 = self.H_axis
-            axis2 = self.K_axis
-            axis_name1 = 'H (rlu)'
-            axis_name2 = 'K (rlu)'
-
-        elif self.projection_axis == 'Qxyz':
-            axis1 = self.Q_axis
-            axis2 = self.Phi_axis
-            axis_name1 = 'Q'
-            axis_name2 = 'Phi (deg)'
-
-        elif self.projection_axis == 'Qx':
-            axis1 = self.Qy_axis
-            axis2 = self.Qz_axis
-            axis_name1 = 'Qy'
-            axis_name2 = 'Qz'
-
-        elif self.projection_axis == 'Qy':
-            axis1 = self.Qx_axis
-            axis2 = self.Qz_axis
-            axis_name1 = 'Qx'
-            axis_name2 = 'Qz'
-
-        elif self.projection_axis == 'Qz':
-            axis1 = self.Qx_axis
-            axis2 = self.Qy_axis
-            axis_name1 = 'Qx'
-            axis_name2 = 'Qy'
-
-        elif self.projection_axis == 'delta':
-            axis1 = self.gamma_axis
-            axis2 = self.mu_axis
-            axis_name1 = 'gamma'
-            axis_name2 = 'mu'
-
-        elif self.projection_axis == 'gamma':
-            axis1 = self.delta_axis
-            axis2 = self.mu_axis
-            axis_name1 = 'delta'
-            axis_name2 = 'mu'
-
-        elif self.projection_axis == 'mu':
-            axis1 = self.delta_axis
-            axis2 = self.gamma_axis
-            axis_name1 = 'delta'
-            axis_name2 = 'gamma'
+        axis1, axis2, axis_name1, axis_name2 = self._get_axes()
 
         # Zoom
         if zoom_axis1[0] != None:
@@ -708,9 +681,10 @@ class Map:
         """
         """
 
-        # Project data on one axis
+        # Choose the first axis
         axis = getattr(self, f"{projection_axis}_axis")
 
+        # Interact with widgets only to zoom in the first axis
         @ interact(
             projection_axis_range=widgets.FloatRangeSlider(
                 value=[axis[0], axis[-1]],
@@ -724,7 +698,6 @@ class Map:
                 readout_format='.3f',
                 layout=Layout(width="50%"),
                 style={'description_width': 'initial'},
-
             ),
             projection_axis=fixed(projection_axis),
             figsize=fixed(figsize),
@@ -742,17 +715,17 @@ class Map:
                 projection_axis=projection_axis,
             )
 
-            # Get the two other axes
-            axis1 = getattr(self, f"H_axis")
-            axis2 = getattr(self, f"K_axis")
+            # Get the two other axes for the widgets range
+            axis1, axis2, axis_name1, axis_name2 = self._get_axes()
 
+            # Interact with widgets to zoom in the two other axes
             @ interact(
                 zoom_axis1=widgets.FloatRangeSlider(
                     value=[axis1[0], axis1[-1]],
                     min=min(axis1),
                     max=max(axis1),
                     step=np.mean(axis1[1:] - axis1[:-1]),
-                    description='First axis range:',
+                    description=f'{axis_name1} range:',
                     continuous_update=False,
                     orientation='horizontal',
                     readout=True,
@@ -765,7 +738,7 @@ class Map:
                     min=min(axis2),
                     max=max(axis2),
                     step=np.mean(axis2[1:] - axis2[:-1]),
-                    description='Second axis range:',
+                    description=f'{axis_name2} range:',
                     continuous_update=False,
                     orientation='horizontal',
                     readout=True,
@@ -809,6 +782,83 @@ class Map:
                     figsize=figsize,
                     cmap=cmap,
                 )
+
+    def _get_axes(self):
+        if self.projection_axis == 'H':
+            axis1 = self.K_axis
+            axis2 = self.L_axis
+            axis_name1 = 'K (rlu)'
+            axis_name2 = 'L (rlu)'
+
+        elif self.projection_axis == 'K':
+            axis1 = self.H_axis
+            axis2 = self.L_axis
+            axis_name1 = 'H (rlu)'
+            axis_name2 = 'L (rlu)'
+
+        elif self.projection_axis == 'L':
+            axis1 = self.H_axis
+            axis2 = self.K_axis
+            axis_name1 = 'H (rlu)'
+            axis_name2 = 'K (rlu)'
+
+        elif self.projection_axis == 'Qxyz':
+            axis1 = self.Q_axis
+            axis2 = self.Phi_axis
+            axis_name1 = 'Q'
+            axis_name2 = 'Phi (deg)'
+
+        elif self.projection_axis == 'Qx':
+            axis1 = self.Qy_axis
+            axis2 = self.Qz_axis
+            axis_name1 = 'Qy'
+            axis_name2 = 'Qz'
+
+        elif self.projection_axis == 'Qy':
+            axis1 = self.Qx_axis
+            axis2 = self.Qz_axis
+            axis_name1 = 'Qx'
+            axis_name2 = 'Qz'
+
+        elif self.projection_axis == 'Qz':
+            axis1 = self.Qx_axis
+            axis2 = self.Qy_axis
+            axis_name1 = 'Qx'
+            axis_name2 = 'Qy'
+
+        elif self.projection_axis == 'delta':
+            axis1 = self.gamma_axis
+            axis_name1 = 'Gamma'
+            try:
+                axis2 = self.mu_axis
+                axis_name2 = 'Mu'
+            except AttributeError:
+                axis2 = self.omega_axis
+                axis_name2 = 'Omega'
+
+        elif self.projection_axis == 'gamma':
+            axis1 = self.delta_axis
+            axis_name1 = 'Delta'
+            try:
+                axis2 = self.mu_axis
+                axis_name2 = 'Mu'
+            except AttributeError:
+                axis2 = self.omega_axis
+                axis_name2 = 'Omega'
+
+        elif self.projection_axis == 'mu':
+            axis1 = self.delta_axis
+            axis2 = self.gamma_axis
+            axis_name1 = 'Delta'
+            axis_name2 = 'Gamma'
+
+        elif self.projection_axis == 'omega':
+            axis1 = self.delta_axis
+            axis2 = self.gamma_axis
+            axis_name1 = 'Delta'
+            axis_name2 = 'Gamma'
+
+        return axis1, axis2, axis_name1, axis_name2
 
 
 class CTR:
@@ -876,7 +926,7 @@ class CTR:
 
         finally:
             print("Using", self.configuration_file)
-            with open(self.configuration_file) as filepath:
+            with open(self.configuration_file, "r") as filepath:
                 yaml_parsed_file = yaml.load(
                     filepath,
                     Loader=yaml.FullLoader
@@ -1258,7 +1308,9 @@ class CTR:
                     structure_factor[l_index_min] = np.nan_to_num(np.where(
                         background_pixel_count[l_index_min] > 0,
                         np.sqrt(
-                            intensity[l_index_min] - roi_pixel_count[l_index_min] * (background_values[l_index_min] / background_pixel_count[l_index_min])),
+                            intensity[l_index_min] - \
+                            roi_pixel_count[l_index_min] * (background_values[l_index_min] / \
+                            background_pixel_count[l_index_min])),
                         0
                     ))
 
@@ -1311,7 +1363,9 @@ class CTR:
                     structure_factor[l_index_min] = np.nan_to_num(np.where(
                         background_pixel_count[l_index_min] > 0,
                         np.sqrt(
-                            intensity[l_index_min] - roi_pixel_count[l_index_min] * (background_values[l_index_min] / background_pixel_count[l_index_min])),
+                            intensity[l_index_min] - \
+                            roi_pixel_count[l_index_min] * (background_values[l_index_min] / \
+                            background_pixel_count[l_index_min])),
                         0
                     ))
 
@@ -1731,7 +1785,7 @@ def change_nb_unit_cells(
     lines.append("Pt 0.5 0.5 0\n")
 
     # non z = 0 layers inside the first unit cell
-    ## values in z
+    # values in z
     z = (5.66/3.92)
     z0 = 0.25*z
     z1 = 0.5*z
