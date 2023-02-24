@@ -382,12 +382,12 @@ class Reflectivity:
                     print("Range in l:", l[1], l[2])
 
                     # CTR intensity, define roi indices
-                    st_h_roi = ut3.find_nearest(scan_h_axe, CTR_range_h[0])[0]
-                    end_h_roi = ut3.find_nearest(scan_h_axe, CTR_range_h[1])[0]
+                    st_h_roi = find_nearest(scan_h_axe, CTR_range_h[0])[0]
+                    end_h_roi = find_nearest(scan_h_axe, CTR_range_h[1])[0]
                     print("Indexes in h: ", st_h_roi, end_h_roi+1)
 
-                    st_k_roi = ut3.find_nearest(scan_k_axe, CTR_range_k[0])[0]
-                    end_k_roi = ut3.find_nearest(scan_k_axe, CTR_range_k[1])[0]
+                    st_k_roi = find_nearest(scan_k_axe, CTR_range_k[0])[0]
+                    end_k_roi = find_nearest(scan_k_axe, CTR_range_k[1])[0]
                     print("Indexes in k: ", st_k_roi, end_k_roi+1)
 
                     intensity = raw_data[st_h_roi:end_h_roi +
@@ -429,12 +429,12 @@ class Reflectivity:
                     print("Range in qz:", qz[1], qz[2])
 
                     # CTR intensity, define roi indices
-                    st_qx_roi = ut3.find_nearest(scan_qx_axe, qx_range[0])[0]
-                    end_qx_roi = ut3.find_nearest(scan_qx_axe, qx_range[1])[0]
+                    st_qx_roi = find_nearest(scan_qx_axe, qx_range[0])[0]
+                    end_qx_roi = find_nearest(scan_qx_axe, qx_range[1])[0]
                     print("Indexes in qx: ", st_qx_roi, end_qx_roi+1)
 
-                    st_qy_roi = ut3.find_nearest(scan_qy_axe, qy_range[0])[0]
-                    end_qy_roi = ut3.find_nearest(scan_qy_axe, qy_range[1])[0]
+                    st_qy_roi = find_nearest(scan_qy_axe, qy_range[0])[0]
+                    end_qy_roi = find_nearest(scan_qy_axe, qy_range[1])[0]
                     print("Indexes in qy: ", st_qy_roi, end_qy_roi+1)
 
                     intensity = raw_data[st_qx_roi:end_qx_roi +
@@ -469,8 +469,8 @@ class Reflectivity:
                     print("Range in qper:", qper[1], qper[2])
 
                     # CTR intensity, define roi indices
-                    st_qpar = ut3.find_nearest(scan_qpar_axe, qpar_range[0])[0]
-                    end_qpar = ut3.find_nearest(
+                    st_qpar = find_nearest(scan_qpar_axe, qpar_range[0])[0]
+                    end_qpar = find_nearest(
                         scan_qpar_axe, qpar_range[1])[0]
                     print("Indexes in qpar: ", st_qpar, end_qpar+1)
 
@@ -507,15 +507,15 @@ class Reflectivity:
                     print("Range in omega:", omega[1], omega[2])
 
                     # CTR intensity, define roi indices
-                    st_delta_roi = ut3.find_nearest(
+                    st_delta_roi = find_nearest(
                         scan_delta_axe, delta_range[0])[0]
-                    end_delta_roi = ut3.find_nearest(
+                    end_delta_roi = find_nearest(
                         scan_delta_axe, delta_range[1])[0]
                     print("Indexes in delta: ", st_delta_roi, end_delta_roi+1)
 
-                    st_omega_roi = ut3.find_nearest(
+                    st_omega_roi = find_nearest(
                         scan_omega_axe, omega_range[0])[0]
-                    end_omega_roi = ut3.find_nearest(
+                    end_omega_roi = find_nearest(
                         scan_omega_axe, omega_range[1])[0]
                     print("Indexes in omega: ", st_omega_roi, end_omega_roi+1)
 
@@ -1111,7 +1111,7 @@ class Reflectivity:
                 plt.show()
                 q_hkl = self.out.params["P0_center"].value
 
-                ind = ut3.find_nearest(q_range, q_hkl)[0]
+                ind = find_nearest(q_range, q_hkl)[0]
 
                 inplane_angle = gamma_range[ind]
                 outofplane_angle = delta_range[ind]
