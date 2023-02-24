@@ -5,7 +5,7 @@ Created on Sat Jan 30 16:31:47 2016
 
 @author: andrea
 """
-#from __future__ import print_function, division
+# from __future__ import print_function, division
 import numpy as np
 import matplotlib
 # matplotlib.use("Agg")
@@ -16,16 +16,16 @@ from scipy import ndimage
 from scipy import interpolate
 import glob
 import os
-#from natsort import natsorted
+# from natsort import natsorted
 from scipy import stats
 from scipy import signal
 import scipy as sp
-#import pandas as pd
-#from lmfit import Model, minimize, Parameters, Parameter, report_fit
+# import pandas as pd
+# from lmfit import Model, minimize, Parameters, Parameter, report_fit
 import lmfit
 from lmfit.models import LinearModel, LorentzianModel, GaussianModel, PseudoVoigtModel
 
-#global test
+# global test
 
 
 def isFloat(string):
@@ -104,7 +104,7 @@ def selectRootName(root2search, filelist):
 
 def find_nearest(array, value):
     '''Given an array and a value it returns the index of the array where is located the closest number to the requested'''
-    #array = np.asanyarray(array)
+    # array = np.asanyarray(array)
     array = array[np.logical_not(np.isnan(array))]
     idx = (np.abs(array-value)).argmin()
     return idx, array[idx]
@@ -125,8 +125,8 @@ def cropdata(x, y, xstart, xend):
 def filterOutlier(x, y, ts=3):
     '''Meant to remove spikes from x,y arrays '''
     wz = detect_outlier(y, threshold=ts)
-    #z = np.abs(stats.zscore(y))
-    #wz = np.where(z > threshold)[0]
+    # z = np.abs(stats.zscore(y))
+    # wz = np.where(z > threshold)[0]
     xst = x
     yst = y
     wz.sort()
@@ -134,21 +134,21 @@ def filterOutlier(x, y, ts=3):
     for el in wz:
         x = np.delete(x, el)
         y = np.delete(y, el)
-    #plt.plot(xst, yst,'g')
-    #plt.plot(x, y,'r')
+    # plt.plot(xst, yst,'g')
+    # plt.plot(x, y,'r')
 #
     return x, y
 
 
 def detect_outlier(y, threshold=3):
     '''It returns the position of the outliers as vector '''
-    #ys = signal.savgol_filter(y, 67, 2)
+    # ys = signal.savgol_filter(y, 67, 2)
     ys = signal.medfilt(y, kernel_size=5)
     z = np.abs(stats.zscore(y-ys))
-    #plt.plot(y, '.g')
-    #plt.plot(ys, '-r')
-    #plt.plot(z, '.k')
-    #plt.plot(y-ys, '-b')
+    # plt.plot(y, '.g')
+    # plt.plot(ys, '-r')
+    # plt.plot(z, '.k')
+    # plt.plot(y-ys, '-b')
     wz = np.where(z > threshold)[0]
     return wz
 
@@ -172,9 +172,9 @@ def bkgsub(xaxe, yaxe, limits=None):
 
     if limits != None:
         Istart = np.abs(xaxe - limits[0]).argmin()
-        #print (Istart)
+        # print (Istart)
         Iend = np.abs(xaxe - limits[1]).argmin()
-        #print (Iend)
+        # print (Iend)
     else:
         Istart = 0
         Iend = -1
@@ -195,13 +195,13 @@ def bkgsub(xaxe, yaxe, limits=None):
 def linFit(x, y):
     '''Return the parameter for a linear fit of x vs y '''
 
-    #x = fn01.kinetic_energy
-    #y = fn01.spectrum
+    # x = fn01.kinetic_energy
+    # y = fn01.spectrum
     bkg = LinearModel(prefix='bkg_')
     pars = bkg.guess(y, x=x)
     init = bkg.eval(pars, x=x)
 
-    #pars = mod.guess(y, x=x)
+    # pars = mod.guess(y, x=x)
     out = bkg.fit(y, pars, x=x)
     # print(out.fit_report(min_correl=0.25))
     b = out.best_values['bkg_intercept']
@@ -240,7 +240,7 @@ def smoothGauss(vect, degree=4):
     smoothed = [0.0]*(len(vect)-window)
     for i in range(len(smoothed)):
         smoothed[i] = sum(np.array(vect[i:i+window])*weight)/sum(weight)
-    #print  (type(degree))
+    # print  (type(degree))
         smoothed = np.asarray(smoothed)
     return smoothed
 
@@ -252,20 +252,20 @@ def gengauss(x, p=[1, 1, 1, 10, 0]):
     using 4 parameters = flat gaussian on a Bkg
     using 5 parameters = Gaussian on a linear Bkg'''
     if np.shape(p)[0] == 3:
-        #print('Flat Gaussian')
+        # print('Flat Gaussian')
         y = p[0]*(1/p[2]*np.sqrt(2*np.pi))*np.exp(-1/2 * ((x-p[1])/p[2])**2)
-        #y = ((p[0]/(p[2]*np.sqrt(2*np.pi)))*np.exp(-1*(((x-p[1])**2)/(2*(p[2])**2))))
+        # y = ((p[0]/(p[2]*np.sqrt(2*np.pi)))*np.exp(-1*(((x-p[1])**2)/(2*(p[2])**2))))
     if np.shape(p)[0] == 4:
-        #print('Flat Gaussian + Bkg')
+        # print('Flat Gaussian + Bkg')
         y = p[0]*(1/p[2]*np.sqrt(2*np.pi)) * \
             np.exp(-1/2 * ((x-p[1])/p[2])**2)+p[3]
-        #y = ((p[0]/(p[2]*np.sqrt(2*np.pi)))*np.exp(-1*(((x-p[1])**2)/(2*(p[2])**2))))+p[3]
+        # y = ((p[0]/(p[2]*np.sqrt(2*np.pi)))*np.exp(-1*(((x-p[1])**2)/(2*(p[2])**2))))+p[3]
     if np.shape(p)[0] == 5:
-        #print('Flat Gaussian + Bkg slope')
+        # print('Flat Gaussian + Bkg slope')
         y = p[0]*(1/p[2]*np.sqrt(2*np.pi)) * \
             np.exp(-1/2*((x-p[1])/p[2])**2)+p[3]+x*p[4]
         #   amp1*(1/width1*np.sqrt(2*np.pi))*np.exp(-1/2* ((xx-cen1)/width1)**2)
-        #y = ((p[0]/(p[2]*np.sqrt(2*np.pi)))*np.exp(-1*(((x-p[1])**2)/(2*(p[2])**2))))+p[3]+x*p[4]
+        # y = ((p[0]/(p[2]*np.sqrt(2*np.pi)))*np.exp(-1*(((x-p[1])**2)/(2*(p[2])**2))))+p[3]+x*p[4]
     if np.shape(p)[0] != 3 and np.shape(p)[0] != 4 and np.shape(p)[0] != 5:
         print('parameters p wrong dimension')
     return x, y
@@ -278,26 +278,26 @@ def fitgauss1d(x, y, p=[1, 1, 1, 10, 0.1], graph='NO'):
     using 5 parameters = Gaussian on a linear Bkg
     '''
     if np.shape(p)[0] == 3:
-        #print('Flat Gaussian')
+        # print('Flat Gaussian')
         def gauss(p, x): return (
             (p[0]/(p[2]*np.sqrt(2*np.pi)))*np.exp(-1*(((x-p[1])**2)/(2*(p[2])**2))))
     if np.shape(p)[0] == 4:
-        #print('Flat Gaussian + Bkg')
-        #gauss = lambda p, x:  p[0]*(1/p[2]*np.sqrt(2*np.pi))*np.exp(-1/2* ((x-p[1])/p[2])**2)+p[3]
+        # print('Flat Gaussian + Bkg')
+        # gauss = lambda p, x:  p[0]*(1/p[2]*np.sqrt(2*np.pi))*np.exp(-1/2* ((x-p[1])/p[2])**2)+p[3]
         def gauss(p, x): return (
             (p[0]/(p[2]*np.sqrt(2*np.pi)))*np.exp(-1*(((x-p[1])**2)/(2*(p[2])**2))))+p[3]
 
     if np.shape(p)[0] == 5:
-        #print('Flat Gaussian + Bkg slope')
+        # print('Flat Gaussian + Bkg slope')
         def gauss(p, x): return ((p[0]/(p[2]*np.sqrt(2*np.pi)))
                                  * np.exp(-1*(((x-p[1])**2)/(2*(p[2])**2))))+p[3]+x*p[4]
 
     def errfunc(p, x, y): return gauss(p, x) - y
     p0 = p
     p1, success = sp.optimize.leastsq(errfunc, p0[:], args=(x, y))
-    #p1,success = sp.optimize.leastsq(errfunc, p0[:], args=(x, y))
+    # p1,success = sp.optimize.leastsq(errfunc, p0[:], args=(x, y))
 
-    #area = np.sqrt(2*np.pi)*p[0]*p[2]
+    # area = np.sqrt(2*np.pi)*p[0]*p[2]
 
     if graph != 'NO':
         plt.plot(x, y, 'og')
@@ -356,7 +356,7 @@ def fitgauss1d_lim(x, y, aa=[10, 0.1, 100], ww=[0.2, 0.01, 0.6], cc=[0.8, 0.55, 
     ysize = np.shape(y)[0]
     indexes = ~np.isnan(y)
     nans = np.count_nonzero(np.isnan(y))
-    #print('nans are: ', np.shape(nans))
+    # print('nans are: ', np.shape(nans))
     x = x[indexes]
     y = y[indexes]
 
@@ -367,7 +367,7 @@ def fitgauss1d_lim(x, y, aa=[10, 0.1, 100], ww=[0.2, 0.01, 0.6], cc=[0.8, 0.55, 
     if nans > ysize/2:
         raise ValueError("Too many Nan")
 
-  ####  result = lmfit.minimize(gaus2min, params, args=(gamCritHole, yHole))
+  # result = lmfit.minimize(gaus2min, params, args=(gamCritHole, yHole))
 
     if graph != 'NO':
         plt.plot(x, y, 'og')
@@ -381,9 +381,9 @@ def fitgauss1d_lim(x, y, aa=[10, 0.1, 100], ww=[0.2, 0.01, 0.6], cc=[0.8, 0.55, 
                 np.exp(-1/2 * ((x-p[2])/p[1])**2)+p[4]*x + p[3])
         ystart = (aa[0]*(1/ww[0]*np.sqrt(2*np.pi)) *
                   np.exp(-1/2 * ((x-cc[0])/ww[0])**2)+ss[0]*x + kk[0])
-        #yfit = p[0]*(1/p[2]*np.sqrt(2*np.pi))*np.exp(-1/2*((x-p[1])/p[2])**2)+p[3]+x*p[4]
+        # yfit = p[0]*(1/p[2]*np.sqrt(2*np.pi))*np.exp(-1/2*((x-p[1])/p[2])**2)+p[3]+x*p[4]
 
-        #x,yfit = gengauss(x,p=p1)
+        # x,yfit = gengauss(x,p=p1)
         plt.plot(x, yfit, 'r')
         plt.plot(x, ystart, 'b')
         plt.show()
@@ -416,7 +416,7 @@ def fitgauss1d2_lim(x, y, aa1=[10, 0.1, 100], ww1=[0.2, 0.01, 0.6], cc1=[0.8, 0.
     ysize = np.shape(y)[0]
     indexes = ~np.isnan(y)
     nans = np.count_nonzero(np.isnan(y))
-    #print('nans are: ', np.shape(nans))
+    # print('nans are: ', np.shape(nans))
     x = x[indexes]
     y = y[indexes]
 
@@ -427,7 +427,7 @@ def fitgauss1d2_lim(x, y, aa1=[10, 0.1, 100], ww1=[0.2, 0.01, 0.6], cc1=[0.8, 0.
     if nans > ysize/2:
         raise ValueError("Too many Nan")
 
-  ####  result = lmfit.minimize(gaus2min, params, args=(gamCritHole, yHole))
+  # result = lmfit.minimize(gaus2min, params, args=(gamCritHole, yHole))
 
     if graph != 'NO':
         plt.plot(x, y, 'og')
@@ -450,10 +450,10 @@ def fitgauss1d2_lim(x, y, aa1=[10, 0.1, 100], ww1=[0.2, 0.01, 0.6], cc1=[0.8, 0.
         ystart = (aa1[0]*(1/ww1[0]*np.sqrt(2*np.pi))*np.exp(-1/2 * ((x-cc1[0])/ww1[0])**2)) + ss[0] * \
             x + kk[0] + (aa2[0]*(1/ww2[0]*np.sqrt(2*np.pi)) *
                          np.exp(-1/2 * ((x-cc2[0])/ww2[0])**2))
-        #ystart = (aa[0]*(1/ww[0]*np.sqrt(2*np.pi))*np.exp(-1/2* ((x-cc[0])/ww[0])**2)+ss[0]*x + kk[0])
-        #yfit = p[0]*(1/p[2]*np.sqrt(2*np.pi))*np.exp(-1/2*((x-p[1])/p[2])**2)+p[3]+x*p[4]
+        # ystart = (aa[0]*(1/ww[0]*np.sqrt(2*np.pi))*np.exp(-1/2* ((x-cc[0])/ww[0])**2)+ss[0]*x + kk[0])
+        # yfit = p[0]*(1/p[2]*np.sqrt(2*np.pi))*np.exp(-1/2*((x-p[1])/p[2])**2)+p[3]+x*p[4]
 
-        #x,yfit = gengauss(x,p=p1)
+        # x,yfit = gengauss(x,p=p1)
         plt.plot(x, yfit, 'r')
         plt.plot(x, ystart, 'b')
         plt.plot(x, g1, 'g')
@@ -470,7 +470,7 @@ def fitPeaks(x, y, colorData='.g', plot='NO', print_it='NO'):
     bkg = LinearModel(prefix='bkg_')
     # it make a guess to initiaalise the parameters for the linear part
     pars = bkg.guess(y, x=x)
-    #pars = lmfit.Parameters()
+    # pars = lmfit.Parameters()
     peak1 = GaussianModel(prefix='d1_')  # here fedine the peak shape model
     pars.update(peak1.make_params())
     peak2 = GaussianModel(prefix='d2_')
@@ -595,7 +595,7 @@ def varname(var):
 ###############################################################################
 ###############################################################################
 
-#import lmfit
+# import lmfit
 # from lmfit.models import LinearModel, LorentzianModel, GaussianModel, PseudoVoigtMode #get some of the pre-defined models available
 #
 # def fitPeaks(x,y, colorData = '.g',plot = 'NO', print_it = 'NO'):
@@ -634,8 +634,8 @@ def varname(var):
 
 
 # create data to be fitted
-#x = np.linspace(0, 15, 301)
-#data = (5. * np.sin(2 * x - 0.1) * np.exp(-x*x*0.025) + np.random.normal(size=len(x), scale=0.2) )
+# x = np.linspace(0, 15, 301)
+# data = (5. * np.sin(2 * x - 0.1) * np.exp(-x*x*0.025) + np.random.normal(size=len(x), scale=0.2) )
 #
 # define objective function: returns the array to be minimized
 # def fcn2min(params, x, data):
@@ -651,18 +651,18 @@ def varname(var):
 #    return model - data
 #
 # create a set of Parameters
-#params = lmfit.Parameters()
-#params.add('amp',   value= 10,  min=0)
-#params.add('decay', value= 0.1)
-#params.add('shift', value= 0.0, min=-np.pi/2., max=np.pi/2)
-#params.add('omega', value= 3.0)
+# params = lmfit.Parameters()
+# params.add('amp',   value= 10,  min=0)
+# params.add('decay', value= 0.1)
+# params.add('shift', value= 0.0, min=-np.pi/2., max=np.pi/2)
+# params.add('omega', value= 3.0)
 #
 #
 # do fit, here with leastsq model
-#result = minimize(fcn2min, params, args=(x, data))
+# result = minimize(fcn2min, params, args=(x, data))
 #
 # calculate final result
-#final = data + result.residual
+# final = data + result.residual
 #
 # write error report
 # report_fit(result.params)
@@ -676,19 +676,19 @@ def varname(var):
 # except:
 #    pass
 # or using another fitting routine
-#from numpy import sqrt, pi, exp, loadtxt
-#import matplotlib.pyplot as plt
+# from numpy import sqrt, pi, exp, loadtxt
+# import matplotlib.pyplot as plt
 #
 #
 # to use pre-defined models
-##from lmfit.models import ConstantModel, GaussianModel
-##gaussian = GaussianModel()
-##bkg  = ConstantModel()
-##mod = gaussian + bkg
+# from lmfit.models import ConstantModel, GaussianModel
+# gaussian = GaussianModel()
+# bkg  = ConstantModel()
+# mod = gaussian + bkg
 #
 #
 # to define your own models:
-#from lmfit import Model
+# from lmfit import Model
 # def gaussian(x, amplitude, center, sigma):
 #    "1-d gaussian: gaussian(x, amp, cen, wid)"
 #    return (amplitude/(sqrt(2*pi)*sigma)) * exp(-(x-center)**2 /(2*sigma**2))
@@ -696,22 +696,22 @@ def varname(var):
 # def bkg(x,  c):
 #    "line"
 #    return  c
-#mod = Model(gaussian) + Model(bkg)
+# mod = Model(gaussian) + Model(bkg)
 #
 #
 #
-##data = loadtxt('model1d_gauss.dat')
-#x = gamx
-#y = y
+# data = loadtxt('model1d_gauss.dat')
+# x = gamx
+# y = y
 #
-#pars  = mod.make_params( amplitude=5, center=17.25, sigma=.01, c=120)
-#result = mod.fit(y, pars, x=x)
+# pars  = mod.make_params( amplitude=5, center=17.25, sigma=.01, c=120)
+# result = mod.fit(y, pars, x=x)
 #
 # result.values
 
 # print(result.fit_report())
 #
-#plt.plot(x, y,         'bo')
-#plt.plot(x, result.init_fit, 'k--')
-#plt.plot(x, result.best_fit, 'r-')
+# plt.plot(x, y,         'bo')
+# plt.plot(x, result.init_fit, 'k--')
+# plt.plot(x, result.best_fit, 'r-')
 # plt.show()
