@@ -10,7 +10,7 @@ Modified again and again...
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-#from __future__ import unicode_literals
+# from __future__ import unicode_literals
 import tables  # h5py should take its place
 import os
 import numpy as np
@@ -82,7 +82,7 @@ class DataSet(object):
             self._alias_dict = pickle.load(open(pathAlias, 'rb'))
             #
         except:  # FileNotFoundError:
-            #print('First Alias Not Found')
+            # print('First Alias Not Found')
             try:
                 self._alias_dict = pickle.load(
                     open('/home/experiences/sixs/com-sixs/python/alias_dict.txt', 'rb'))
@@ -247,7 +247,7 @@ class DataSet(object):
         # patch xpad140 / xpad70
         # try to correct wrong/inconsistency naming coming from FLY/SBS name system
         # It is fragile as idea but...
-        #BL2D = {120:'xpad70',240:'xpad140',515:'merlin',512:'maxipix', 1065:'eiger',1040:'cam2',256:'ufxc'}
+        # BL2D = {120:'xpad70',240:'xpad140',515:'merlin',512:'maxipix', 1065:'eiger',1040:'cam2',256:'ufxc'}
         BL2D = {120: 'xpad70', 240: 'xpad140', 512: 'merlin',
                 1065: 'eiger', 1040: 'cam2', 256: 'ufxc'}
         self._BL2D = BL2D
@@ -262,7 +262,7 @@ class DataSet(object):
                 if detsize in BL2D:
                     detname = BL2D[detsize]  # the detector name from the size
                     if not hasattr(self, detname):
-                        #print('adding:', detname)
+                        # print('adding:', detname)
                         # adding the new attrinute name
                         self.__setattr__(detname, detarray)
                         self.attlist.append(detname)
@@ -270,7 +270,7 @@ class DataSet(object):
                         self.__delattr__(el)
                         # removing the wrong/incosistent naming due to SBS/FLY naming.
                         self.attlist.remove(el)
-                        #print('removed:', el)
+                        # print('removed:', el)
                     # if hasattr(self, detname):
                     #    print('detector already detected')
                 if detsize not in BL2D:
@@ -378,7 +378,7 @@ class DataSet(object):
                     for leaf in tmp1:
                         for el1 in leaf:
                             datastr = (el1.tobytes().decode('utf8'))
-                            #data.append([int(i) for i in (datastr.split('\n'))])
+                            # data.append([int(i) for i in (datastr.split('\n'))])
                             if 'height' in leaf.name:
                                 h = np.array([int(i)
                                              for i in (datastr.split('\n'))])
@@ -420,11 +420,11 @@ class DataSet(object):
 
         try:  # kept for "files before 18/11/2020   related to xpad70/140 transition"
             if self.start_time < 1605740000:                   # apply to file older than Wed Nov 18 23:53:20 2020
-                #print('old file')
+                # print('old file')
                 self. _roi_limits_xpad140 = f.SIXS._f_get_child(
                     'i14-c-c00-ex-config-publisher').roi_limits[:][:]
                 self.attlist.append('_roi_limits_xpad140')
-                #self.roi_names = str(f.SIXS._f_get_child('i14-c-c00-ex-config-publisher').roi_name.read()).split()
+                # self.roi_names = str(f.SIXS._f_get_child('i14-c-c00-ex-config-publisher').roi_name.read()).split()
                 roi_names_cell = f.SIXS._f_get_child(
                     'i14-c-c00-ex-config-publisher').roi_name.read()
                 self._roi_names_xpad140 = roi_names_cell.tolist().decode().split('\n')
@@ -443,17 +443,17 @@ class DataSet(object):
                 dets = self._list2D  # the 2D detector list potentially extend here for the eiger ROIs
                 for el in dets:
                     if el == 'xpad70':
-                        #print('set xpad70')
-                        #self._roi_limits_xpad70 = f.SIXS._f_get_child('i14-c-c00-ex-config-xpad70').roi_limits[:][:]
-                        #print('ok limits', self._roi_limits_xpad70)
+                        # print('set xpad70')
+                        # self._roi_limits_xpad70 = f.SIXS._f_get_child('i14-c-c00-ex-config-xpad70').roi_limits[:][:]
+                        # print('ok limits', self._roi_limits_xpad70)
                         # self.attlist.append('_roi_limits_xpad70')
                         self._distance_xpad70 = f.SIXS._f_get_child(
                             'i14-c-c00-ex-config-xpads70').distance_xpad[:]  # mind the "s"
-                        #print('ok distance', self._distance_xpad70)
+                        # print('ok distance', self._distance_xpad70)
                         self.attlist.append('_distance_xpad70')
                         self._ifmask_xpad70 = f.SIXS._f_get_child(
                             'i14-c-c00-ex-config-xpads70').ifmask[:]  # mind the "s"
-                        #print('ok ifmask', self._ifmask_xpad70)
+                        # print('ok ifmask', self._ifmask_xpad70)
                         self.attlist.append('_ifmask_xpad70')
                         try:
                             self._mask_xpad70 = f.SIXS._f_get_child(
@@ -469,7 +469,7 @@ class DataSet(object):
 
                     if el == 'xpad140':
                         # print('xpad140')
-                        #self._roi_limits_xpad140 = f.SIXS._f_get_child('i14-c-c00-ex-config-xpad140').roi_limits[:][:]
+                        # self._roi_limits_xpad140 = f.SIXS._f_get_child('i14-c-c00-ex-config-xpad140').roi_limits[:][:]
                         # self.attlist.append('_roi_limits_xpad140')
                         self._distance_xpad140 = f.SIXS._f_get_child(
                             'i14-c-c00-ex-config-xpads140').distance_xpad[:]  # mind the "s"
@@ -478,7 +478,7 @@ class DataSet(object):
                             'i14-c-c00-ex-config-xpads140').ifmask[0]  # mind the "s"
                         self.attlist.append('_ifmask_xpad140')
                         try:
-                            #print('check mask l 360')
+                            # print('check mask l 360')
                             self._mask_xpad140 = f.SIXS._f_get_child(
                                 'i14-c-c00-ex-config-xpads140').mask[:]  # mind the "s"
                             self.attlist.append('_mask_xpad140')
@@ -491,7 +491,7 @@ class DataSet(object):
                         # self.attlist.append('_roi_names_xpad140')
                     if el == 'merlin':
                         # print('xpad140')
-                        #self._roi_limits_merlin = f.SIXS._f_get_child('i14-c-c00-ex-config-merlin').roi_limits[:][:]
+                        # self._roi_limits_merlin = f.SIXS._f_get_child('i14-c-c00-ex-config-merlin').roi_limits[:][:]
                         # self.attlist.append('_roi_limits_merlin')
                         self._distance_merlin = f.SIXS._f_get_child(
                             'i14-c-c00-ex-config-merlin').distance_xpad[:]
@@ -500,7 +500,7 @@ class DataSet(object):
                             'i14-c-c00-ex-config-merlin').ifmask[:]
                         self.attlist.append('_ifmask_merlin')
                         try:
-                            #print('check mask l 360')
+                            # print('check mask l 360')
                             self._mask_merlin = f.SIXS._f_get_child(
                                 'i14-c-c00-ex-config-merlin').mask[:]
                             self.attlist.append('_mask_merlin')
@@ -645,7 +645,7 @@ class DataSet(object):
             if isinstance(self.attenuation, str):
                 # NO attenuation ==> No _fattenuation
                 self._fattenuations = 'NO_fattenuation_filters_issue'
-            #self._fattenuations = attcoef**self.attenuation
+            # self._fattenuations = attcoef**self.attenuation
 
         if attcoef == 'default' and filters != 'default':  # use the piezo att on the provided filters
             self._fattenuations = self.coefPz**filters[:]
@@ -668,7 +668,7 @@ class DataSet(object):
             # print(maskname)
             roiM = self.roi_sum(stack, roiextent)
             setattr(self, ROIname, roiM)
-            #integrals = self.roi_sum( stack,roiextent)
+            # integrals = self.roi_sum( stack,roiextent)
             if self.verbose != 'NO':
                 print('NO Mask ==> Brutal Numerical Integration Only.',
                       ' Line: ', get_linenumber())
@@ -689,10 +689,10 @@ class DataSet(object):
 
             # if No mask still correct for filters and time... see calcROI_auto3
             fakemask = np.zeros(np.shape(stack[0]))
-            #integrals = 'No Integrals'
+            # integrals = 'No Integrals'
             # print(get_linenumber())
             integrals = self.roi_sum_mask(stack, roiextent, fakemask)
-            #integrals = self.roi_sum( stack,roiextent)
+            # integrals = self.roi_sum( stack,roiextent)
             if self.verbose != 'NO':
                 print('NO Mask ==> No Mask correction',
                       ' Line: ', get_linenumber())
@@ -751,14 +751,14 @@ class DataSet(object):
         if motor in self.attlist:
             xmot = getattr(self, motor)
         if detname:
-            #detname = self.det2d()[0]
+            # detname = self.det2d()[0]
             stack = self.getStack(detname)
             if isinstance(roi, str):
                 roiArr = self._roi_limits[self._roi_names.index(roi)]
             if isinstance(roi, list):
                 roiArr = roi
             yint = self.roi_sum(stack, roiArr)
-        #print(np.shape(xmot), np.shape(yint))
+        # print(np.shape(xmot), np.shape(yint))
         plt.plot(xmot, yint, color, label=Label)
 
     def plotscan(self, Xvar, Yvar, color='-og', Label=None, mask='No'):
@@ -798,7 +798,7 @@ class DataSet(object):
                                 maskname = 'No_Mask'  # not existent attribute filtered away from the roi_sum function
                             for pos, roi in enumerate(self.__getattribute__('_roi_limits_' + el), start=0):
                                 if maskname != 'No_Mask' and self.__getattribute__('_mask_' + el) != 'No_Mask':
-                                    #roiname = self.__getattribute__('_roi_names_' + el)[pos] +'_'+el+'_new'
+                                    # roiname = self.__getattribute__('_roi_names_' + el)[pos] +'_'+el+'_new'
                                     # Mask Filters Time
                                     roiname1 = 'roi'+str(pos) + '_'+el+'_MFT'
                                     # print(roiname)
@@ -848,13 +848,13 @@ class DataSet(object):
                             # if not self.__getattribute__('_ifmask_'+el) or not hasattr(self,'_mask_' + el):
                             if not hasattr(self, '_mask_' + el):  # disregard the _ifmask
                                 maskname = 'No_Mask'  # not existent attribute filtered away from the roi_sum function
-                                #print(maskname , get_linenumber())
-                            #print('_roi_limits_' + el)
+                                # print(maskname , get_linenumber())
+                            # print('_roi_limits_' + el)
                             for pos, roi in enumerate(self.__getattribute__('_roi_limits_' + el), start=0):
                                 # sometimes ifmask is true but there is no real mask
                                 if maskname != 'No_Mask' and self.__getattribute__('_mask_' + el) != 'No_Mask':
-                                    #print(maskname , get_linenumber())
-                                    #roiname = self.__getattribute__('_roi_names_' + el)[pos] +'_'+el+'_new'
+                                    # print(maskname , get_linenumber())
+                                    # roiname = self.__getattribute__('_roi_names_' + el)[pos] +'_'+el+'_new'
                                     # Mask Filters Time
                                     roiname1 = 'roi'+str(pos) + '_'+el+'_MFT'
                                     # print(roiname)
@@ -899,7 +899,7 @@ class DataSet(object):
         if acq time exist correction applied
         if filters exist correction applied '''
         if self.det2d():
-            #print('calc 3 ', get_linenumber())
+            # print('calc 3 ', get_linenumber())
             if self.scantype == 'SBS':  # SBS Correction #######################################
                 if hasattr(self, '_npts'):
                     print('Auto ROI already applied')
@@ -913,20 +913,20 @@ class DataSet(object):
                             # if self.__getattribute__('_ifmask_'+el) and hasattr(self,'_mask_' + el): # sometimes ifmask is true but there is no real mask
                             if hasattr(self, '_mask_' + el):
                                 maskname = '_mask_' + el
-                                #print(maskname , get_linenumber())
+                                # print(maskname , get_linenumber())
                             # if not self.__getattribute__('_ifmask_'+el) or not hasattr(self,'_mask_' + el):
                             if not hasattr(self, '_mask_' + el):  # disregard the _ifmask
                                 maskname = 'No_Mask'  # not existent attribute filtered away from the roi_sum function
-                                #print(maskname , get_linenumber())
-                            #print('_roi_limits_' + el)
+                                # print(maskname , get_linenumber())
+                            # print('_roi_limits_' + el)
                             for pos, roi in enumerate(self.__getattribute__('_roi_limits_' + el), start=0):
                                 # and self.__getattribute__('_mask_' + el)!='No_Mask': # sometimes ifmask is true but there is no real mask
                                 if maskname != 'No_Mask':
-                                    #print(maskname , get_linenumber())
-                                    #roiname = self.__getattribute__('_roi_names_' + el)[pos] +'_'+el+'_new'
+                                    # print(maskname , get_linenumber())
+                                    # roiname = self.__getattribute__('_roi_names_' + el)[pos] +'_'+el+'_new'
                                     # Mask Filters Time
                                     roiname1 = 'roi'+str(pos) + '_'+el+'_MFT'
-                                    #print(roi, '  ', roiname1, '  ', maskname, '  ', get_linenumber())
+                                    # print(roi, '  ', roiname1, '  ', maskname, '  ', get_linenumber())
 
                                     self.calcROI(
                                         stack, roi, maskname, self._integration_time, roiname1, coef='default', filt='default')
@@ -951,7 +951,7 @@ class DataSet(object):
                                     roiname3 = 'roi' + \
                                         str(pos) + '_'+el+'_NumOnly_FT'
                                     # print(roiname3)
-                                    #calcROI(self, stack,roiextent, maskname, acqTime, ROIname, coef='default', filt='default')
+                                    # calcROI(self, stack,roiextent, maskname, acqTime, ROIname, coef='default', filt='default')
                                     # if maskname is 'No_Mask' apply only time and Filter
                                     self.calcROI(
                                         stack, roi, maskname, self._integration_time, roiname3)
@@ -975,17 +975,17 @@ class DataSet(object):
                             # if self.__getattribute__('_ifmask_'+el) and hasattr(self,'_mask_' + el): # sometimes ifmask is true but there is no real mask
                             if hasattr(self, '_mask_' + el):
                                 maskname = '_mask_' + el
-                                #print(maskname , get_linenumber())
+                                # print(maskname , get_linenumber())
                             # if not self.__getattribute__('_ifmask_'+el) or not hasattr(self,'_mask_' + el):
                             if not hasattr(self, '_mask_' + el):  # disregard the _ifmask
                                 maskname = 'No_Mask'  # not existent attribute filtered away from the roi_sum function
-                                #print(maskname , get_linenumber())
-                            #print('_roi_limits_' + el)
+                                # print(maskname , get_linenumber())
+                            # print('_roi_limits_' + el)
                             for pos, roi in enumerate(self.__getattribute__('_roi_limits_' + el), start=0):
                                 # and self.__getattribute__('_mask_' + el)!='No_Mask': # sometimes ifmask is true but there is no real mask
                                 if maskname != 'No_Mask':
-                                    #print(maskname , get_linenumber())
-                                    #roiname = self.__getattribute__('_roi_names_' + el)[pos] +'_'+el+'_new'
+                                    # print(maskname , get_linenumber())
+                                    # roiname = self.__getattribute__('_roi_names_' + el)[pos] +'_'+el+'_new'
                                     # Mask Filters Time
                                     roiname1 = 'roi'+str(pos) + '_'+el+'_MFT'
                                     # print(roiname)
@@ -1011,7 +1011,7 @@ class DataSet(object):
                                     roiname3 = 'roi' + \
                                         str(pos) + '_'+el+'_NumOnly_FT'
                                     # print(roiname3)
-                                    #calcROI(self, stack,roiextent, maskname, acqTime, ROIname, coef='default', filt='default')
+                                    # calcROI(self, stack,roiextent, maskname, acqTime, ROIname, coef='default', filt='default')
                                     # if maskname is 'No_Mask' apply only time and Filter
                                     self.calcROI(
                                         stack, roi, maskname, self._integration_time, roiname3)
@@ -1083,13 +1083,13 @@ class DataSet(object):
         list2D = []
         for el in self.attlist:
             bla = self.__getattribute__(el)
-            #print(el, bla.shape)
+            # print(el, bla.shape)
             # get the attributes from list one by one
             if isinstance(bla, (np.ndarray, np.generic)):
                 if len(bla.shape) == 3:  # check for image stacks
                     list2D.append(el)
         if len(list2D) > 0:
-            #self._list2D = list2D
+            # self._list2D = list2D
             return list2D
         else:
             return False
@@ -1132,7 +1132,7 @@ class DataSet(object):
                     print('attribute ', el, 'has more that one dimension')
                 if len(np.shape(self.__getattribute__(el))) == 1:
                     try:
-                        #print('adding ', el)
+                        # print('adding ', el)
                         loc = self.__getattribute__(el)
                         # print(loc)
                         outdata = np.c_[outdata, loc]
@@ -1153,8 +1153,8 @@ class DataSet(object):
         filesave = self.filename[:-4] + '_extr.txt'
         longname = os.path.join(self.directory, filesave)
         self.calcROI_auto2()
-        #x = np.empty(self._npts)
-        #y = np.empty(self._npts)
+        # x = np.empty(self._npts)
+        # y = np.empty(self._npts)
         data = np.empty(self._npts)
         exported = []
         x = self.__getattribute__(list2exp[0])
@@ -1173,7 +1173,7 @@ class DataSet(object):
         #             except:
         #                 raise
 
-        #print (y.shape)
+        # print (y.shape)
         yout = y[y > 0.5]
         xout = x[y > 0.5]
         outdata = np.c_[xout, yout]
