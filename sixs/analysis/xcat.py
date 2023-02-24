@@ -542,13 +542,12 @@ class XCAT:
         fontsize=15,
         zoom1=None,
         zoom2=None,
-        color_dict="gas_colors",
+        color_dict="ammonia_reaction_colors",
         cursor_positions=[None],
         cursor_labels=[None],
         text_dict=None,
         hours=True,
-        save=False,
-        fig_name="mass_flow_entry",
+        save_as=False,
         plot_valve=True,
     ):
         """
@@ -573,8 +572,7 @@ class XCAT:
          cursor_positions, e.g. {"ar": [45, 3.45], "argon": [45, 3.45],
          "o2": [5, 2], "h2": [5, 2]}, not used for now !! TODO
         :param hours: True to show x scale in hours instead of seconds
-        :param save: True to save the plot:
-        :param fig_name: figure name when saving
+        :param save_as: figure name when saving, no saving if False
         :param plot_valve: True to also see the valve positions
         """
 
@@ -588,9 +586,9 @@ class XCAT:
 
         # Iterate over each valve
         for entry in mass_list:
-            print("#######################################################")
-            print("Plotting for ", entry)
-            print("#######################################################")
+            print("###################")
+            print("Plotting for", entry)
+            print("###################")
             plt.close()
 
             # Create figure
@@ -625,7 +623,8 @@ class XCAT:
             axes[0].plot(
                 plot_df[f"time_{entry}"],
                 plot_df[f"flow_{entry}"],
-                label=f"flow_{entry}")
+                label=f"flow_{entry}"
+            )
 
             # Plot setpoint
             try:
@@ -633,7 +632,8 @@ class XCAT:
                     plot_df[f"time_{entry}"],
                     plot_df[f"setpoint_{entry}"],
                     linestyle="--",
-                    label=f"setpoint_{entry}")
+                    label=f"setpoint_{entry}"
+                )
             except:
                 pass
 
@@ -642,7 +642,8 @@ class XCAT:
                 axes[1].plot(
                     plot_df[f"time_{entry}"],
                     plot_df[f"valve_{entry}"],
-                    label=f"valve_{entry}")
+                    label=f"valve_{entry}"
+                )
             except:
                 pass
 
@@ -673,7 +674,7 @@ class XCAT:
                             linewidth=1.5,
                             label=cursor_label
                         )
-                    except KeyError:
+                    except (KeyError, TypeError):
                         print("No cursors.")
 
             # Dict for y positions of text depending on the valve
@@ -697,23 +698,23 @@ class XCAT:
 
             axes[0].set_ylabel("Flow", fontsize=fontsize+2)
             axes[0].set_xlabel(x_label, fontsize=fontsize+2)
-            axes[0].legend(ncol=len(mass_list), fontsize=fontsize)
+            axes[0].legend(ncol=3, fontsize=fontsize)
             axes[0].set_title(entry.upper())
 
             try:
                 axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
                 axes[1].set_xlabel(x_label, fontsize=fontsize+2)
-                axes[1].legend(ncol=len(mass_list), fontsize=fontsize)
+                axes[1].legend(ncol=3, fontsize=fontsize)
             except:
                 pass
 
             # Save figure
             plt.tight_layout()
-            if save:
-                plt.savefig(f"{fig_name}_{entry}.png")
-                plt.savefig(f"{fig_name}_{entry}.pdf")
+            if isinstance(save_as, str):
+                plt.savefig(f"{save_as}_{entry}.png")
+                plt.savefig(f"{save_as}_{entry}.pdf")
                 print(
-                    f"Saved as {fig_name}_{entry} in (png, pdf) formats.")
+                    f"Saved as {save_as}_{entry} in (png, pdf) formats.")
 
             plt.show()
 
@@ -724,13 +725,12 @@ class XCAT:
         fontsize=15,
         zoom1=None,
         zoom2=None,
-        color_dict="gas_colors",
+        color_dict="ammonia_reaction_colors",
         cursor_positions=[None],
         cursor_labels=[None],
         text_dict=None,
         hours=True,
-        save=False,
-        fig_name="mass_flow_valves",
+        save_as=False,
     ):
         """Plot the evolution of the input of the reactor, for both the MIX and
          the MRS valve. The gases besided Argon (carrier gas) are mixed
@@ -753,8 +753,7 @@ class XCAT:
          cursor_positions, e.g. {"ar": [45, 3.45], "argon": [45, 3.45],
          "o2": [5, 2], "h2": [5, 2]}
         :param hours: True to show x scale in hours instead of seconds
-        :param save: True to save the plot
-        :param fig_name: figure name when saving
+        :param save_as: figure name when saving, no saving if False
         """
 
         try:
@@ -859,11 +858,13 @@ class XCAT:
         axes[0].legend(fontsize=fontsize)
         axes[1].legend(fontsize=fontsize)
 
+        # Save figure
         plt.tight_layout()
-        if save:
-            plt.savefig(f"{fig_name}.png")
-            plt.savefig(f"{fig_name}.pdf")
-            print(f"Saved as {fig_name} in (png, pdf) formats.")
+        if isinstance(save_as, str):
+            plt.savefig(f"{save_as}.png")
+            plt.savefig(f"{save_as}.pdf")
+            print(
+                f"Saved as {save_as} in (png, pdf) formats.")
 
         plt.show()
 
@@ -878,7 +879,7 @@ class XCAT:
         figsize=(16, 9),
         fontsize=15,
         zoom=None,
-        color_dict="gas_colors",
+        color_dict="ammonia_reaction_colors",
         cursor_positions=[None],
         cursor_labels=[None],
         text_dict=None,
@@ -904,6 +905,7 @@ class XCAT:
             "O2"]
         :param norm_carrier: False, normalize the data by carrier gas
             (norm_carrier) pressure if str. Choose a gas in mass_list.
+        :param carrier_pressure: e.g. 0.5 (bar)
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title have +2.
         :param zoom: list of 4 integers to zoom, [xmin, xmax, ymin, ymax]
@@ -941,6 +943,7 @@ class XCAT:
 
         else:
             self.norm_df = self.rga_df.copy()
+        print("Saved normalized data as self.norm_df DataFrame.")
 
         # Use all comlumns if none specified
         if mass_list is None:
@@ -951,7 +954,7 @@ class XCAT:
         # Making the hypothesis that the sum of the pressure of all the gases
         # in mass_list is equal to the reactor pressure, which is controlled
         # independently, dangerous bc we are looking at partial pressures
-        # in the UHV chamber
+        # in the UHV chamber and not at the pressures in the reactor cell
         if isinstance(norm_ptot, float):
             self.ptot = norm_ptot
 
@@ -1011,12 +1014,14 @@ class XCAT:
                 self.norm_df[mass] /= self.norm_df[self.carrier_gaz]
 
             self.norm_df[self.carrier_gaz] = np.ones(self.norm_df.shape[0])
+
             # Put the carrier gas back in the list of mass to plot
             mass_list.append(self.carrier_gaz)
 
             # We must know the different conditions to properly correct the data
             # Otherwise the pressure is not correct
             correction_ratio_values = np.ones(self.norm_df.shape[0])
+
             # Apply a correction ratio for each condition
             for x1, x2, cursor_label in zip(
                 cursor_positions[:-1],
@@ -1077,7 +1082,7 @@ class XCAT:
                     color=color_dict[mass]
                 )
 
-            except KeyError:
+            except (KeyError, TypeError):
                 print("Is there an entry on the color dict for", mass)
                 ax.plot(
                     self.norm_df.Time.values,
@@ -1138,8 +1143,13 @@ class XCAT:
         for x1, x2, cursor_label in zip(
             cursor_positions[:-1],
             cursor_positions[1:],
-            cursor_labels
+            cursor_labels,
         ):
+            try:
+                facecolor=color_dict[cursor_label]
+            except KeyError:
+                facecolor = "white"
+
             try:
                 ax.axvspan(
                     x1,
@@ -1197,20 +1207,23 @@ class XCAT:
         data_end=-1
     ):
         """
-        Simple background reduction routine using np.polyfit()
+        Background reduction routine around a peak on a given range using
+        np.polyfit()
+
+        y- background is saved in the column f"{y_col}_bckg"
 
         :param df: dataframe to use
         :param x_col: str, column in df to use for x axis
         :param y_col: str, column in df to use for y axis
         :param peak_start: beginning of range to ignore for background
-         subtraction, 0 is equal to data_start
+            subtraction, 0 is equal to data_start
         :param peak_end: end of range to ignore for background subtraction,
-         0 is equal to data_end
+            0 is equal to data_end
         :param degree: degree of np.polyfit
         :param data_start: beginning of data range of interest (includes peak
-         and background around it)
+            and background around it)
         :param data_end: end of data range of interest (includes peak and
-         background around it)
+            background around it)
         """
         # Init figure
         fig, axs = plt.subplots(2, 1, figsize=(16, 9), sharex=True)
@@ -1245,7 +1258,7 @@ class XCAT:
         axs[0].plot(x, poly_fit(x), label="Background fit")
         axs[0].legend(fontsize=15)
 
-        # Save background
+        # Save y - background
         new_y = np.zeros(len(df))
         new_y[data_start:data_end] = y - poly_fit(x)
         df[f"{y_col}_bckg"] = new_y
@@ -1337,7 +1350,7 @@ class XCAT:
                 # axes.plot(xdata, func(xdata, *guessErf))
                 axes.plot(xdata, ydata, linewidth=2,
                           linestyle="dashdot", label=f"{element}")
-                #axes.plot(xdata, func(xdata, *popt))
+                # axes.plot(xdata, func(xdata, *popt))
                 axes.plot(longer_temp_vect, error_function(
                     longer_temp_vect, *popt), linewidth=2, linestyle="dashdot", label=f"{element}")
 
@@ -1349,7 +1362,7 @@ class XCAT:
                 # axes.plot(xdata, func(xdata, *guessErf))
                 axes.plot(xdata, ydata, linewidth=2,
                           linestyle="dashdot", label=f"{element}")
-                #axes.plot(xdata, func(xdata, *popt))
+                # axes.plot(xdata, func(xdata, *popt))
                 axes.plot(longer_temp_vect, error_function(
                     longer_temp_vect, *popt), linewidth=2, linestyle="dashdot", label=f"{element}")
 
@@ -1382,3 +1395,18 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx]
+
+
+def get_error(array):
+    """
+    Compute error with the statistical method for a 1D
+    array of length l that contain l measurements of the
+    same variable.
+
+    :param array: 1D np.array
+    """
+    l = array.shape[0]
+
+    error = np.sqrt(1/(l*(l-1)) * np.sum((array-array.mean())**2))
+
+    return error
