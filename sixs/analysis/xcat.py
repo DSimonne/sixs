@@ -5,6 +5,8 @@ import sixs
 import inspect
 import yaml
 import os
+from tqdm import tqdm
+import h5py
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -49,19 +51,19 @@ class XCAT:
         :param configuration_file: `.yml` file, stores metadata
         """
 
-        self.path_package = inspect.getfile(sixs).split("__")[0]
+        path_package = inspect.getfile(sixs).split("__")[0]
 
         # Load configuration file
         try:
             if os.path.isfile(configuration_file):
                 self.configuration_file = configuration_file
             else:
-                self.configuration_file = self.path_package + "experiments/ammonia.yml"
+                self.configuration_file = path_package + "experiments/ammonia.yml"
                 print("Could not find configuration file.")
                 print("Defaulted to ammonia configuration.")
 
         except TypeError:
-            self.configuration_file = self.path_package + "experiments/ammonia.yml"
+            self.configuration_file = path_package + "experiments/ammonia.yml"
             print("Defaulted to ammonia configuration.")
 
         finally:
@@ -71,7 +73,7 @@ class XCAT:
                     Loader=yaml.FullLoader
                 )
 
-                for key in yaml_parsed_file:
+                for key in tqdm(yaml_parsed_file):
                     setattr(self, key, yaml_parsed_file[key])
                 print("Loaded configuration file.")
 
@@ -318,16 +320,17 @@ class XCAT:
         :param skiprows: nb of rows to skip when loading the data. Defaults to
          33.
         """
+        self.mass_spec_file = mass_spec_file
 
-        # Find starting time
+        # Find experiment starting time based on file content
         try:
-            with open(mass_spec_file) as f:
+            with open(self.mass_spec_file) as f:
                 lines = f.readlines()[:skiprows]
 
                 # Create channel index to detect columns
                 channel_index = [f"{i+1}  " for i in range(9)]\
                     + [f"{i+1} " for i in range(9, 20)]
-                channels = ["Time"]
+                self.channels = ["Time"]
 
                 # Iterate on lines up to skiprows
                 for line in lines:
@@ -341,35 +344,37 @@ class XCAT:
                         self.mass_spec_start_time = datetime.fromtimestamp(
                             self.mass_spec_start_time_epoch).strftime('%Y-%m-%d %H:%M:%S')
 
-                    # Get mass spectrometer channels
+                    # Get mass spectrometer self.channels
                     elif line[:3] in channel_index:
-                        channels.append(line[25:35].replace(" ", ""))
+                        self.channels.append(line[25:35].replace(" ", ""))
             print("\n#######################################################")
             print(
-                f"Mass spec. starting time: {self.mass_spec_start_time_epoch} (unix epoch), {self.mass_spec_start_time}.")
+                f"Mass spec. starting time: {self.mass_spec_start_time_epoch} (unix epoch), ",
+                self.mass_spec_start_time
+            )
 
         except TypeError:
             self.mass_spec_start_time_epoch = None
             self.mass_spec_start_time = None
             print("\n#######################################################")
             print("""
-                \nCould not interpolate the rga data.
+                \nCould not find start time in the file.
                 \nPlay with the amount of columns names and the amount of rows skipped.")
                 """)
             print("#######################################################\n")
 
         # Create DataFrame
         self.rga_df = pd.read_csv(
-            mass_spec_file,
+            self.mass_spec_file,
             delimiter=',',
             index_col=False,
-            names=channels,
+            names=self.channels,
             skiprows=skiprows
         )
 
         # Interpolate the data of the mass spectrometer in seconds
         try:
-            # Get bad time axis
+            # Get time axis
             x = self.rga_df["Time"]
 
             # Get time range in seconds of the experiment linked to that dataset
@@ -377,7 +382,6 @@ class XCAT:
             h = self.time_range//3600
             m = (self.time_range - (h*3600))//60
             s = (self.time_range - (h*3600) - (m*60))
-
             print(f"Experiment time range: {h}h:{m}m:{s}s")
 
             self.mass_spec_end_time_epoch = int(
@@ -385,7 +389,9 @@ class XCAT:
             self.mass_spec_end_time = datetime.fromtimestamp(
                 self.mass_spec_end_time_epoch).strftime('%Y-%m-%d %H:%M:%S')
             print(
-                f"Mass spec. end time: {self.mass_spec_end_time_epoch} (unix epoch), {self.mass_spec_end_time}.")
+                f"Mass spec. end time: {self.mass_spec_end_time_epoch} (unix epoch), ",
+                self.mass_spec_end_time
+            )
             print("Careful, there are two hours added regarding utc time.")
             print("#######################################################")
 
@@ -401,11 +407,10 @@ class XCAT:
             # Iterate over all the columns
             for column in self.rga_df.columns[self.rga_df.columns != "Time"]:
 
-                # Interpolate
                 f = interpolate.interp1d(x, self.rga_df[column].values)
                 interpolated_df[column] = f(new_time_column)
 
-            # Make sure that the time is integer
+            # Make sure that the time type is integer
             interpolated_df["Time"] = interpolated_df["Time"].astype(int)
 
             # Save
@@ -443,8 +448,9 @@ class XCAT:
     def truncate_mass_flow_df(
         self
     ):
-        """Truncate mass-specific mass flow DataFrame based on timestamp and
-         time range if given (otherwise from timestamp to end).
+        """
+        Truncate mass-specific mass flow DataFrame based on timestamp and
+        time range if given (otherwise from timestamp to end).
         """
         print("\n#######################################################")
         try:
@@ -471,8 +477,11 @@ class XCAT:
                 print(
                     f"New truncated DataFrame created starting from timestamp for {mass} and for {self.time_range} seconds.")
 
-        except Exception as e:
-            raise e
+        except AttributeError:
+            print(
+                "Could not procees to truncation of the mass flow Dataframe"
+                "\nMake sure that the mass spectrometer file was loaded."
+            )
         print("#######################################################\n")
 
     def interpolate_mass_flow_df(
@@ -492,13 +501,6 @@ class XCAT:
 
                 x_0 = int(temp_df[f"time_{mass}"].values[0])
                 x_1 = int(temp_df[f"time_{mass}"].values[-1])
-
-                # # get time range in seconds of the experiment linked to that
-                # # dataset from RGA if exist, or just length oh dataset
-                # try:
-                # 	exp_duration = self.time_range
-                # except:
-                # 	exp_duration = int(x.values[-1])
 
                 # Create new time column in integer seconds
                 new_time_column = np.linspace(x_0, x_1, x_1 + 1)
@@ -530,8 +532,11 @@ class XCAT:
         except TypeError:
             print("Do these files overlap on the same experiment ?")
 
-        except Exception as e:
-            raise e
+        except AttributeError:
+            print(
+                "Could not procees to the interpolation of the mass flow Dataframe"
+                "\nMake sure that the mass spectrometer file was loaded."
+            )
         print("#######################################################\n")
 
     def plot_mass_flow_entry(
@@ -871,11 +876,11 @@ class XCAT:
     def plot_mass_spec(
         self,
         mass_list=None,
-        df="interpolated",
-        norm_ptot=False,
+        normalize_data=False,
+        p_tot=False,
         ptot_mass_list=False,
-        norm_carrier=False,
-        carrier_pressure=0.5,
+        carrier_gaz=False,
+        carrier_pressure=False,
         figsize=(16, 9),
         fontsize=15,
         zoom=None,
@@ -895,17 +900,18 @@ class XCAT:
 
         :param mass_list: list of mass to be plotted (if set up prior to the
             experiment for detection).
-        :param df: DataFrame from which the data will be plotted. Default is
-            "interpolated" which corresponds to the data truncated on the mass
-            spectrometer time range and in seconds.
-        :param norm_ptot: False, normalize the data by total pressure if float
-            (in bar).
-        :param ptot_mass_list: False, list of mass to use for normalization, if
-            False same as mass_list, used with norm_ptot, e.g. ["Ar", "NH3",
+        :param normalize_data: False, choose in [False, "reactor_pressure",
+            "carrier_pressure"].
+        :param p_tot: None, total pressure in the cell (in bar).
+            Used if normalize_data = "reactor_pressure".
+        :param ptot_mass_list: None, list of mass to use for normalization, defaults
+            as same as mass_list, otherwise provide list of str, e.g. ["Ar", "NH3",
             "O2"]
-        :param norm_carrier: False, normalize the data by carrier gas
-            (norm_carrier) pressure if str. Choose a gas in mass_list.
-        :param carrier_pressure: e.g. 0.5 (bar)
+            Used if normalize_data = "reactor_pressure".
+        :param carrier_gaz: None, carrier gas, str to choose in mass_list.
+            Used if normalize_data = "carrier_pressure".
+        :param carrier_pressure: None, carrier pressure in bar, e.g. 0.5
+            Used if normalize_data = "carrier_pressure".
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title have +2.
         :param zoom: list of 4 integers to zoom, [xmin, xmax, ymin, ymax]
@@ -923,6 +929,15 @@ class XCAT:
         :param save_as: str instance to save the plot, figure name when saving
         :param title: figure title
         """
+        # Save important parameters as attributes
+        self.mass_list = mass_list
+        self.normalize_data = normalize_data
+        self.p_tot = p_tot
+        self.ptot_mass_list = ptot_mass_list
+        self.carrier_gaz = carrier_gaz
+        self.carrier_pressure = carrier_pressure
+        self.cursor_positions = cursor_positions
+        self.cursor_labels = cursor_labels
 
         # Get coloring dictionnary
         try:
@@ -931,23 +946,18 @@ class XCAT:
             print("Wrong name for color dict.")
 
         # Get dataframe
-        if df == "interpolated":
-            try:
-                self.norm_df = self.rga_df_interpolated.copy()
-            except AttributeError:
-                print(
-                    "No attribute `rga_df_interpolated`,",
-                    " defaulted to `rga_df`"
-                )
-                self.norm_df = self.rga_df.copy()
-
-        else:
+        try:
+            self.norm_df = self.rga_df_interpolated.copy()
+        except AttributeError:
+            print(
+                "No attribute `rga_df_interpolated`,",
+                " defaulted to `rga_df`"
+            )
             self.norm_df = self.rga_df.copy()
-        print("Saved normalized data as self.norm_df DataFrame.")
 
         # Use all comlumns if none specified
-        if mass_list is None:
-            mass_list = list(self.norm_df.columns[1:-1])
+        if self.mass_list is None:
+            self.mass_list = list(self.norm_df.columns[1:-1])
             print("Defaulted mass_list to all columns")
 
         # Normalize data by total pressure
@@ -955,20 +965,18 @@ class XCAT:
         # in mass_list is equal to the reactor pressure, which is controlled
         # independently, dangerous bc we are looking at partial pressures
         # in the UHV chamber and not at the pressures in the reactor cell
-        if isinstance(norm_ptot, float):
-            self.ptot = norm_ptot
-
+        if normalize_data == "reactor_pressure":
             # Total pressure
             print(
-                f"Using P={self.ptot} bar for total pressure in the reactor.")
+                f"Setting P={self.ptot} bar as total pressure in the reactor.")
 
-            # What gases do we use for the normalization ?
+            # Gases used for the normalization
             if isinstance(ptot_mass_list, list):
                 self.ptot_mass_list = ptot_mass_list
                 print("Using columns specified with ptot_mass_list for normalization.")
 
-            elif isinstance(mass_list, list):
-                self.ptot_mass_list = mass_list
+            elif isinstance(self.mass_list, list):
+                self.ptot_mass_list = self.mass_list
                 print(
                     "Using columns specified with mass_list for normalization."
                     "\nIf you want to use other gases, use ptot_mass_list."
@@ -977,8 +985,7 @@ class XCAT:
             # Get data
             used_arr = self.norm_df[self.ptot_mass_list].values
 
-            # Normalize
-            # Sum columns to have total pressure per second
+            # Normalize, sum columns to have total pressure per second
             ptot_col = self.ptot/used_arr.sum(axis=1)
             ptot_arr = (np.ones(used_arr.shape).T * ptot_col).T
 
@@ -988,35 +995,35 @@ class XCAT:
             # Create new DataFrame
             norm_df_ptot = pd.DataFrame(norm_arr, columns=self.ptot_mass_list)
             norm_df_ptot["Time"] = self.norm_df["Time"]
-            self.norm_df = norm_df_ptot  # to do better
+            self.norm_df = norm_df_ptot
 
             print("Normalized RGA pressure by total pressure.")
             display(self.norm_df.head())
 
-            # Changed y scale
+            # Changed y units to bar because ptot is in bars
             y_units = "bar"
 
         # Normalize data by carrier gas
-        elif isinstance(norm_carrier, str):
-            self.carrier_gaz = norm_carrier
+        elif normalize_data == "carrier_pressure":
+            if isinstance(self.carrier_pressure, bool):
+                raise TypeError("Precise a value for carrier_pressure")
             print(
                 f"Using {self.carrier_gaz} as carrier gas for normalization.")
 
             # Check if it is in the list, and remove it otherwise there is a bog
-            try:
-                self.norm_df[self.carrier_gaz]
-                mass_list.remove(self.carrier_gaz)
-            except KeyError:
-                raise KeyError("This gas is not in the list.")
+            if self.carrier_gaz in self.norm_df.columns and self.carrier_gaz in self.mass_list:
+                self.mass_list.remove(self.carrier_gaz)
+            else:
+                raise KeyError("This carrier gas is not in the list.")
 
             # Normalize by carrier gas partial pressure
-            for mass in mass_list:
+            for mass in self.mass_list:
                 self.norm_df[mass] /= self.norm_df[self.carrier_gaz]
 
             self.norm_df[self.carrier_gaz] = np.ones(self.norm_df.shape[0])
 
             # Put the carrier gas back in the list of mass to plot
-            mass_list.append(self.carrier_gaz)
+            self.mass_list.append(self.carrier_gaz)
 
             # We must know the different conditions to properly correct the data
             # Otherwise the pressure is not correct
@@ -1036,7 +1043,7 @@ class XCAT:
 
                 correction_ratio_values[idx1:idx2] = self.carrier_pressure_correction_ratio[cursor_label]
 
-                for mass in mass_list:
+                for mass in self.mass_list:
                     self.norm_df[mass][idx1:idx2] *= self.carrier_pressure_correction_ratio[cursor_label] * carrier_pressure
 
             # Create a new column for the correction ratio
@@ -1054,7 +1061,10 @@ class XCAT:
         # No normalisation, meaning we are looking at the partial pressure
         # after the leak in the UHV chamber
         else:
+            print("No normalization performed on data.")
             y_units = "mbar"
+
+        print("Saved data as self.norm_df DataFrame.")
 
         # Change to hours
         if hours:
@@ -1072,7 +1082,7 @@ class XCAT:
         )
 
         # If only plotting a subset of the masses
-        for mass in mass_list:
+        for mass in self.mass_list:
             try:
                 ax.plot(
                     self.norm_df.Time.values,
@@ -1146,7 +1156,7 @@ class XCAT:
             cursor_labels,
         ):
             try:
-                facecolor=color_dict[cursor_label]
+                facecolor = color_dict[cursor_label]
             except KeyError:
                 facecolor = "white"
 
@@ -1177,7 +1187,7 @@ class XCAT:
         ax.legend(
             bbox_to_anchor=(0., -0.2, 1., .102),
             loc=3,
-            ncol=5,
+            ncol=7,
             mode="expand",
             borderaxespad=0.,
             fontsize=fontsize-2
@@ -1389,6 +1399,132 @@ class XCAT:
             plt.title(
                 "Temperature vs pressure graphs fitted with error functions")
             plt.show()
+
+    def save_xcat_data_as_hdf5(
+        self,
+        filename,
+    ):
+        """
+        Save class data in a hdf5 file
+
+        :param filename: full path to hdf5 file
+        """
+
+        # Overwite existing file
+        if os.path.isfile(filename):
+            os.remove(filename)
+
+        mass_flow_attributes = [
+            "mass_flow_file",
+            "MRS_pos",
+            "MIX_pos",
+            "mass_flow_start_time",
+            "mass_flow_end_time",
+            "gaz_travel_time",
+            "time_shift",
+        ]
+
+        mass_flow_dataframes = [
+            "no_df",
+            "h2_df",
+            "o2_df",
+            "co_df",
+            "ar_df",
+            "shunt_df",
+            "reactor_df",
+            "drain_df",
+            "valve_df",
+        ]
+
+        mass_spectrometer_attributes = [
+            "mass_spec_file",
+            "channels",
+            "mass_spec_start_time",
+            "time_range",
+            "mass_list",
+            "normalize_data",
+            "p_tot",
+            "ptot_mass_list",
+            "carrier_gaz",
+            "carrier_pressure",
+            "cursor_positions",
+            "cursor_labels",
+            "carrier_pressure_correction_ratio",
+        ]
+
+        mass_spectrometer_dataframes = [
+            "rga_df_interpolated",
+            "norm_df",
+        ]
+
+        with h5py.File(filename, "a") as f:
+            f.create_group("Mass_flow")
+            f["Mass_flow"].create_group("Dataframes")
+            f["Mass_flow"]["Dataframes"].create_dataset(
+                "Axes labels", data=["Time (s)", "Flow (mL/min)", "Setpoint (mL/min)", "Valve position"]
+            )
+            f.create_group("Mass_spectrometer")
+            f["Mass_spectrometer"].create_group("Dataframes")
+            try:
+                f["Mass_spectrometer"]["Dataframes"].create_dataset(
+                    "rga_df_interpolated_columns", data=list(self.rga_df_interpolated.columns)
+                )
+            except AttributeError:
+                raise AttributeError("Load mass spectrometer file first.")
+
+            print(
+                "###########################"
+                "\nSaving mass flow attributes"
+                "\n###########################"
+            )
+            for key in tqdm(mass_flow_attributes):
+                f["Mass_flow"].create_dataset(
+                    key, data=getattr(self, key)
+                )
+
+            print(
+                "###########################"
+                "\nSaving mass flow dataframes"
+                "\n###########################"
+            )
+            for key in tqdm(mass_flow_dataframes):
+                f["Mass_flow"]["Dataframes"].create_dataset(
+                    key, data=getattr(self, key+"_interpolated")
+                )
+
+            print(
+                "###################################"
+                "\nSaving mass spectrometer attributes"
+                "\n###################################"
+            )
+            for key in tqdm(mass_spectrometer_attributes):
+                try:
+                    f["Mass_spectrometer"].create_dataset(
+                        key, data=getattr(self, key)
+                    )
+                except TypeError:
+                    f["Mass_spectrometer"].create_dataset(
+                        key, data=str(getattr(self, key))
+                    )
+                except AttributeError:
+                    print(
+                        f"Normalize the data when plotting to save {key}."
+                    )
+
+            print(
+                "###################################"
+                "\nSaving mass spectrometer dataframes"
+                "\n###################################"
+            )
+            for key in tqdm(mass_spectrometer_dataframes):
+                try:
+                    f["Mass_spectrometer"]["Dataframes"].create_dataset(
+                        key, data=getattr(self, key)
+                    )
+                except AttributeError:
+                    print(
+                        f"Normalize the data when plotting to save {key}."
+                    )
 
 
 def find_nearest(array, value):

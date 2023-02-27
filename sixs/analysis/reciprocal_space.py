@@ -1308,9 +1308,9 @@ class CTR:
                     structure_factor[l_index_min] = np.nan_to_num(np.where(
                         background_pixel_count[l_index_min] > 0,
                         np.sqrt(
-                            intensity[l_index_min] - \
-                            roi_pixel_count[l_index_min] * (background_values[l_index_min] / \
-                            background_pixel_count[l_index_min])),
+                            intensity[l_index_min] -
+                            roi_pixel_count[l_index_min] * (background_values[l_index_min] /
+                                                            background_pixel_count[l_index_min])),
                         0
                     ))
 
@@ -1363,9 +1363,9 @@ class CTR:
                     structure_factor[l_index_min] = np.nan_to_num(np.where(
                         background_pixel_count[l_index_min] > 0,
                         np.sqrt(
-                            intensity[l_index_min] - \
-                            roi_pixel_count[l_index_min] * (background_values[l_index_min] / \
-                            background_pixel_count[l_index_min])),
+                            intensity[l_index_min] -
+                            roi_pixel_count[l_index_min] * (background_values[l_index_min] /
+                                                            background_pixel_count[l_index_min])),
                         0
                     ))
 
