@@ -33,7 +33,9 @@ class XCAT:
 
     def __init__(
         self,
-        configuration_file=False
+        configuration_file=False,
+        time_shift = 502,
+        gaz_travel_time = 12,
     ):
         """
         Initialize the Class with a configuration file
@@ -59,7 +61,6 @@ class XCAT:
                 self.configuration_file = configuration_file
             else:
                 self.configuration_file = path_package + "experiments/ammonia.yml"
-                print("Could not find configuration file.")
                 print("Defaulted to ammonia configuration.")
 
         except TypeError:
@@ -78,19 +79,18 @@ class XCAT:
                 print("Loaded configuration file.")
 
         # Time for the gaz to travel from cell to detector
-        self.gaz_travel_time = 12
+        self.gaz_travel_time = gaz_travel_time
         print(
-            "\n################################################################"
-            "\nTravel time from cell to detector defaulted to "
-            f"{self.gaz_travel_time} seconds."
+            "\n################################################################\n"
+            f"Travel time from cell to detector set to {self.gaz_travel_time} secs."
         )
 
         # Time shift between computers
-        self.time_shift = 502  # jan 2022
-        # self.time_shift = 1287 # experiment in 2021
+        self.time_shift = time_shift
+        # jan 2022: 502 sec
+        # 2021: 1287
         print(
-            "Travel shift between computers defaulted to "
-            f"{self.time_shift} seconds.\n"
+            f"Travel shift between computers set to {self.time_shift} secs.\n"
             "#################################################################\n"
         )
 
