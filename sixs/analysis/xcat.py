@@ -17,6 +17,8 @@ from scipy import interpolate
 from scipy import special
 from scipy.optimize import curve_fit
 
+hashtag_line = "################################################################################"
+
 
 class XCAT:
     """
@@ -34,8 +36,8 @@ class XCAT:
     def __init__(
         self,
         configuration_file=False,
-        time_shift = 502,
-        gaz_travel_time = 12,
+        time_shift=502,
+        gaz_travel_time=12,
     ):
         """
         Initialize the Class with a configuration file
@@ -81,7 +83,7 @@ class XCAT:
         # Time for the gaz to travel from cell to detector
         self.gaz_travel_time = gaz_travel_time
         print(
-            "\n################################################################\n"
+            f"\n{hashtag_line}\n"
             f"Travel time from cell to detector set to {self.gaz_travel_time} secs."
         )
 
@@ -91,7 +93,7 @@ class XCAT:
         # 2021: 1287
         print(
             f"Travel shift between computers set to {self.time_shift} secs.\n"
-            "#################################################################\n"
+            f"{hashtag_line}\n"
         )
 
     def load_mass_flow_controller_file(
@@ -117,7 +119,7 @@ class XCAT:
         """
         self.mass_flow_file = mass_flow_file
         print(f"Using {self.mass_flow_file} as filename for data frame input.")
-        print("\n#####################################################################\n")
+        print(f"\n{hashtag_line}\n")
 
         if MRS_pos == None:
             self.MRS_pos = [
@@ -127,8 +129,7 @@ class XCAT:
                 "Closed"
             ]
             print(f"Defaulting MRS valve positions to:\n{self.MRS_pos}.")
-            print(
-                "\n#####################################################################\n")
+            print(f"\n{hashtag_line}\n")
         else:
             self.MRS_pos = MRS_pos
 
@@ -140,8 +141,7 @@ class XCAT:
                 "NO+H2+O2", "NO+H2"
             ]
             print(f"Defaulting MIX valve positions to:\n{self.MIX_pos}.")
-            print(
-                "\n#####################################################################\n")
+            print(f"\n{hashtag_line}\n")
         else:
             self.MIX_pos = MIX_pos
 
@@ -160,8 +160,7 @@ class XCAT:
             print(
                 f"Defaulted to log file columns (in order):",
                 f"\n{self.mass_flow_file_columns}.")
-            print(
-                "\n#####################################################################\n")
+            print(f"\n{hashtag_line}\n")
         else:
             self.mass_flow_file_columns = mass_flow_file_columns
 
@@ -173,12 +172,11 @@ class XCAT:
             ]
             print(
                 f"Defaulted to the following time columns (in order):\n{self.time_columns}.")
-            print(
-                "\n#####################################################################\n")
+            print(f"\n{hashtag_line}\n")
         else:
             self.time_columns = time_columns
 
-        # Create DataFrame
+        # Create pandas.DataFrame
         try:
             self.mass_flow_df = pd.read_csv(
                 self.mass_flow_file,
@@ -210,11 +208,12 @@ class XCAT:
         )
         print(
             f"Mass flow. end time: {self.mass_flow_end_time_epoch} "
-            f"(unix epoch), {self.mass_flow_end_time}.")
-        print("Careful, there are two hours added regarding utc time.")
-        print("\n#####################################################################\n")
+            f"(unix epoch), {self.mass_flow_end_time}."
+            "\nCareful, there are two hours added regarding utc time."
+            f"\n{hashtag_line}\n"
+        )
 
-        # Show preview of DataFrame
+        # Show preview of pandas.DataFrame
         display(self.mass_flow_df.head())
         display(self.mass_flow_df.tail())
 
@@ -225,17 +224,17 @@ class XCAT:
 
     def separate_mass_flow_dataframes(
         self,
-        mass_list=False
+        mass_flow_controller_list=False,
     ):
         """
-        Create new dataframes based on the gases that were analyzed
-         Important otherwise the original data frame is too big
-         The position of the columns are hardcoded (see defaults).
-         Each entry has 4 columns, time, flow, setpoint, valve.
+        Create new pandas.DataFrames based on the gases that were analyzed, important
+        otherwise the original pandas.DataFrame is too big. The position of the
+        columns are hardcoded based on the usual rga files.
+        Each entry has 4 columns, time, flow, setpoint, valve.
 
         The mass flow controller (Bronkhorst High-Tech B.V. series) is
-         calibrated for these gases. When we use NH3 for example, it is flowed
-         through the H2 mass flow controller (see page 17 of mass flow docs).
+        calibrated for these gases. When we use NH3 for example, it is flowed
+        through the H2 mass flow controller (see page 17 of mass flow docs).
 
         Shunt: pressure (bar) at the exit. Différence de pression liée à la
          perte de charges. Exit of MRS.
@@ -244,57 +243,58 @@ class XCAT:
         Valve: Settings at the MIX and MRS valves, see self.MRS_pos and
          self.MIX_pos
 
-        :param mass_list: list of entries set up in the XCAT,
+        :param mass_flow_controller_list: list of entries set up in the XCAT,
          defaults to ["no", "h2", "o2", "co", "ar", "shunt", "reactor",
          "drain", "valve"]
         """
-        if mass_list:
-            self.mass_list = [g.lower() for g in mass_list]
+        if mass_flow_controller_list:
+            self.mass_flow_controller_list = [g.lower()
+                                              for g in mass_flow_controller_list]
 
         else:
-            self.mass_list = [
+            self.mass_flow_controller_list = [
                 "no", "h2", "o2", "co", "ar", "shunt",
                 "reactor", "drain", "valve"
             ]
-            print("Defaulted entry list to:", self.mass_list)
+            print("Defaulted entry list to:", self.mass_flow_controller_list)
 
         try:
-            for entry in self.mass_list:
+            for entry in self.mass_flow_controller_list:
                 if entry == "no":
                     self.no_df = self.mass_flow_df.iloc[:, 0:4].copy()
-                    print(f"New DataFrame created starting  or NO.")
+                    print(f"New pandas.DataFrame created starting  or NO.")
 
                 if entry == "h2":
                     self.h2_df = self.mass_flow_df.iloc[:, 4:8].copy()
-                    print(f"New DataFrame created starting for H2.")
+                    print(f"New pandas.DataFrame created starting for H2.")
 
                 if entry == "o2":
                     self.o2_df = self.mass_flow_df.iloc[:, 8:12].copy()
-                    print(f"New DataFrame created starting for O2.")
+                    print(f"New pandas.DataFrame created starting for O2.")
 
                 if entry == "co":
                     self.co_df = self.mass_flow_df.iloc[:, 12:16].copy()
-                    print(f"New DataFrame created starting for CO.")
+                    print(f"New pandas.DataFrame created starting for CO.")
 
                 if entry == "ar":
                     self.ar_df = self.mass_flow_df.iloc[:, 16:20].copy()
-                    print(f"New DataFrame created starting for Ar.")
+                    print(f"New pandas.DataFrame created starting for Ar.")
 
                 if entry == "shunt":
                     self.shunt_df = self.mass_flow_df.iloc[:, 20:24].copy()
-                    print(f"New DataFrame created starting for shunt.")
+                    print(f"New pandas.DataFrame created starting for shunt.")
 
                 if entry == "reactor":
                     self.reactor_df = self.mass_flow_df.iloc[:, 24:28].copy()
-                    print(f"New DataFrame created starting for reactor.")
+                    print(f"New pandas.DataFrame created starting for reactor.")
 
                 if entry == "drain":
                     self.drain_df = self.mass_flow_df.iloc[:, 28:32].copy()
-                    print(f"New DataFrame created starting for drain.")
+                    print(f"New pandas.DataFrame created starting for drain.")
 
                 if entry == "valve":
                     self.valve_df = self.mass_flow_df.iloc[:, 32:35].copy()
-                    print(f"New DataFrame created starting for valve.")
+                    print(f"New pandas.DataFrame created starting for valve.")
 
         except Exception as e:
             raise e
@@ -302,23 +302,23 @@ class XCAT:
     def load_mass_spectrometer_file(
         self,
         mass_spec_file,
-        skiprows=33
+        skiprows=33,
     ):
         """
         Find timestamp of the mass spectrometer (Resifual Gas Analyzer - RGA)
-         file and load the file as a DataFrame.
+            file and load the file as a pandas.DataFrame.
         Careful, all the data extraction from the file is hardcoded due to its
-         specific architecture.
+            specific architecture.
         Also interpolates the data in seconds using scipy.interpolate.interp1d
         Defines the time range of the experiment.
 
         The self.truncate_mass_flow_df and self.interpolate_mass_flow_df
-         methods are automatically launched.
+            methods are automatically launched.
 
         :param mass_spec_file: absolute path to the mass_spec_file (converted to
-         .txt beforehand in the RGA software)
+            .txt beforehand in the RGA software)
         :param skiprows: nb of rows to skip when loading the data. Defaults to
-         33.
+            33.
         """
         self.mass_spec_file = mass_spec_file
 
@@ -330,7 +330,7 @@ class XCAT:
                 # Create channel index to detect columns
                 channel_index = [f"{i+1}  " for i in range(9)]\
                     + [f"{i+1} " for i in range(9, 20)]
-                self.channels = ["Time"]
+                channels = ["Time"]
 
                 # Iterate on lines up to skiprows
                 for line in lines:
@@ -344,60 +344,68 @@ class XCAT:
                         self.mass_spec_start_time = datetime.fromtimestamp(
                             self.mass_spec_start_time_epoch).strftime('%Y-%m-%d %H:%M:%S')
 
-                    # Get mass spectrometer self.channels
+                    # Get mass spectrometer channels
                     elif line[:3] in channel_index:
-                        self.channels.append(line[25:35].replace(" ", ""))
-            print("\n#######################################################")
+                        channels.append(line[25:35].replace(" ", ""))
             print(
-                f"Mass spec. starting time: {self.mass_spec_start_time_epoch} (unix epoch), ",
-                self.mass_spec_start_time
+                f"\n{hashtag_line}"
+                f"\nMass spec. starting time: {self.mass_spec_start_time_epoch}"
+                f" (unix epoch), {self.mass_spec_start_time}."
             )
 
         except TypeError:
             self.mass_spec_start_time_epoch = None
             self.mass_spec_start_time = None
-            print("\n#######################################################")
-            print("""
-                \nCould not find start time in the file.
-                \nPlay with the amount of columns names and the amount of rows skipped.")
-                """)
-            print("#######################################################\n")
+            print(
+                f"\n{hashtag_line}"
+                "\nCould not find start time in the file. \nPlay with the "
+                "amount of columns names and the amount of rows skipped."
+                f"\n{hashtag_line}\n"
+            )
 
-        # Create DataFrame
-        self.rga_df = pd.read_csv(
+        # Create pandas.DataFrame
+        self.mass_spec_df = pd.read_csv(
             self.mass_spec_file,
             delimiter=',',
             index_col=False,
-            names=self.channels,
+            names=channels,
             skiprows=skiprows
         )
 
         # Interpolate the data of the mass spectrometer in seconds
         try:
             # Get time axis
-            x = self.rga_df["Time"]
+            x = self.mass_spec_df["Time"]
 
             # Get time range in seconds of the experiment linked to that dataset
-            self.time_range = int(float(x.values[-1]))
-            h = self.time_range//3600
-            m = (self.time_range - (h*3600))//60
-            s = (self.time_range - (h*3600) - (m*60))
+            self.mass_spectrometer_file_duration = int(float(x.values[-1]))
+            h = self.mass_spectrometer_file_duration//3600
+            m = (self.mass_spectrometer_file_duration - (h*3600))//60
+            s = (self.mass_spectrometer_file_duration - (h*3600) - (m*60))
             print(f"Experiment time range: {h}h:{m}m:{s}s")
 
             self.mass_spec_end_time_epoch = int(
-                self.time_range + self.mass_spec_start_time_epoch)
+                self.mass_spectrometer_file_duration + self.mass_spec_start_time_epoch)
             self.mass_spec_end_time = datetime.fromtimestamp(
                 self.mass_spec_end_time_epoch).strftime('%Y-%m-%d %H:%M:%S')
             print(
                 f"Mass spec. end time: {self.mass_spec_end_time_epoch} (unix epoch), ",
                 self.mass_spec_end_time
             )
-            print("Careful, there are two hours added regarding utc time.")
-            print("#######################################################")
+            print(
+                "Careful, there are two hours added regarding utc time."
+                f"\n{hashtag_line}\n"
+            )
 
             # Create new time column in integer seconds
-            new_time_column = np.round(np.linspace(
-                0, self.time_range, self.time_range + 1), 0)
+            new_time_column = np.round(
+                np.linspace(
+                    0,
+                    self.mass_spectrometer_file_duration,
+                    self.mass_spectrometer_file_duration + 1
+                ),
+                0
+            )
 
             # Proceed to interpolation over the new time axis
             interpolated_df = pd.DataFrame({
@@ -405,59 +413,55 @@ class XCAT:
             })
 
             # Iterate over all the columns
-            for column in self.rga_df.columns[self.rga_df.columns != "Time"]:
+            for column in self.mass_spec_df.columns[self.mass_spec_df.columns != "Time"]:
 
-                f = interpolate.interp1d(x, self.rga_df[column].values)
+                f = interpolate.interp1d(x, self.mass_spec_df[column].values)
                 interpolated_df[column] = f(new_time_column)
 
             # Make sure that the time type is integer
             interpolated_df["Time"] = interpolated_df["Time"].astype(int)
 
             # Save
-            setattr(self, "rga_df_interpolated", interpolated_df)
-            print("\n#######################################################")
+            setattr(self, "mass_spec_df_interpolated", interpolated_df)
             print(
-                f"New DataFrame created for RGA, interpolated on its time range (in s).")
-            print("#######################################################\n")
+                f"\n{hashtag_line}"
+                f"\nNew pandas.DataFrame created for the mass spectrometer, "
+                "interpolated on its time range (in s)."
+                f"\n{hashtag_line}"
+            )
 
-            display(self.rga_df_interpolated.head())
-            display(self.rga_df_interpolated.tail())
+            display(self.mass_spec_df_interpolated.head())
+            display(self.mass_spec_df_interpolated.tail())
 
-        except NameError:
-            print("\n#######################################################")
-            print("""
-                \nCould not interpolate the rga data.
-                \nTo interpolate also the RGA data, you need to load the mass spectrometer file first
-                """)
-            print("#######################################################\n")
+        except (ValueError, NameError):
+            print(
+                f"\n{hashtag_line}"
+                "\nCould not interpolate the mass spectrometer data."
+                "\nPlay with the amount of columns names and the amount of "
+                "rows skipped."
+                f"\n{hashtag_line}"
+            )
 
-        except ValueError:
-            print("\n#######################################################")
-            print("""
-                \nCould not interpolate the rga data.
-                \nPlay with the amount of columns names and the amount of rows skipped.")
-                """)
-            print("#######################################################\n")
-
-        # Directly truncate df to avoid errors if forgotten
+        # Directly truncate the data of the mass flow spectrometer
         self.truncate_mass_flow_df()
 
         # Directly interpolate the data of the mass flow spectrometer
         self.interpolate_mass_flow_df()
 
     def truncate_mass_flow_df(
-        self
+        self,
     ):
         """
-        Truncate mass-specific mass flow DataFrame based on timestamp and
-        time range if given (otherwise from timestamp to end).
+        Truncate mass flow pandas.DataFrames based on starting time and duration of
+        mass spectrometer file to have smaller pandas.DataFrames on the range of
+        interest.
         """
-        print("\n#######################################################")
+        print(f"\n{hashtag_line}")
         try:
             # Iterate on mass
-            for mass in self.mass_list:
+            for mass in self.mass_flow_controller_list:
 
-                # Find starting time for this DataFrame
+                # Find starting time for this pandas.DataFrame
                 temp_df = getattr(self, f"{mass}_df").copy()
                 index_start_time = (
                     temp_df[f"time_{mass}"] - self.mass_spec_start_time_epoch).abs().argsort()[0]
@@ -470,30 +474,36 @@ class XCAT:
                 # Truncate based on time range, take one more sec to be sure
                 # to have enough data for interpolation
                 temp_df = temp_df[temp_df[f"time_{mass}"]
-                                  < self.time_range + 1]
+                                  < self.mass_spectrometer_file_duration + 1]
 
                 setattr(self, f"{mass}_df_truncated", temp_df)
 
                 print(
-                    f"New truncated DataFrame created starting from timestamp for {mass} and for {self.time_range} seconds.")
+                    "New truncated pandas.DataFrame created starting from mass "
+                    f"spectrometer starting time for {mass} and for "
+                    f"{self.mass_spectrometer_file_duration} seconds."
+                )
 
         except AttributeError:
             print(
-                "Could not procees to truncation of the mass flow Dataframe"
+                "Could not proceed to the truncation of the mass flow pandas.DataFrame"
                 "\nMake sure that the mass spectrometer file was loaded."
             )
-        print("#######################################################\n")
+        print(f"{hashtag_line}")
 
     def interpolate_mass_flow_df(
-        self
+        self,
     ):
-        """Interpolate the data in seconds."""
+        """
+        Interpolate the data in seconds for the mass flow pandas.DataFrames, makes it
+        easier to compare the data with the mass spectrometer.
+        """
 
-        print("\n#######################################################")
+        print(f"{hashtag_line}")
         try:
-            for mass in self.mass_list:
+            for mass in self.mass_flow_controller_list:
 
-                # Det mass DataFrame
+                # Get mass pandas.DataFrame
                 temp_df = getattr(self, f"{mass}_df_truncated").copy()
 
                 # Get bad time axis
@@ -518,12 +528,12 @@ class XCAT:
                     interpolated_df[column] = y_new
 
                 # Make sure that the time is integer
-                interpolated_df[f"time_{mass}"] = interpolated_df[f"time_{mass}"].astype(
-                    int)
+                interpolated_df[f"time_{mass}"] = interpolated_df[f"time_{mass}"
+                                                                  ].astype(int)
 
                 # Save
                 setattr(self, f"{mass}_df_interpolated", interpolated_df)
-                print(f"New interpolated DataFrame created for {mass}.")
+                print(f"New interpolated pandas.DataFrame created for {mass}.")
 
         except NameError:
             print(
@@ -534,14 +544,17 @@ class XCAT:
 
         except AttributeError:
             print(
-                "Could not procees to the interpolation of the mass flow Dataframe"
+                "Could not proceed to the interpolation of the mass flow pandas.DataFrame"
                 "\nMake sure that the mass spectrometer file was loaded."
             )
-        print("#######################################################\n")
+        print(f"{hashtag_line}")
 
     def plot_mass_flow_entry(
         self,
-        mass_list=["NO", "H2", "O2", "CO", "Ar", "shunt", "reactor", "drain"],
+        mass_flow_controller_list=[
+            "NO", "H2", "O2", "CO", "Ar",
+            "shunt", "reactor", "drain"
+        ],
         df="interpolated",
         figsize=(10, 6),
         fontsize=15,
@@ -560,8 +573,8 @@ class XCAT:
         Each mass corresponds to one channel controlled by the mass flow
         controller.
 
-        :param mass_list: list of mass to be plotted
-        :param df: DataFrame from which the data will be plotted. Default is
+        :param mass_flow_controller_list: list of mass to be plotted
+        :param df: pandas.DataFrame from which the data will be plotted. Default is
          "interpolated" which corresponds to the data truncated on the mass
          spectrometer time range and in seconds.
         :param figsize: size of each figure, defaults to (16, 9)
@@ -587,13 +600,16 @@ class XCAT:
         except AttributeError:
             print("Wrong name for color dict.")
 
-        mass_list = [g.lower() for g in mass_list]
+        mass_flow_controller_list = [g.lower()
+                                     for g in mass_flow_controller_list]
 
         # Iterate over each valve
-        for entry in mass_list:
-            print("###################")
-            print("Plotting for", entry)
-            print("###################")
+        for entry in mass_flow_controller_list:
+            print(
+                f"{hashtag_line}"
+                f"\nPlotting for {entry}"
+                f"\n{hashtag_line}"
+            )
             plt.close()
 
             # Create figure
@@ -603,19 +619,22 @@ class XCAT:
                 fig, axes = plt.subplots(1, 1, figsize=figsize)
                 axes = [axes]
 
-            # Get dataframe
+            # Get pandas.DataFrame
             try:
-                if df == "interpolated":
-                    plot_df = getattr(self, f"{entry}_df_interpolated").copy()
-
-                elif df == "truncated":
-                    plot_df = getattr(self, f"{entry}_df_truncated").copy()
-
-                else:
-                    plot_df = getattr(self, f"{entry}_df").copy()
+                plot_df = getattr(self, f"{entry}_df_interpolated").copy()
             except AttributeError:
-                raise NameError(
-                    "This DataFrame does not exist yet. Try df=\"default\"")
+                try:
+                    plot_df = getattr(self, f"{entry}_df_truncated").copy()
+                    print(
+                        f"No attribute `{entry}_df_interpolated`,",
+                        f" defaulted to `{entry}_df_truncated`"
+                    )
+                except AttributeError:
+                    plot_df = getattr(self, f"{entry}_df").copy()
+                    print(
+                        f"No attribute `{entry}_df_truncated`,",
+                        f" defaulted to `{entry}_df`"
+                    )
 
             # Change to hours
             if hours:
@@ -704,11 +723,13 @@ class XCAT:
             axes[0].set_ylabel("Flow", fontsize=fontsize+2)
             axes[0].set_xlabel(x_label, fontsize=fontsize+2)
             axes[0].legend(ncol=3, fontsize=fontsize)
+            axes[0].grid()
             axes[0].set_title(entry.upper())
 
             try:
                 axes[1].set_ylabel("Valve position", fontsize=fontsize+2)
                 axes[1].set_xlabel(x_label, fontsize=fontsize+2)
+                axes[1].grid()
                 axes[1].legend(ncol=3, fontsize=fontsize)
             except:
                 pass
@@ -742,7 +763,7 @@ class XCAT:
          depending on the position of the MIX valve. At the MRS is then added
          Argon.
 
-        :param df: DataFrame from which the data will be plotted. Default is
+        :param df: pandas.DataFrame from which the data will be plotted. Default is
          "interpolated" which corresponds to the data truncated on the mass
          spectrometer time range and in seconds.
         :param figsize: size of each figure, defaults to (16, 9)
@@ -768,7 +789,7 @@ class XCAT:
 
         fig, axes = plt.subplots(2, 1, figsize=figsize)
 
-        # Get dataframe
+        # Get pandas.DataFrame
         try:
             if df == "interpolated":
                 plot_df = getattr(self, f"valve_df_interpolated").copy()
@@ -780,7 +801,7 @@ class XCAT:
                 plot_df = getattr(self, f"valve_df").copy()
         except AttributeError:
             raise NameError(
-                "This DataFrame does not exist yet. Try df=\"default\"")
+                "This pandas.DataFrame does not exist yet. Try df=\"default\"")
 
         # Change to hours
         if hours:
@@ -875,7 +896,7 @@ class XCAT:
 
     def plot_mass_spec(
         self,
-        mass_list=None,
+        mass_spectrometer_list=None,
         normalize_data=False,
         p_tot=False,
         ptot_mass_list=False,
@@ -889,6 +910,7 @@ class XCAT:
         cursor_labels=[None],
         text_dict=None,
         hours=True,
+        logscale=True,
         heater_file=None,
         save_as=False,
         title="Pressure in XCAT reactor cell for each mass",
@@ -898,18 +920,18 @@ class XCAT:
         Each mass corresponds to one channel detected. Careful, some mass can
          overlap.
 
-        :param mass_list: list of mass to be plotted (if set up prior to the
+        :param mass_spectrometer_list: list of mass to be plotted (if set up prior to the
             experiment for detection).
         :param normalize_data: False, choose in [False, "reactor_pressure",
             "carrier_pressure"].
         :param p_tot: None, total pressure in the cell (in bar).
             Used if normalize_data = "reactor_pressure".
-        :param ptot_mass_list: None, list of mass to use for normalization, defaults
-            as same as mass_list, otherwise provide list of str, e.g. ["Ar", "NH3",
-            "O2"]
+        :param ptot_mass_list: None, list of mass to use for normalization,
+            defaults as same as mass_spectrometer_list, otherwise provide list
+            of str, e.g. ["Ar", "NH3", "O2"]
             Used if normalize_data = "reactor_pressure".
-        :param carrier_gaz: None, carrier gas, str to choose in mass_list.
-            Used if normalize_data = "carrier_pressure".
+        :param carrier_gaz: None, carrier gas, str to choose in
+            mass_spectrometer_list. Used if normalize_data = "carrier_pressure".
         :param carrier_pressure: None, carrier pressure in bar, e.g. 0.5
             Used if normalize_data = "carrier_pressure".
         :param figsize: size of each figure, defaults to (16, 9)
@@ -924,13 +946,14 @@ class XCAT:
             cursor_positions, combine labels and (x_pos, y_pos), e.g. {"ar":
             (1, 3.45)}
         :param hours: True to show x scale in hours instead of seconds
+        :param logscale: True to have logscale on y
         :param heater_file: path to heater data, in csv format, must contain
             a time and a temperature column.
         :param save_as: str instance to save the plot, figure name when saving
         :param title: figure title
         """
         # Save important parameters as attributes
-        self.mass_list = mass_list
+        self.mass_spectrometer_list = mass_spectrometer_list
         self.normalize_data = normalize_data
         self.p_tot = p_tot
         self.ptot_mass_list = ptot_mass_list
@@ -945,28 +968,31 @@ class XCAT:
         except AttributeError:
             print("Wrong name for color dict.")
 
-        # Get dataframe
+        # Get pandas.DataFrame
         try:
-            self.norm_df = self.rga_df_interpolated.copy()
+            self.norm_df = self.mass_spec_df_interpolated.copy()
         except AttributeError:
             print(
-                "No attribute `rga_df_interpolated`,",
-                " defaulted to `rga_df`"
+                "No attribute `mass_spec_df_interpolated`,",
+                " defaulted to `mass_spec_df`"
             )
-            self.norm_df = self.rga_df.copy()
+            self.norm_df = self.mass_spec_df.copy()
 
-        # Use all comlumns if none specified
-        if self.mass_list is None:
-            self.mass_list = list(self.norm_df.columns[1:-1])
-            print("Defaulted mass_list to all columns")
+        # Use all columns if none specified
+        if self.mass_spectrometer_list is None:
+            self.mass_spectrometer_list = list(self.norm_df.columns[1:-1])
+            print("Defaulted mass_spectrometer_list to all pandas.DataFrame columns.")
 
         # Normalize data by total pressure
         # Making the hypothesis that the sum of the pressure of all the gases
-        # in mass_list is equal to the reactor pressure, which is controlled
-        # independently, dangerous bc we are looking at partial pressures
-        # in the UHV chamber and not at the pressures in the reactor cell
+        # in mass_spectrometer_list is equal to the reactor pressure, which is
+        # controlled independently, dangerous bc we are looking at partial
+        # pressures in the UHV chamber and not at the pressures in the reactor
+        # cell
         if normalize_data == "reactor_pressure":
             # Total pressure
+            if isinstance(self.ptot, bool):
+                raise TypeError("Precise a value for ptot.")
             print(
                 f"Setting P={self.ptot} bar as total pressure in the reactor.")
 
@@ -975,11 +1001,12 @@ class XCAT:
                 self.ptot_mass_list = ptot_mass_list
                 print("Using columns specified with ptot_mass_list for normalization.")
 
-            elif isinstance(self.mass_list, list):
-                self.ptot_mass_list = self.mass_list
+            elif isinstance(self.mass_spectrometer_list, list):
+                self.ptot_mass_list = self.mass_spectrometer_list
                 print(
-                    "Using columns specified with mass_list for normalization."
-                    "\nIf you want to use other gases, use ptot_mass_list."
+                    "Using columns specified with mass_spectrometer_list for "
+                    "normalization. \nIf you want to use other gases, use "
+                    "the `ptot_mass_list` parameter."
                 )
 
             # Get data
@@ -992,7 +1019,7 @@ class XCAT:
             # Careful units are of self.ptot
             norm_arr = used_arr*ptot_arr
 
-            # Create new DataFrame
+            # Create new pandas.DataFrame
             norm_df_ptot = pd.DataFrame(norm_arr, columns=self.ptot_mass_list)
             norm_df_ptot["Time"] = self.norm_df["Time"]
             self.norm_df = norm_df_ptot
@@ -1011,19 +1038,19 @@ class XCAT:
                 f"Using {self.carrier_gaz} as carrier gas for normalization.")
 
             # Check if it is in the list, and remove it otherwise there is a bog
-            if self.carrier_gaz in self.norm_df.columns and self.carrier_gaz in self.mass_list:
-                self.mass_list.remove(self.carrier_gaz)
+            if self.carrier_gaz in self.norm_df.columns and self.carrier_gaz in self.mass_spectrometer_list:
+                self.mass_spectrometer_list.remove(self.carrier_gaz)
             else:
                 raise KeyError("This carrier gas is not in the list.")
 
             # Normalize by carrier gas partial pressure
-            for mass in self.mass_list:
+            for mass in self.mass_spectrometer_list:
                 self.norm_df[mass] /= self.norm_df[self.carrier_gaz]
 
             self.norm_df[self.carrier_gaz] = np.ones(self.norm_df.shape[0])
 
             # Put the carrier gas back in the list of mass to plot
-            self.mass_list.append(self.carrier_gaz)
+            self.mass_spectrometer_list.append(self.carrier_gaz)
 
             # We must know the different conditions to properly correct the data
             # Otherwise the pressure is not correct
@@ -1043,7 +1070,7 @@ class XCAT:
 
                 correction_ratio_values[idx1:idx2] = self.carrier_pressure_correction_ratio[cursor_label]
 
-                for mass in self.mass_list:
+                for mass in self.mass_spectrometer_list:
                     self.norm_df[mass][idx1:idx2] *= self.carrier_pressure_correction_ratio[cursor_label] * carrier_pressure
 
             # Create a new column for the correction ratio
@@ -1064,7 +1091,7 @@ class XCAT:
             print("No normalization performed on data.")
             y_units = "mbar"
 
-        print("Saved data as self.norm_df DataFrame.")
+        print("Saved data as self.norm_df pandas.DataFrame.")
 
         # Change to hours
         if hours:
@@ -1075,14 +1102,15 @@ class XCAT:
 
         # Create figure
         fig, ax = plt.subplots(figsize=figsize)
-        ax.semilogy()
+        if logscale:
+            ax.semilogy()
         ax.set_title(
             title,
             fontsize=fontsize+5
         )
 
         # If only plotting a subset of the masses
-        for mass in self.mass_list:
+        for mass in self.mass_spectrometer_list:
             try:
                 ax.plot(
                     self.norm_df.Time.values,
@@ -1222,7 +1250,7 @@ class XCAT:
 
         y- background is saved in the column f"{y_col}_bckg"
 
-        :param df: dataframe to use
+        :param df: pandas.DataFrame to use
         :param x_col: str, column in df to use for x axis
         :param y_col: str, column in df to use for y axis
         :param peak_start: beginning of range to ignore for background
@@ -1285,11 +1313,11 @@ class XCAT:
         heater_file,
         time_shift=0,
     ):
-        """Add a temperature column to the DataFrame from a csv file
+        """Add a temperature column to the pandas.DataFrame from a csv file
         The csv file must have a unix timestamp "time" column that will be used
-        to add the temperature values at the right time in the DataFrame.
+        to add the temperature values at the right time in the pandas.DataFrame.
 
-        :param df: DataFrame object to which we assign the new df,
+        :param df: pandas.DataFrame object to which we assign the new df,
          usually rga_interpolated, must be created before the heater df
         :param heater_file: path to heater data, in csv format, must contain
          a time and a temperature column.
@@ -1405,7 +1433,29 @@ class XCAT:
         filename,
     ):
         """
-        Save class data in a hdf5 file
+        Save class data in a hdf5 file.
+
+        Attributes saved under the Mass_flow group":
+            mass_flow_file, MRS_pos, MIX_pos, mass_flow_start_time,
+            mass_flow_end_time, gaz_travel_time, time_shift
+
+        DataFrames saved under the Mass_flow.Dataframes group (try to save the
+        interpolated pandas.DataFrame first, then the truncated pandas.DataFrame and finally
+        the base pandas.DataFrame:
+            no_df, h2_df, o2_df, co_df, ar_df, shunt_df, reactor_df, drain_df,
+            valve_df
+        The axes labels are fixed to Time (s), Flow (mL/min), Setpoint (mL/min),
+        Valve position.
+
+        Attributes saved under the Mass_spectrometer group":
+            mass_spec_file, mass_spec_start_time, mass_spec_end_time,
+            mass_spectrometer_list, normalize_data, p_tot, ptot_mass_list,
+            carrier_gaz, carrier_pressure, cursor_positions, cursor_labels,
+            carrier_pressure_correction_ratio
+
+        Dataframes saved under the Mass_spectrometer.Dataframes group:
+            mass_spec_df, mass_spec_df_interpolated, norm_df
+        The axes labels are fixed to mass_spec_df.columns
 
         :param filename: full path to hdf5 file
         """
@@ -1416,10 +1466,11 @@ class XCAT:
 
         mass_flow_attributes = [
             "mass_flow_file",
-            "MRS_pos",
-            "MIX_pos",
+            "mass_flow_controller_list",
             "mass_flow_start_time",
             "mass_flow_end_time",
+            "MRS_pos",
+            "MIX_pos",
             "gaz_travel_time",
             "time_shift",
         ]
@@ -1438,10 +1489,9 @@ class XCAT:
 
         mass_spectrometer_attributes = [
             "mass_spec_file",
-            "channels",
             "mass_spec_start_time",
-            "time_range",
-            "mass_list",
+            "mass_spec_end_time",
+            "mass_spectrometer_list",
             "normalize_data",
             "p_tot",
             "ptot_mass_list",
@@ -1453,50 +1503,72 @@ class XCAT:
         ]
 
         mass_spectrometer_dataframes = [
-            "rga_df_interpolated",
+            "mass_spec_df",
+            "mass_spec_df_interpolated",
             "norm_df",
         ]
 
         with h5py.File(filename, "a") as f:
+            print(
+                f"{hashtag_line}"
+                "\nSaving mass flow attributes"
+                f"\n{hashtag_line}"
+            )
             f.create_group("Mass_flow")
+
+            for key in tqdm(mass_flow_attributes):
+                try:
+                    f["Mass_flow"].create_dataset(
+                        key, data=getattr(self, key)
+                    )
+                except TypeError:
+                    f["Mass_flow"].create_dataset(
+                        key, data=str(getattr(self, key))
+                    )
+
+            print(
+                f"{hashtag_line}"
+                "\nSaving mass flow pandas.DataFrames"
+                f"\n{hashtag_line}"
+            )
             f["Mass_flow"].create_group("Dataframes")
             f["Mass_flow"]["Dataframes"].create_dataset(
-                "Axes labels", data=["Time (s)", "Flow (mL/min)", "Setpoint (mL/min)", "Valve position"]
+                "Axes_labels",
+                data=[
+                    "Time (s)", "Flow (mL/min)",
+                    "Setpoint (mL/min)", "Valve position"
+                ]
+            )
+
+            for key in tqdm(mass_flow_dataframes):
+                try:
+                    f["Mass_flow"]["Dataframes"].create_dataset(
+                        key, data=getattr(self, key+"_interpolated")
+                    )
+                except AttributeError:
+                    try:
+                        f["Mass_flow"]["Dataframes"].create_dataset(
+                            key, data=getattr(self, key+"_truncated")
+                        )
+                    except AttributeError:
+                        try:
+                            f["Mass_flow"]["Dataframes"].create_dataset(
+                                key, data=getattr(self, key)
+                            )
+                        except AttributeError:
+                            print(f"Could not save {key}.")
+                        except TypeError:
+                            f["Mass_flow"]["Dataframes"].create_dataset(
+                                key, data=str(getattr(self, key))
+                            )
+
+            print(
+                f"{hashtag_line}"
+                "\nSaving mass spectrometer attributes"
+                f"\n{hashtag_line}"
             )
             f.create_group("Mass_spectrometer")
-            f["Mass_spectrometer"].create_group("Dataframes")
-            try:
-                f["Mass_spectrometer"]["Dataframes"].create_dataset(
-                    "rga_df_interpolated_columns", data=list(self.rga_df_interpolated.columns)
-                )
-            except AttributeError:
-                raise AttributeError("Load mass spectrometer file first.")
 
-            print(
-                "###########################"
-                "\nSaving mass flow attributes"
-                "\n###########################"
-            )
-            for key in tqdm(mass_flow_attributes):
-                f["Mass_flow"].create_dataset(
-                    key, data=getattr(self, key)
-                )
-
-            print(
-                "###########################"
-                "\nSaving mass flow dataframes"
-                "\n###########################"
-            )
-            for key in tqdm(mass_flow_dataframes):
-                f["Mass_flow"]["Dataframes"].create_dataset(
-                    key, data=getattr(self, key+"_interpolated")
-                )
-
-            print(
-                "###################################"
-                "\nSaving mass spectrometer attributes"
-                "\n###################################"
-            )
             for key in tqdm(mass_spectrometer_attributes):
                 try:
                     f["Mass_spectrometer"].create_dataset(
@@ -1512,10 +1584,18 @@ class XCAT:
                     )
 
             print(
-                "###################################"
-                "\nSaving mass spectrometer dataframes"
-                "\n###################################"
+                f"{hashtag_line}"
+                "\nSaving mass spectrometer pandas.DataFrames"
+                f"\n{hashtag_line}"
             )
+            f["Mass_spectrometer"].create_group("Dataframes")
+            try:
+                f["Mass_spectrometer"]["Dataframes"].create_dataset(
+                    "Axes_labels", data=list(self.mass_spec_df.columns)
+                )
+            except AttributeError:
+                raise AttributeError("Load mass spectrometer file first.")
+
             for key in tqdm(mass_spectrometer_dataframes):
                 try:
                     f["Mass_spectrometer"]["Dataframes"].create_dataset(
@@ -1523,7 +1603,7 @@ class XCAT:
                     )
                 except AttributeError:
                     print(
-                        f"Normalize the data when plotting to save {key}."
+                        f"Could not save {key}."
                     )
 
 
