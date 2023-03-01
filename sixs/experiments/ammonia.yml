@@ -33,17 +33,6 @@ ammonia_reaction_colors:
     Nitrogen: "#810f7c"
     NH: "#d8b365"
 
-carrier_pressure_correction_ratio:
-    'Ar': 1
-    '1 NH3': 0.98
-    '1 NH3 + 0.5 O2': 0.97
-    '1 NH3 + 1 O2': 0.96
-    '1 NH3 + 2 O2': 0.94
-    '1 NH3 + 8 O2': 0.82
-    '8 O2': 0.84
-    '0.5 O2': 0.99
-
-
 other_colors:
     "Ar": '#1f77b4'
     "Argon": '#1f77b4'
