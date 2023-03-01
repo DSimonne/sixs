@@ -621,11 +621,35 @@ class XCAT:
         # Get pandas.DataFrame
         try:
             used_df = self.mass_spec_df_interpolated.copy()
+            ar_df = self.ar_df_interpolated.copy()
+            h2_df = self.h2_df_interpolated.copy()
+            o2_df = self.o2_df_interpolated.copy()
+            reactor_df = self.reactor_df_interpolated.copy()
         except AttributeError:
             raise AttributeError(
                 "No attribute `mass_spec_df_interpolated`, please interpolate"
                 " the data before normalizing."
             )
+
+        # Can be that the mass spec file ends after the mass controllers, in
+        # that case reshape with the shortest Dataframe
+        if any(
+            [len(used_df) > len(df)
+             for df in [ar_df, h2_df, o2_df, reactor_df]]
+        ):
+            new_time_range = min(
+                ar_df.shape[0], h2_df.shape[0],
+                o2_df.shape[0], reactor_df.shape[0]
+            )
+            print(
+                f"Bad time fit, new time range: {new_time_range} seconds "
+                f" instead of {len(used_df)} seconds."
+            )
+            used_df = used_df[:new_time_range]
+            ar_df = ar_df[:new_time_range]
+            h2_df = h2_df[:new_time_range]
+            o2_df = o2_df[:new_time_range]
+            reactor_df = reactor_df[:new_time_range]
 
         if normalize_data == "total_pressure":
             # Gases used for the normalization
@@ -644,7 +668,7 @@ class XCAT:
 
             # Reactor pressure per second
             try:
-                ptot = self.reactor_df_interpolated.flow_reactor.values
+                ptot = reactor_df.flow_reactor.values
             except AttributeError:
                 raise AttributeError(
                     "The reactor_df_interpolated does not exist, make sure that"
@@ -679,19 +703,21 @@ class XCAT:
                 "\nConsidering that 7.81 flow of H2 is 9 Argon and 1 NH3."
             )
 
-            # Compute total flow in the cell from the mass flow controller
-            total_flow = self.h2_df_interpolated.flow_h2.values*10/7.81 + \
-                self.ar_df_interpolated.flow_ar.values + \
-                self.o2_df_interpolated.flow_o2.values
+            # Compute total flow in the cell from the mass flow controllers
+            total_flow = h2_df.flow_h2.values*10/7.81 + ar_df.flow_ar.values + \
+                o2_df.flow_o2.values
 
             # Compute correction coefficient based on the Argon flow
-            correction_coefficient = (self.h2_df_interpolated.flow_h2.values *
-                                      9/7.81 + self.ar_df_interpolated.flow_ar.values) / total_flow
+            correction_coefficient = (h2_df.flow_h2.values * 9/7.81 +
+                                      ar_df.flow_ar.values) / total_flow
 
-            reactor_pressure = self.reactor_df_interpolated.flow_reactor.values
+            reactor_pressure = reactor_df.flow_reactor.values
 
             # Normalize mass spectrometer data by Argon partial pressure
-            used_df_values = used_df.values.T / used_df.Argon.values
+            try:
+                used_df_values = used_df.values.T / used_df.Argon.values
+            except AttributeError:
+                used_df_values = used_df.values.T / used_df.Ar.values
 
             # Apply correction coefficient and renormalize on reactor pressure
             # Units are now those of the reactor pressure
