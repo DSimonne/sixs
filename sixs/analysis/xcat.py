@@ -631,14 +631,15 @@ class XCAT:
                 " the data before normalizing."
             )
 
-        # Can be that the mass spec file ends after the mass controllers, in
-        # that case reshape with the shortest Dataframe
+        # Can be that the mass spec file has a different length that the mass
+        # flow controllers, in that case reshape with the shortest Dataframe,
+        # sometimes some data is not saved and you miss a second in the tables
         if any(
-            [len(used_df) > len(df)
+            [len(used_df) != len(df)
              for df in [ar_df, h2_df, o2_df, reactor_df]]
         ):
             new_time_range = min(
-                ar_df.shape[0], h2_df.shape[0],
+                used_df.shape[0], ar_df.shape[0], h2_df.shape[0],
                 o2_df.shape[0], reactor_df.shape[0]
             )
             print(
@@ -661,7 +662,7 @@ class XCAT:
 
             # Get data
             try:
-                used_arr = used_df[self.ptot_mass_list].values
+                used_arr = used_df[self.ptot_mass_list].values # in that order
             except KeyError:
                 raise KeyError(
                     "Parameter `ptot_mass_list` contains wrong gases.")
@@ -690,6 +691,13 @@ class XCAT:
             # Add time and reactor pressure
             self.norm_df_total_pressure["Time"] = used_df["Time"]
             self.norm_df_total_pressure["total_pressure"] = ptot
+
+            # Reorganize pandas.DataFrame columns
+            self.norm_df_total_pressure_columns = ["Time"] + \
+                self.ptot_mass_list + ["total_pressure"]
+            self.norm_df_total_pressure = self.norm_df_total_pressure[
+                self.norm_df_total_pressure_columns
+            ]
 
             print(
                 "Normalized mass spectrometer pressure by total pressure in the"
@@ -731,6 +739,13 @@ class XCAT:
             self.norm_df_carrier_pressure["Time"] = self.mass_spec_df_interpolated["Time"]
             self.norm_df_carrier_pressure["reactor_pressure"] = reactor_pressure
 
+            # Reorganize pandas.DataFrame columns
+            self.norm_df_carrier_pressure_columns = ["Time"] + \
+                self.mass_spec_df_interpolated.columns + ["reactor_pressure"]
+            self.norm_df_carrier_pressure = self.norm_df_carrier_pressure[
+                self.norm_df_total_pressure_columns
+            ]
+
             print(
                 "Normalized mass spectrometer pressure by carrier gas pressure."
                 "\nData saved in the norm_df_carrier_pressure pandas.DataFrame."
@@ -749,7 +764,6 @@ class XCAT:
         mass_flow_controller_list=[
             "NO", "H2", "O2", "CO", "Ar", "shunt", "reactor", "drain"
         ],
-        df="interpolated",
         figsize=(10, 6),
         fontsize=15,
         zoom1=None,
@@ -768,9 +782,6 @@ class XCAT:
         controller.
 
         :param mass_flow_controller_list: list of mass to be plotted
-        :param df: pandas.DataFrame from which the data will be plotted. Default is
-         "interpolated" which corresponds to the data truncated on the mass
-         spectrometer time range and in seconds.
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title has +2.
         :param zoom1: list of 4 integers to zoom on ax1
@@ -937,7 +948,6 @@ class XCAT:
 
     def plot_mass_flow_valves(
         self,
-        df="interpolated",
         figsize=(10, 6),
         fontsize=15,
         zoom1=None,
@@ -954,9 +964,6 @@ class XCAT:
          depending on the position of the MIX valve. At the MRS is then added
          Argon.
 
-        :param df: pandas.DataFrame from which the data will be plotted. Default is
-         "interpolated" which corresponds to the data truncated on the mass
-         spectrometer time range and in seconds.
         :param figsize: size of each figure, defaults to (16, 9)
         :param fontsize: size of labels, defaults to 15, title have +2.
         :param zoom1: list of 4 integers to zoom on ax1
@@ -972,27 +979,25 @@ class XCAT:
         :param hours: True to show x scale in hours instead of seconds
         :param save_as: figure name when saving, no saving if False
         """
-
         try:
             color_dict = getattr(self, color_dict)
         except AttributeError:
             print("Wrong name for color dict.")
 
-        fig, axes = plt.subplots(2, 1, figsize=figsize)
-
         # Get pandas.DataFrame
         try:
-            if df == "interpolated":
-                plot_df = getattr(self, f"valve_df_interpolated").copy()
-
-            elif df == "truncated":
-                plot_df = getattr(self, f"valve_df_truncated").copy()
-
-            else:
-                plot_df = getattr(self, f"valve_df").copy()
+            plot_df = getattr(self, "valve_df_interpolated").copy()
         except AttributeError:
-            raise NameError(
-                "This pandas.DataFrame does not exist yet. Try df=\"default\"")
+            print(f"No attribute `valve_df_interpolated`.")
+            try:
+                plot_df = getattr(self, "valve_df_truncated").copy()
+                print(f" defaulted to `valve_df_truncated`.")
+            except AttributeError:
+                print(f"No attribute `valve_df_truncated`.")
+                plot_df = getattr(self, "valve_df").copy()
+                print(f" defaulted to `valve_df`")
+
+        fig, axes = plt.subplots(2, 1, figsize=figsize)
 
         # Change to hours
         if hours:
@@ -1164,12 +1169,18 @@ class XCAT:
 
         for mass in plotted_gases_list:
             try:
+                if mass in ["total_pressure", "reactor_pressure"]:
+                    linestyle="dotted"
+                else:
+                    linestyle="solid"
+
                 ax.plot(
                     plotted_df.Time.values,
                     plotted_df[mass].values,
                     linewidth=2,
                     label=f"{mass}",
-                    color=color_dict[mass]
+                    color=color_dict[mass],
+                    linestyle=linestyle,
                 )
 
             except (KeyError, TypeError):
@@ -1179,6 +1190,7 @@ class XCAT:
                     plotted_df[mass].values,
                     linewidth=2,
                     label=f"{mass}",
+                    linestyle=linestyle,
                 )
 
         # Temperature on second ax
@@ -1548,6 +1560,8 @@ class XCAT:
             "mass_spec_file_duration",
             ##
             "ptot_mass_list",
+            "norm_df_total_pressure_columns",
+            "norm_df_carrier_pressure_columns",
         ]
 
         mass_spec_dataframes = [
