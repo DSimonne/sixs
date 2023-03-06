@@ -87,7 +87,7 @@ class XCAT:
             f"Travel time from cell to detector set to {self.gaz_travel_time} secs."
         )
 
-        # Time shift between computers
+        # Time shift between computers, also used when adding a heater file
         self.time_shift = time_shift
         # jan 2022: 502 sec
         # 2021: 1287
@@ -662,7 +662,7 @@ class XCAT:
 
             # Get data
             try:
-                used_arr = used_df[self.ptot_mass_list].values # in that order
+                used_arr = used_df[self.ptot_mass_list].values  # in that order
             except KeyError:
                 raise KeyError(
                     "Parameter `ptot_mass_list` contains wrong gases.")
@@ -740,10 +740,10 @@ class XCAT:
             self.norm_df_carrier_pressure["reactor_pressure"] = reactor_pressure
 
             # Reorganize pandas.DataFrame columns
-            self.norm_df_carrier_pressure_columns = ["Time"] + \
-                self.mass_spec_df_interpolated.columns + ["reactor_pressure"]
+            self.norm_df_carrier_pressure_columns = list(
+                self.mass_spec_df_interpolated.columns) + ["reactor_pressure"]
             self.norm_df_carrier_pressure = self.norm_df_carrier_pressure[
-                self.norm_df_total_pressure_columns
+                self.norm_df_carrier_pressure_columns
             ]
 
             print(
@@ -1103,7 +1103,7 @@ class XCAT:
         text_dict=None,
         hours=True,
         logscale=True,
-        y_label="Gas partial pressure (bar)",
+        y_label="Partial pressure (bar)",
         heater_file=None,
         save_as=False,
         title="Pressure in XCAT reactor cell for each mass",
@@ -1170,9 +1170,9 @@ class XCAT:
         for mass in plotted_gases_list:
             try:
                 if mass in ["total_pressure", "reactor_pressure"]:
-                    linestyle="dotted"
+                    linestyle, alpha = "dotted", 0.5
                 else:
-                    linestyle="solid"
+                    linestyle, alpha = "solid", 1
 
                 ax.plot(
                     plotted_df.Time.values,
@@ -1181,6 +1181,7 @@ class XCAT:
                     label=f"{mass}",
                     color=color_dict[mass],
                     linestyle=linestyle,
+                    alpha=alpha,
                 )
 
             except (KeyError, TypeError):
@@ -1191,6 +1192,7 @@ class XCAT:
                     linewidth=2,
                     label=f"{mass}",
                     linestyle=linestyle,
+                    alpha=alpha,
                 )
 
         # Temperature on second ax
@@ -1279,10 +1281,10 @@ class XCAT:
         ax.legend(
             bbox_to_anchor=(0., -0.2, 1., .102),
             loc=3,
-            ncol=7,
+            ncol=8,
             mode="expand",
             borderaxespad=0.,
-            fontsize=fontsize-2
+            fontsize=fontsize,
         )
         ax.grid(True, which='major', linestyle='-')
         ax.grid(True, which='minor', linestyle='--')
@@ -1328,13 +1330,10 @@ class XCAT:
             background around it)
         """
         # Init figure
-        fig, axs = plt.subplots(2, 1, figsize=(16, 9), sharex=True)
+        fig, axs = plt.subplots(2, 1, figsize=(
+            16, 9), sharex=True, sharey=True)
 
         # Range of interest
-        # axs[0].plot(df[x_col],
-        #             df[y_col],
-        #             label="Data"
-        #             )
         x = df[x_col][data_start:data_end].values
         y = df[y_col][data_start:data_end].values
 
@@ -1344,7 +1343,7 @@ class XCAT:
 
         axs[0].plot(x_peak, y_peak, label="Peak")
         axs[0].set_ylabel(y_col)
-        axs[0].set_xlabel(x_col)
+        axs[0].grid()
 
         # No peak area in this range
         x_no_peak = np.concatenate([x[:peak_start], x[peak_end:]])
@@ -1365,10 +1364,15 @@ class XCAT:
         new_y[data_start:data_end] = y - poly_fit(x)
         df[f"{y_col}_bckg"] = new_y
 
-        axs[1].plot(df[x_col], new_y, label="Background subtracted data")
+        axs[1].plot(
+            df[x_col][data_start:data_end],
+            new_y[data_start:data_end],
+            label="Background subtracted data"
+        )
         axs[1].legend(fontsize=15)
         axs[1].set_ylabel(y_col)
         axs[1].set_xlabel(x_col)
+        axs[1].grid()
         plt.show()
 
     def add_temperature_column(
@@ -1386,6 +1390,9 @@ class XCAT:
         :param heater_file: path to heater data, in csv format, must contain
          a time and a temperature column.
         :param time_shift: rigid time shift in seconds to apply.
+
+        return: (updated pandas.Dataframe, boolean mask with False if nan in
+            array)
         """
 
         # Get heater df
