@@ -32,6 +32,8 @@ ammonia_reaction_colors:
     N2: "#810f7c"
     Nitrogen: "#810f7c"
     NH: "#d8b365"
+    H: "k"
+    H2: "k"
 
 other_colors:
     "Ar": '#1f77b4'
