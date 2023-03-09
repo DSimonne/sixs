@@ -178,7 +178,7 @@ class Map:
             self.ct = f.root.binoculars.counts[...]
             self.cont = f.root.binoculars.contributions[...]
 
-            # Get which type of projection we are working with
+            ####################### Get projection type #######################
             # Qphi
             try:
                 Phi = f.root.binoculars.axes.Phi[...]
@@ -231,7 +231,7 @@ class Map:
             except tb.NoSuchNodeError:
                 Angles = False
 
-            # Load data
+            ############################ Load data ############################
             if Qphi:  # also Qphi can have Qz (or Qx, Qy)
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
@@ -259,9 +259,6 @@ class Map:
                 self.K = f.root.binoculars.axes.K[...]
                 self.L = f.root.binoculars.axes.L[...]
 
-                if verbose:
-                    print_binocular_axes(self.file_path)
-
             elif QxQy:
                 self.ct = np.swapaxes(self.ct, 0, 2)  # qz, qy, qx
                 self.cont = np.swapaxes(self.cont, 0, 2)  # qz, qy, qx
@@ -281,33 +278,13 @@ class Map:
             elif Angles:
                 self.delta = f.root.binoculars.axes.delta[...]
                 self.gamma = f.root.binoculars.axes.gamma[...]
-                if verbose:
-                    print(
-                        "\n###########################################################"
-                        "\nAxis number, range and stepsize in delta: "
-                        f"\n\t{self.delta[0]}, [{self.delta[1]:.3f}: {self.delta[2]:.3f}], {self.delta[3]:.3f}"
-                        "\nAxis number, range and stepsize in gamma: "
-                        f"\n\t{self.gamma[0]}, [{self.gamma[1]:.3f}: {self.gamma[2]:.3f}], {self.gamma[3]:.3f}"
-                    )
                 try:
-                    self.mu = f.root.binoculars.axes.mu[...]  # mu scan
-                    if verbose:
-                        print(
-                            "Axis number, range and stepsize in mu: "
-                            f"\n\t{self.mu[0]}, [{self.mu[1]:.3f}: {self.mu[2]:.3f}], {self.mu[3]:.3f}"
-                            "\n###########################################################"
-                        )
+                    self.mu = f.root.binoculars.axes.mu[...]
                 except tb.NoSuchNodeError:
                     # omega scan
                     self.omega = f.root.binoculars.axes.omega[...]
-                    if verbose:
-                        print(
-                            "Axis number, range and stepsize in omega: "
-                            f"\n\t{self.omega[0]}, [{self.omega[1]:.3f}: {self.omega[2]:.3f}], {self.omega[3]:.3f}"
-                            "\n###########################################################"
-                        )
 
-            # Update axes
+            ########################### Update axes ###########################
             if Qphi:
                 self.Q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
@@ -366,6 +343,7 @@ class Map:
 
         try:
             if verbose:
+                print_binocular_axes(self.file_path)
                 print(
                     "\n##############################"
                     "##############################"
