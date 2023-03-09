@@ -202,8 +202,8 @@ class Map:
 
             # QxQyQz
             try:
-                Qx = f.root.binoculars.axes.qx[...]
-                Qy = f.root.binoculars.axes.qy[...]
+                Qx = f.root.binoculars.axes.Qx[...]
+                Qy = f.root.binoculars.axes.Qy[...]
                 QxQy = True
             except tb.NoSuchNodeError:
                 QxQy = False
@@ -236,15 +236,15 @@ class Map:
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
                 try:  # one of the three
-                    self.Qxyz = f.root.binoculars.axes.qx[...]
+                    self.Qxyz = f.root.binoculars.axes.Qx[...]
                 except:
                     pass
                 try:
-                    self.Qxyz = f.root.binoculars.axes.qy[...]
+                    self.Qxyz = f.root.binoculars.axes.Qy[...]
                 except:
                     pass
                 try:
-                    self.Qxyz = f.root.binoculars.axes.qz[...]
+                    self.Qxyz = f.root.binoculars.axes.Qz[...]
                 except:
                     pass
 
@@ -262,9 +262,9 @@ class Map:
             elif QxQy:
                 self.ct = np.swapaxes(self.ct, 0, 2)  # qz, qy, qx
                 self.cont = np.swapaxes(self.cont, 0, 2)  # qz, qy, qx
-                self.Qz = f.root.binoculars.axes.qz[...]
-                self.Qx = f.root.binoculars.axes.qx[...]
-                self.Qy = f.root.binoculars.axes.qy[...]
+                self.Qz = f.root.binoculars.axes.Qz[...]
+                self.Qx = f.root.binoculars.axes.Qx[...]
+                self.Qy = f.root.binoculars.axes.Qy[...]
 
             elif QXpYp:
                 self.Q = f.root.binoculars.axes.Q[...]
@@ -344,20 +344,6 @@ class Map:
         try:
             if verbose:
                 print_binocular_axes(self.file_path)
-                print(
-                    "\n##############################"
-                    "##############################"
-                    f"\nData shape: {self.ct.shape}"
-                    f"\n\tQphi data: {Qphi}"
-                    f"\n\tQindex: {Qindex}"
-                    f"\n\tHKL data: {hkl}"
-                    f"\n\tQxQy data: {QxQy}"
-                    f"\n\tQXpYp data: {QXpYp}"
-                    f"\n\tQparQper data: {QparQper}"
-                    f"\n\tAngles: {Angles}"
-                    f"\n#############################"
-                    "##############################"
-                )
         except AttributeError:
             print("Data type not supported")
 
