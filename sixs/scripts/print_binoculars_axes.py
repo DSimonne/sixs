@@ -18,13 +18,14 @@ def print_binocular_axes(filename):
 
         table = PrettyTable(
             field_names=["Axe name", "Axe index", "Starting value",
-                         "Final value", "Step"],
+                         "Final value", "Step", "Length"],
             header=True,
             float_format=".3"
         )
         for k in (axes.keys()):
             v = list(axes[k][:4])
-            table.add_row([k] + v)
+            axe_length = int((axes[k][2] -  axes[k][1]) / axes[k][3])
+            table.add_row([k] + v + [axe_length])
 
     print(table)
 
