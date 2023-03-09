@@ -87,7 +87,6 @@ Plotting possibilities:
 * fitsf (structure factor from fit)
 * I (intensity)
 
-
 If nisf and fitsf are overlapping with the sf values at low L, it means that the
 accuracy of the integration is good. If those three values are wildly different,
 one needs to carefully analyse the slices to understand where the problem is.
@@ -117,9 +116,11 @@ import os
 import inspect
 import yaml
 import sixs
+from sixs.scripts.print_binoculars_axes import print_binocular_axes
 import shutil
 from h5glance import H5Glance
 from IPython.display import display, clear_output
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -259,16 +260,7 @@ class Map:
                 self.L = f.root.binoculars.axes.L[...]
 
                 if verbose:
-                    print(
-                        "\n###########################################################"
-                        "\nAxis number, range and stepsize in H: "
-                        f"\n\t{self.H[0]} [{self.H[1]:.3f}: {self.H[2]:.3f}], {self.H[3]:.3f}"
-                        "\nAxis number, range and stepsize in K: "
-                        f"\n\t{self.K[0]} [{self.K[1]:.3f}: {self.K[2]:.3f}], {self.K[3]:.3f}"
-                        "\nAxis number, range and stepsize in L: "
-                        f"\n\t{self.L[0]} [{self.L[1]:.3f}: {self.L[2]:.3f}], {self.L[3]:.3f}"
-                        "\n###########################################################"
-                    )
+                    print_binocular_axes(self.file_path)
 
             elif QxQy:
                 self.ct = np.swapaxes(self.ct, 0, 2)  # qz, qy, qx
@@ -1125,21 +1117,14 @@ class CTR:
             "\n###########################################################"
         )
 
-        for i, fname in enumerate(self.scan_files):
+        for i, fname in tqdm(enumerate(self.scan_files)):
             with tb.open_file(folder + fname, "r") as f:
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
                 L = f.root.binoculars.axes.L[:]
 
             if verbose:
-                print(
-                    "\n###########################################################"
-                    f"\nOpening file {fname} ..."
-                    f"\nAxis number, range and stepsize in H: [{H[0]:.3f}: {H[1]:.3f}: {H[2]:.3f}]"
-                    f"\nAxis number, range and stepsize in K: [{K[0]:.3f}: {K[1]:.3f}: {K[2]:.3f}]"
-                    f"\nAxis number, range and stepsize in L: [{L[0]:.3f}: {L[1]:.3f}: {L[2]:.3f}]"
-                    "\n###########################################################"
-                )
+                print_binocular_axes(folder + fname)
 
             if i == 0:
                 l_min = np.round(L[1], 3)
@@ -1166,7 +1151,7 @@ class CTR:
         ))
 
         # Iterate on each file now to get the data
-        for i, fname in enumerate(self.scan_files):
+        for i, fname in tqdm(enumerate(self.scan_files)):
             if verbose:
                 print(
                     "\n###########################################################"
@@ -1462,7 +1447,7 @@ class CTR:
             print("###########################################################\n")
 
         # Iterating on all files to create l axis
-        for i, fname in enumerate(scan_files):
+        for i, fname in tqdm(enumerate(scan_files)):
             # Load data
             fitaid_data = np.loadtxt(folder + fname)
 
@@ -1498,7 +1483,7 @@ class CTR:
 
         # Background already subtracted
         # Get l axis and CTR intensity for each file
-        for i, fname in enumerate(scan_files):
+        for i, fname in tqdm(enumerate(scan_files)):
             # Load data
             fitaid_data = np.loadtxt(folder + fname)
             scan_l_axis = fitaid_data[:, 0]
@@ -1567,7 +1552,7 @@ class CTR:
             print("###########################################################\n")
 
         # Iterating on all files to create l axis
-        for i, fname in enumerate(scan_files):
+        for i, fname in tqdm(enumerate(scan_files)):
             # Load data
             rod_data = np.loadtxt(folder + fname, skiprows=2)
 
@@ -1602,7 +1587,7 @@ class CTR:
         data = np.nan * np.empty((len(scan_files), 3, l_length))
 
         # Get l axis and CTR intensity for each file
-        for i, fname in enumerate(scan_files):
+        for i, fname in tqdm(enumerate(scan_files)):
 
             # Load data
             rod_data = np.loadtxt(folder + fname, skiprows=2)

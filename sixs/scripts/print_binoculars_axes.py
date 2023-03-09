@@ -3,6 +3,7 @@ import h5py
 import sys
 import os
 import glob
+from prettytable import PrettyTable
 
 
 def print_binocular_axes(filename):
@@ -14,11 +15,18 @@ def print_binocular_axes(filename):
     print(f"Opening {filename}")
     with h5py.File(filename) as f:
         axes = f["binoculars"]["axes"]
-        print("File axes are:")
-        for k in (axes.keys()):
-            v = axes[k][...]
-            print(f"\t {k}:[{v[0]:.3f}: {v[1]:.3f}: {v[2]:.3f}]")
 
+        table = PrettyTable(
+            field_names=["Axe name", "Axe index", "Starting value",
+                         "Final value", "Step"],
+            header=True,
+            float_format=".3"
+        )
+        for k in (axes.keys()):
+            v = list(axes[k][:4])
+            table.add_row([k] + v)
+
+    print(table)
 
 # If used as script, iterate on glob string
 if __name__ == "__main__":
@@ -26,7 +34,7 @@ if __name__ == "__main__":
     try:
         print(
             "#####################################################"
-            f"\nGlob string, {sys.argv[1]}"
+            f"\nGlob string: {sys.argv[1]}"
             "\n#####################################################\n"
         )
 
