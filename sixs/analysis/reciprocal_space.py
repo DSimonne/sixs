@@ -856,44 +856,33 @@ class CTR:
 
         :param configuration_file: default is False. `.yml` file that stores
             metadata specific to the reaction, if False, defaults to
-            self.path_package + "experiments/ammonia.yml"
+            path_package + "experiments/ammonia.yml"
         """
 
-        self.path_package = inspect.getfile(sixs).split("__")[0]
+        path_package = inspect.getfile(sixs).split("__")[0]
 
         # Load configuration file
-        print("###########################################################")
         try:
             if os.path.isfile(configuration_file):
                 self.configuration_file = configuration_file
             else:
-                self.configuration_file = self.path_package + "experiments/ammonia.yml"
-                print(
-                    "Could not find configuration file. "
-                    "Defaulted to ammonia configuration."
-                )
+                self.configuration_file = path_package + "experiments/ammonia.yml"
+                print("Defaulted to ammonia configuration.")
 
         except TypeError:
-            self.configuration_file = self.path_package + "experiments/ammonia.yml"
-            print(
-                "Could not load configuration file. "
-                "Defaulted to ammonia configuration."
-            )
+            self.configuration_file = path_package + "experiments/ammonia.yml"
+            print("Defaulted to ammonia configuration.")
 
         finally:
-            print("Using", self.configuration_file)
-            with open(self.configuration_file, "r") as filepath:
+            with open(self.configuration_file) as filepath:
                 yaml_parsed_file = yaml.load(
                     filepath,
                     Loader=yaml.FullLoader
                 )
 
-                for key in yaml_parsed_file:
+                for key in tqdm(yaml_parsed_file):
                     setattr(self, key, yaml_parsed_file[key])
-                print(
-                    "Loaded configuration file."
-                    "\n###########################################################"
-                )
+                print("Loaded configuration file.")
 
     def integrate_CTR(
         self,
