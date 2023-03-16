@@ -836,7 +836,7 @@ class XCAT:
                 except AttributeError:
                     print(f"No attribute `{entry}_df_truncated`.")
                     plot_df = getattr(self, f"{entry}_df").copy()
-                    print(f" defaulted to `{entry}_df`")
+                    print(f"Defaulted to `{entry}_df`.")
 
             # Change to hours
             if hours:
@@ -1149,7 +1149,8 @@ class XCAT:
 
         # Use all columns if none specified
         if plotted_gases_list is None:
-            plotted_gases_list = list(plotted_df.columns[1:-1])
+            plotted_gases_list = list(plotted_df.columns)
+            plotted_gases_list.remove("Time")
 
         # Change to hours
         if hours:
