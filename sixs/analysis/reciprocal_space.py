@@ -1569,8 +1569,9 @@ class CTR:
         color_dict=None,
         labels=None,
         y_scale="log",
-        line_dash="dotted",
+        plot_style="scatter",
         size=4,
+        legend=True,
         legend_position="right",
         figure_width=900,
         figure_height=500,
@@ -1580,7 +1581,7 @@ class CTR:
         title_text_font_size="25pt",
     ):
         """
-        Plot the CTRs together
+        Plot the CTRs together, using Bokeh
 
         :param numpy_array: path to .npy file on disk.
             - l
@@ -1593,8 +1594,9 @@ class CTR:
             colours for matplotlib.
         :param labels: dict of labels to use, defaults to scan_index list if None
         :param y_scale: if "log", y axis is logarithmic, else 'lin'
-        :param line_dash: if "dottted", scatter plot, else "solid"
+        :param plot_style: if "scatter", scatter plot, else "line"
         :param size: size of markers
+        :param legend: add a legend to the plot
         :param legend_position: choose in ('left', 'right', 'center', 'above', 
             'below')
         :param figure_width: in pixels, default is 900
@@ -1627,6 +1629,7 @@ class CTR:
             active_scroll="wheel_zoom",
             y_axis_type=y_scale,
         )
+
         p.add_layout(
             Legend(
                 click_policy="mute",
@@ -1678,24 +1681,42 @@ class CTR:
             except TypeError:
                 color = matplotlib_colours[i]
 
-            # Add scatter plot
-            p.scatter(
-                x='x',
-                y='y',
-                source=source,
-                legend_label=label,
-                size=size,
-                alpha=0.7,
-                color=color,
-                muted_alpha=0.1,
-                hover_alpha=1,
-            )
+            if plot_style == "scatter":
+                # Add scatter plot
+                p.scatter(
+                    x='x',
+                    y='y',
+                    source=source,
+                    legend_label=label,
+                    marker="circle",
+                    size=size,
+                    alpha=0.7,
+                    fill_color=color,
+                    line_color=color,
+                    muted_alpha=0,
+                    hover_alpha=1,
+                )
+
+            if plot_style == "line":
+                # Add line plot
+                p.line(
+                    x='x',
+                    y='y',
+                    source=source,
+                    legend_label=label,
+                    line_alpha=0.7,
+                    line_color=color,
+                    muted_alpha=0,
+                    hover_alpha=1,
+                )
 
         # Show figure
         p.xaxis.axis_label_text_font_size = axis_label_text_font_size
         p.xaxis.major_label_text_font_size = axis_major_label_text_font_size
         p.yaxis.axis_label_text_font_size = axis_label_text_font_size
         p.yaxis.major_label_text_font_size = axis_major_label_text_font_size
+        if not legend:
+            p.legend.visible=False
         if isinstance(title, str):
             p.title.text_font_size = title_text_font_size
 
