@@ -1892,6 +1892,7 @@ def simulate_rod(
     nb_layers_bulk=2,
     attenuation=0.001,
     beta=0,
+    scale=1,
     error_bars=True,
     save_folder=None,
     comment=None,
@@ -1917,9 +1918,10 @@ def simulate_rod(
     :param l_end: end of the rod in l
     :param nb_points: nb of points in the rod
     :param l_bragg: position in l of the first bragg peak
-    :param nb_layers_bulk: number of layers in the bulk
+    :param nb_layers_bulk: number of layers in the bulk unit cell
     :param attenuation: attenuation of the beam
     :param beta: beta used for roughness in beta model
+    :param scale: scale factor between theory and experiment
     :param error_bars: bool, use error bars or not in the plot
     :param save_folder: folder in which output files are saved
     :param comment: str, comment to add to file
@@ -1946,6 +1948,7 @@ def simulate_rod(
         f"\nLBragg {l_bragg}",
         f"\nAtten {attenuation}",
         f"\nBeta {beta}",
+        f"\nScale {scale}",
         f"\nNLayers {nb_layers_bulk} return return",
     ]
 
