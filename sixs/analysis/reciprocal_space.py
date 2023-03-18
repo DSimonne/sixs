@@ -1579,6 +1579,8 @@ class CTR:
         axis_label_text_font_size="20pt",
         axis_major_label_text_font_size="20pt",
         title_text_font_size="25pt",
+        x_range=None,
+        y_range=None,
     ):
         """
         Plot the CTRs together, using Bokeh
@@ -1628,6 +1630,8 @@ class CTR:
             y_axis_label="Intensity",
             active_scroll="wheel_zoom",
             y_axis_type=y_scale,
+            x_range=x_range,
+            y_range=y_range,
         )
 
         p.add_layout(
