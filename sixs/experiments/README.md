@@ -131,15 +131,9 @@ The module is in `/home/python/GasTool.py`. Once imported, you can have detail a
 ## How to open the dome
 * put Ar to 1bar to be able to open the dome (kill vacuum)
 * `mv heater4, 0`
+* `gt.srflow()` # makes sure that the MIX valves is closed so hat you only have Argon in the reactor
 * `mv rea, 1`
 * `gt.closeall()`
-
-### Going back to AR
-`gt.closeall()`
-`gt.stflow()`
-
-### Launching any command written in GasTool, e.G. condA
-`gt.condA()`
 
 ### if toxic gases present, purge, also puts 1 bar of Ar
 `mv heater4, 0`
@@ -149,7 +143,7 @@ The module is in `/home/python/GasTool.py`. Once imported, you can have detail a
 
 ### LEAVE BEAMILNE ? SAFETY FIRST
 CLOSE BOTTLES IN BLUE CABINET (first the valve in the bottle, then the lower pressure valve)
-gt.pall() !! close bottles before!!! and dome closed
+`gt.pall()` !! close bottles before!!! and dome closed
 close the manivelle after everything is pumped
 gt.whg()
 
@@ -175,3 +169,26 @@ For each heater position, launch each conditions, wait first for 10 minuts, then
 4NH3 + 3O2 -> 6H2O + 2N2
 4NH3 + 4O2 -> 6H2O + 2N2O
 4NH3 + 5O2 -> 6H2O + 4NO
+
+
+# Sputtering
+
+* Make sure that the sample has the thermocouple connected to it !!
+* Remove the detector nose
+* Go to RT
+* Turn off the RGA
+* Close the bottle valves
+* Empty the reactor gt.prea()
+* Close the reactor valves
+* Connect the multimeter to the sputtering current
+* Open the reactor with the visseuse
+* Wait for the pressure to go down
+* Put Argon for sputtering (open chamber valve, already Argon inside)
+* leak to ~ 2e-5 mBar
+* Branch ion gun cable
+* Screw three screws
+* Turn on ion cannon
+* Switch operate mode on
+* By moving the reactor chamber up and down you must find the highest sputtering current
+
+Settings are: 1.5 keV, 9µA current detected, for 30 min
