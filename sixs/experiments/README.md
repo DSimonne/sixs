@@ -1,23 +1,23 @@
 # Tutorial on mass flow controller (XCAT) and mass flow spectrometer (RGA)
 
-* First, we beginning the experiment, call the floor coordinator (9797) and tell him that you open the toxic gaz bottles to start the red experiment.
+* First, to begin the experiment, call the floor coordinator (9797) and tell him that you open the toxic gaz bottles to start the red experiment.
 * You should **absolutely** tell them when you leave or when you close them because the experiment is finished.
 
 # Beginning
-* You should create a new RGA data file for each experiment, the XCAT data file usually last for the whole experiment.
-* the two files have time stamps issues used to analyze the data,
+* You should create a new RGA (mass spectrometer) data file for each experiment, the XCAT (mass flow controller) data file usually lasts for the whole experiment,
+* The two files have time stamps issues used to analyze the data,
 * I advise you to use the scripts in this repository, to be sure that they are correctly linked.
 
 # The Residual Gas Analyser (RGA)
 
 ## Operating
-* Acts as a probe for species present in the sample atmospheres=.
+* Acts as a probe for species present in the sample atmospheres.
 * One file per experiment (e.g. heating and cooling of sample under same variating gaseous environment)
 * Time shift between computers: (502 secondes in Jan 2022, please calibrate it for time-resolved exp.).
 * There is a leak in the reactor cell that is directly connected to a ultra high vacuum chamber, in which the product detection happens.
-* So we are **not** measuring the pressure in the reactor cell but in the leak ! There must be a normalisation step to correctly find the pressure in the reactor chamber.
+* We are **not** measuring the pressure in the reactor cell but after the leak ! There must be a normalisation step to correctly find the pressure in the reactor chamber.
 * The pressure in that chamber, ~ 3e-6, should be constant throughout the experiment, you can control it with a valve.
-* The leak depends on the temperature (dilatation)
+* The leak depends on the temperature (dilatation of the valve)
 * No dependance on particle size (Avogadro nb)
 * However the flux depends on the speed, thus on the mass.
 * We can compute the dependance of the detector on the temperature by following its signal during a temperature cycle while keeping the reagent product constant. However, we are only sensible to the reagents.
@@ -114,11 +114,6 @@ gt.stflow()
 * Save your macro in the directory where the scans are saved
 * It will generate a log file (log_nameofmacro_date_time.txt) in folder, interesting to be sure at what time we changed conditions on the particle (gas or temperature), put them in data_folder/xcat_data/date/log
 
-# Visualize data
-* Copy the example notebook and use the fonctions present in xcat_scripts to visualize the data
-* Respect the order
-* Make sure to have copied the xcat_scripts folder too
-
 # GasTool commands
 
 `import GasTools as gt`
@@ -128,11 +123,9 @@ The module is in `/home/python/GasTool.py`. Once imported, you can have detail a
 ## Start the flow at 0.5 bar in the reactor, 50 ml/min and only Argon
 * `gt.stflow()`
 
-## How to open the dome
-* put Ar to 1bar to be able to open the dome (kill vacuum)
+## Open the dome
+* `gt.stflow(press=1)`
 * `mv heater4, 0`
-* `gt.srflow()` # makes sure that the MIX valves is closed so hat you only have Argon in the reactor
-* `mv rea, 1`
 * `gt.closeall()`
 
 ### if toxic gases present, purge, also puts 1 bar of Ar
@@ -141,7 +134,7 @@ The module is in `/home/python/GasTool.py`. Once imported, you can have detail a
 `gt.closeall()`
 
 
-### LEAVE BEAMILNE ? SAFETY FIRST
+### LEAVE BEAMLINE ? SAFETY FIRST
 CLOSE BOTTLES IN BLUE CABINET (first the valve in the bottle, then the lower pressure valve)
 `gt.pall()` !! close bottles before!!! and dome closed
 close the manivelle after everything is pumped
@@ -149,27 +142,6 @@ gt.whg()
 
 ## Windows crash
 * `vncviewer pcxcat`
-
-# Macros
-
-We chose to do 3 SBS scan per temperature for each conditions, to make sure that we have consistent data
-For each heater position, launch each conditions, wait first for 10 minuts, then launch three SBS scans, make sure to realign in between
-
-## cond A : Ar : 49, O2 : 0, NH3 : 1
-
-## cond B : Ar : 48.5, O2 : 0.5, NH3 : 1
-
-## cond C : Ar : 48, O2 : 1, NH3 : 1
-
-## cond D : Ar : 47, O2 : 2, NH3 : 1
-
-7.81 NH3 -> 9 Ar et 1 NH3
-
-# Ammonia oxidation reactions
-4NH3 + 3O2 -> 6H2O + 2N2
-4NH3 + 4O2 -> 6H2O + 2N2O
-4NH3 + 5O2 -> 6H2O + 4NO
-
 
 # Sputtering
 
