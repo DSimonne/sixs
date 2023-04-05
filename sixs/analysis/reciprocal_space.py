@@ -1035,7 +1035,7 @@ class CTR:
         ]
 
         if isinstance(center_background, list):
-            ROI_lines.append([
+            ROI_lines += [
                 (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] -
                  CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
                 (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K /
@@ -1063,7 +1063,7 @@ class CTR:
                  2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
                 (HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0]+CTR_width_H /
                  2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
-            ])
+            ]
 
         # Start iterating on the files to see the shape
         print(
