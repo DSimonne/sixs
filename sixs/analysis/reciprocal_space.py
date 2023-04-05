@@ -644,8 +644,8 @@ class Map:
         @ interact(
             projection_axis_range=widgets.FloatRangeSlider(
                 value=[axis[0], axis[-1]],
-                min=min(axis[-1]),
-                max=max(axis[-1]),
+                min=min(axis[:-1]),
+                max=max(axis[:-1]),
                 step=np.mean(axis[1:] - axis[:-1]),
                 description='Projection axis range:',
                 continuous_update=False,
