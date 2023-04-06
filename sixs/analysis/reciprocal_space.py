@@ -614,6 +614,7 @@ class Map:
             cbar.ax.tick_params(labelsize=20)
         except ValueError:
             print("Could not display colorbar, change scale values.")
+            pass
 
         fig.tight_layout()
 
@@ -643,7 +644,7 @@ class Map:
         # Interact with widgets only to zoom in the first axis
         @ interact(
             projection_axis_range=widgets.FloatRangeSlider(
-                value=[axis[0], axis[-1]],
+                value=[axis[0], axis[-2]],
                 min=min(axis[:-1]),
                 max=max(axis[:-1]),
                 step=np.mean(axis[1:] - axis[:-1]),
@@ -942,17 +943,16 @@ class CTR:
             subtracted.
         :param verbose: if True, print more details.
         """
-
-        # Load data
-        scan_indices = [str(s) for s in scan_indices]
-
         # Get all files first
         files = [f.split("/")[-1]
                  for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
 
         # Get scans specified with scan_indices
-        self.scan_files = [f for f in files if any(
-            [n in f for n in scan_indices])]
+        scan_files, good_scan_indices = [], []
+        for f in files:
+            if any([str(n) in f for n in scan_indices]):
+                scan_files.append(f)
+                good_scan_indices.append([n for n in scan_indices if str(n) in f])
 
         if verbose:
             print(
@@ -963,8 +963,6 @@ class CTR:
                 print("\t", f)
 
             print(
-                "###########################################################\n"
-                "\n###########################################################"
                 "\nWorking on the following files:"
             )
             for f in self.scan_files:
@@ -1370,17 +1368,16 @@ class CTR:
          differences
         :param verbose: True for additional informations printed during function
         """
-
-        # Get files
-        scan_indices = [str(s) for s in scan_indices]
-
         # Get all txt files first
         files = [f.split("/")[-1]
                  for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
 
         # Get scans specified with scan_indices
-        scan_files = [f for f in files if any(
-            [n in f for n in scan_indices])]
+        scan_files, good_scan_indices = [], []
+        for f in files:
+            if any([str(n) in f for n in scan_indices]):
+                scan_files.append(f)
+                good_scan_indices.append([n for n in scan_indices if str(n) in f])
 
         if len(scan_files) == 0:
             return ("No matching files found in folder.")
@@ -1392,10 +1389,7 @@ class CTR:
             )
             for f in files:
                 print("\t", f)
-            print("###########################################################\n")
-
             print(
-                "\n###########################################################"
                 "\nWorking on the following files:"
             )
             for f in scan_files:
@@ -1435,18 +1429,20 @@ class CTR:
 
         # Save final data as numpy array
         # 0 is x axis, 1 is data, 2 is background
-        data = np.nan * np.empty((len(scan_files), 3, l_length))
+        data_dict = {
+            g: np.nan * np.empty((3, l_length)) for g in good_scan_indices
+        }
 
         # Background already subtracted
         # Get l axis and CTR intensity for each file
-        for i, fname in tqdm(enumerate(scan_files)):
+        for g, fname in tqdm(zip(good_scan_indices, scan_files)):
             # Load data
             fitaid_data = np.loadtxt(folder + fname)
             scan_l_axis = fitaid_data[:, 0]
             ctr_data = fitaid_data[:, 1]
 
-            data[i, 0, :len(scan_l_axis)] = scan_l_axis
-            data[i, 1, :len(scan_l_axis)] = ctr_data
+            data_dict[g][0, :len(scan_l_axis)] = scan_l_axis
+            data_dict[g][1, :len(scan_l_axis)] = ctr_data
 
         # Saving
         print(
@@ -1454,7 +1450,10 @@ class CTR:
             f"\nSaving data as: {folder}{save_name}"
             "\n###########################################################"
         )
-        np.save(folder + save_name, data)
+        np.savez(
+            folder + save_name,
+            **data_dict,
+        )
 
     def load_ROD_data(
         self,
@@ -1479,17 +1478,17 @@ class CTR:
         :param glob_string_match: string used in glob matching of files
         :param verbose: True for additional informations printed during function
         """
-
-        # Get files
-        scan_indices = [str(s) for s in scan_indices]
-
         # Get all txt files first
         files = [f.split("/")[-1]
                  for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
 
         # Get scans specified with scan_indices
-        scan_files = [f for f in files if any(
-            [n in f for n in scan_indices])]
+        scan_files, good_scan_indices = [], []
+        for f in files:
+            if any([str(n) in f for n in scan_indices]):
+                scan_files.append(f)
+                good_scan_indices.append([n for n in scan_indices if str(n) in f])
+
         if verbose:
             print(
                 "\n###########################################################"
@@ -1497,10 +1496,7 @@ class CTR:
             )
             for f in files:
                 print("\t", f)
-            print("###########################################################\n")
-
             print(
-                "\n###########################################################"
                 "\nWorking on the following files:"
             )
             for f in scan_files:
@@ -1544,7 +1540,6 @@ class CTR:
 
         # Get l axis and CTR intensity for each file
         for i, fname in tqdm(enumerate(scan_files)):
-
             # Load data
             rod_data = np.loadtxt(folder + fname, skiprows=2)
             scan_l_axis = rod_data[:, 2]
@@ -1647,11 +1642,13 @@ class CTR:
         print(
             "###########################################################"
             f"\nLoaded {numpy_array}"
+            f"Files in array:{data.files}"
             "\n###########################################################"
         )
 
         # Iterate on array
-        for (i, arr), scan_index in zip(enumerate(data), scan_indices):
+        for scan_index in scan_indices:
+            arr = data[scan_index]
             l = arr[0, :]  # x axis
             y_plot = arr[1, :]  # data - background
 
