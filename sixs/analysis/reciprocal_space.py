@@ -952,7 +952,8 @@ class CTR:
         for f in files:
             if any([str(n) in f for n in scan_indices]):
                 scan_files.append(f)
-                good_scan_indices.append([n for n in scan_indices if str(n) in f])
+                good_scan_indices.append([n for n in scan_indices if str(n) in f][0])
+
 
         if verbose:
             print(
@@ -1377,7 +1378,7 @@ class CTR:
         for f in files:
             if any([str(n) in f for n in scan_indices]):
                 scan_files.append(f)
-                good_scan_indices.append([n for n in scan_indices if str(n) in f])
+                good_scan_indices.append([n for n in scan_indices if str(n) in f][0])
 
         if len(scan_files) == 0:
             return ("No matching files found in folder.")
@@ -1430,7 +1431,7 @@ class CTR:
         # Save final data as numpy array
         # 0 is x axis, 1 is data, 2 is background
         data_dict = {
-            g: np.nan * np.empty((3, l_length)) for g in good_scan_indices
+            str(g): np.nan * np.empty((3, l_length)) for g in good_scan_indices
         }
 
         # Background already subtracted
@@ -1441,8 +1442,8 @@ class CTR:
             scan_l_axis = fitaid_data[:, 0]
             ctr_data = fitaid_data[:, 1]
 
-            data_dict[g][0, :len(scan_l_axis)] = scan_l_axis
-            data_dict[g][1, :len(scan_l_axis)] = ctr_data
+            data_dict[str(g)][0, :len(scan_l_axis)] = scan_l_axis
+            data_dict[str(g)][1, :len(scan_l_axis)] = ctr_data
 
         # Saving
         print(
@@ -1487,7 +1488,7 @@ class CTR:
         for f in files:
             if any([str(n) in f for n in scan_indices]):
                 scan_files.append(f)
-                good_scan_indices.append([n for n in scan_indices if str(n) in f])
+                good_scan_indices.append([n for n in scan_indices if str(n) in f][0])
 
         if verbose:
             print(
@@ -1642,13 +1643,13 @@ class CTR:
         print(
             "###########################################################"
             f"\nLoaded {numpy_array}"
-            f"Files in array:{data.files}"
+            f"\nFiles in array: {data.files}"
             "\n###########################################################"
         )
 
         # Iterate on array
-        for scan_index in scan_indices:
-            arr = data[scan_index]
+        for i, scan_index in enumerate(scan_indices):
+            arr = data[str(scan_index)]
             l = arr[0, :]  # x axis
             y_plot = arr[1, :]  # data - background
 
