@@ -16,11 +16,8 @@ from ipywidgets import interact, Button, Layout, interactive, fixed
 
 from scipy import interpolate
 
-import sixs
-from sixs import ReadNxs4 as rn4
-
 import xrayutilities as xu
-
+import sixs
 from lmfit import minimize, Parameters, Parameter
 from lmfit.models import *
 
@@ -33,7 +30,7 @@ class Reflectivity:
         folder,
         scan_indices,
         data_format,
-        var="l",
+        var,
         configuration_file=False,
         verbose=True,
     ):
@@ -44,11 +41,10 @@ class Reflectivity:
         :param var: "l", variable used as x axis to plot data
         :param configuration_file: False, .yml file that stores metadata
          specific to the reaction, if False, default to
-         self.path_package + "experiments/ammonia.yml"
+         path_package + "experiments/ammonia.yml"
         :param verbose: True to print extra informations
         """
-
-        self.path_package = inspect.getfile(sixs).split("__")[0]
+        path_package = inspect.getfile(sixs).split("__")[0]
 
         # Load configuration file
         print("###########################################################")
@@ -56,12 +52,11 @@ class Reflectivity:
             if os.path.isfile(configuration_file):
                 self.configuration_file = configuration_file
             else:
-                self.configuration_file = self.path_package + "experiments/ammonia.yml"
-                print("Could not find configuration file.")
+                self.configuration_file = path_package + "experiments/ammonia.yml"
                 print("Defaulted to ammonia configuration.")
 
         except TypeError:
-            self.configuration_file = self.path_package + "experiments/ammonia.yml"
+            self.configuration_file = path_package + "experiments/ammonia.yml"
             print("Defaulted to ammonia configuration.")
 
         finally:
@@ -78,12 +73,7 @@ class Reflectivity:
 
         # Init class arguments
         self.folder = folder
-
-        if not isinstance(scan_indices, list):
-            self.scan_indices = list(scan_indices)
-
         self.scan_indices = [str(s) for s in scan_indices]
-
         self.data_format = data_format
         self.var = var
 
@@ -105,7 +95,6 @@ class Reflectivity:
             "delta": "ang",
             "omega": "ang",
             "beta": "ang",
-            "basepitch": "ang",
         }
 
         try:
@@ -115,10 +104,10 @@ class Reflectivity:
 
         # Find files in folder depending on data format
         files = [f.split("/")[-1]
-                 for f in sorted(glob.glob(f"{folder}/*.{data_format}"))]
+                 for f in sorted(glob.glob(f"{self.folder}/*.{data_format}"))]
         if verbose:
             print("\n###########################################################")
-            print(f"Detected files in {folder}:")
+            print(f"Detected files in {self.folder}:")
             for f in files:
                 print("\t", f)
             print("###########################################################\n")
@@ -145,6 +134,19 @@ class Reflectivity:
             self.scan_list = [f for f in files if any(
                 [n + ".nxs" in f for n in self.scan_indices])]
 
+            self.data_key = "data_14"
+            self.piezo_attenuators_key = "data_25"
+            self.pneumatic_attenuators_key = "data_26"
+            self.acquisition_time_key = "i14-c-c00-ex-config-global"
+            self.detector_key = "i14-c-c00-ex-config-xpads140"
+            self.mu_key = "data_40"
+            self.delta_key = "data_41"
+            self.gamma_key = "data_42"
+            self.etaa_key = "data_43"
+            self.beta_key = "data_44"
+            self.wavelength_key = "i14-c-c02-op-mono"
+            # /com/SIXS/i14-c-cx1-ex-med-h-dif-group.1
+
         print("\n###########################################################")
         print("Working on the following files:")
         for f in self.scan_list:
@@ -154,14 +156,13 @@ class Reflectivity:
     def prep_nxs_data(
         self,
         roi,
-        detector="xpad140",
-        theta="mu",
-        compute_q=False,
+        piezo_attenuators_coef=None,
+        pneumatic_attenuators_coef=None,
     ):
         """
         Change the integration roi to see if it has an impact on the data,
         then the data is integrated on this roi.
-        Many parameters are extracted from the nxs file such as Q, qpar, qper,
+        Many parameters can be extracted from the nxs file such as Q, qpar, qper,
         mu, gamma, delta, omega, h, k and l.
         h, k and l depend on the orientation matrix used at that time.
 
@@ -171,132 +172,104 @@ class Reflectivity:
         The reflectivity may not have the same length, and/ or amount of points
         for each scan.
 
-        The wavelength of the first dataset in the series is taken to compute
-        Brakk peaks in 00L (e.g. Pt 003).
-
         :param roi: int or container
-         if int, use this roi (e.g. if 3, roi3 entry in ReadNxs4)
-         if container of length 4, define roi as [roi[0], roi[1], roi[2], roi[3]]
-        :param detector: detector used, can be xpad140, xpad70, ...
-        :param theta: string corresponding to entry in ReadNxs4, incoming angle
-         used if compute_q following:
-         Q = (4pi/lambda) * sin(theta)
-        :param compute_q: if True compute Q from theta and lambda
+            if int, use this roi, if container of length 4, define roi as
+            [roi[0], roi[1], roi[2], roi[3]]
+        :param piezo_attenuators_coef: None, if not specified the value is extracted
+            from the file, otherwise provide float
+        :param pneumatic_attenuators_coef: None, if not specified the value is extracted
+            from the file, otherwise provide float
         """
-
         self.intensities = []
-        self.theta = theta
-        self.detector = detector
-
-        # Compute reflections, we use the wavelength of first dataset in list
-        dataset = rn4.DataSet(
-            filename=self.scan_list[0],
-            directory=self.folder
-        )
-        try:
-            print("\n###########################################################")
-            self.wavel = dataset.waveL
-            print(f"Wavelength = {self.wavel:0.3f} Angström")
-            print(f"Corresponding to {xsf.xray_energy(self.wavel):0.3f} keV")
-            print("###########################################################\n")
-
-        except:
-            print("\n###########################################################")
-            print("Could not extract wavelength.")
-            print("###########################################################\n")
-
-        # this should be done elsewhere
-        self.y_range = getattr(dataset, detector).shape[1]
-        self.x_range = getattr(dataset, detector).shape[2]
-
-        # Possible x axes, key is the name here, value is the name in rn4
-        self.x_axes = {
-            "h": "h",
-            "k": "k",
-            "l": "l",
-            "Q": "Q",
-            "qpar": "qpar",
-            "qper": "qper",
-            "gamma": "gamma",
-            "mu": "mu",
-            "delta": "delta",
-            "omega": "omega",
-            "beta": "beta",
-            "basepitch": "basepitch",
-        }
+        self.mu, self.beta, self.delta, self.etaa, self.gamma = [], [], [], [], []
+        self.wavelength = []
 
         # Iterate on all scans
-        for j, f in enumerate(self.scan_list):
-            print("\n###########################################################")
-            print("Opening " + f)
-
-            # Andrea's script it corrects for attenuation
-            data = rn4.DataSet(filename=f, directory=self.folder)
-
-            if isinstance(roi, int):
-                # calculate the roi corrected by attcoef, mask, filters,
-                # acquisition_time
-                data.calcROI_new2()
-
-                # Do not take bad values due to attenuator change
-                data_array = getattr(data, f"roi{roi}_{self.detector}_new")
-                # self.intensities.append(data_array[self.common_mask])
-                mask = np.log(data_array) > 0
-                self.intensities.append(data_array[mask])
-
-            else:
-                # Create a roi, name it roi5
-                data.calcROI(
-                    stack=getattr(data, self.detector),
-                    roiextent=self.roi,
-                    maskname=f"_mask_{self.detector}",
-                    acqTime=data._integration_time,
-                    ROIname=f"roi5_{self.detector}_new",
-                    coef='default',
-                    filt='default'
-                )
-
-                # Do not take bad values due to attenuator change
-                data_array = getattr(data, f"roi5_{self.detector}_new")
-                # self.intensities.append(data_array[self.common_mask])
-                mask = np.log(data_array) > 0
-                self.intensities.append(data_array[mask])
-
-            # Get metadata if defined
-            for key, value in self.x_axes.items():
-                try:  # Get current list
-                    p = getattr(self, key)
-                except AttributeError:  # Create one
-                    p = []
-
-                # Append scan values for this x axis
-                try:
-                    # p.append(getattr(data, value)[self.common_mask])
-                    p.append(getattr(data, value)[mask])
-                    setattr(self, key, p)
-                    print("\tSaved values for", value)
-                except AttributeError:
-                    pass
-
-            # Compute Q, will override data
-            if compute_q:
-                try:  # Get current list
-                    p = self.Q
-                except AttributeError:  # Create one
-                    p = []
-
-                # Append Q values for this scan
-                try:
-                    print(f"\tComputing Q assuming {theta} in degrees...")
-                    inc_angle = getattr(dataset, theta)[mask]
-                    p.append((4*np.pi / self.wavel) *
-                             np.sin(np.deg2rad(inc_angle)))
-                    setattr(self, "Q", p)
-                    print("\tSaved values for Q")
-                except:
-                    print("\tCould not compute Q.")
-
+        for j, file in enumerate(self.scan_list):
             print("###########################################################")
+            print("Opening", file)
+            with tb.open_file(self.folder + file) as f:
+                if pneumatic_attenuators_coef is None:
+                    pneumatic_attenuators_coef = f.root.com.SIXS["i14-c-c00-ex-config-att-old"].att_coef[...]
+                pneumatic_attenuators_amounts = f.root.com.scan_data[
+                    self.pneumatic_attenuators_key][...]
+                if piezo_attenuators_coef is None:
+                    piezo_attenuators_coef = f.root.com.SIXS["i14-c-c00-ex-config-att"].att_coef[...]
+                piezo_attenuators_amounts = f.root.com.scan_data[self.piezo_attenuators_key][...]
+                detector_images = f.root.com.scan_data[self.data_key][...]
+                detector_mask = f.root.com.SIXS[self.detector_key].mask[...]
+                roi_limits = f.root.com.SIXS[self.detector_key].roi_limits[...]
+                acquisition_time = f.root.com.SIXS[self.acquisition_time_key].integration_time[...]
+                mu = f.root.com.scan_data[self.mu_key][...]
+                beta = f.root.com.scan_data[self.beta_key][...]
+                delta = f.root.com.scan_data[self.delta_key][...]
+                etaa = f.root.com.scan_data[self.etaa_key][...]
+                gamma = f.root.com.scan_data[self.gamma_key][...]
+                wavelength = f.root.com.SIXS[self.wavelength_key]["lambda"][0]
+
+            # Save angles
+            self.mu.append(mu)
+            self.beta.append(beta)
+            self.delta.append(delta)
+            self.etaa.append(etaa)
+            self.gamma.append(gamma)
+            self.wavelength.append(wavelength)
+
+            # create 3d mask array
+            mask_array = np.ones(detector_images.shape) * detector_mask
+
+            # mask the data
+            masked_images = np.where(
+                mask_array == 0,
+                detector_images,
+                np.nan
+            )
+
+            # Get ROI
+            if isinstance(roi, int):
+                roi = roi_limits[3]
+
+            # Compute reflectivity by summing data in ROI
+            reflectivity_data = np.nansum(
+                masked_images[:, roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]],
+                axis=(1, 2)
+            )
+
+            # Compute attenuator coefficient
+            # There are two types of attenuators with two different coefficients
+            correction_coef = (piezo_attenuators_coef**piezo_attenuators_amounts) * \
+                (pneumatic_attenuators_coef**pneumatic_attenuators_amounts)
+
+            # Correct the data for the acquisition time and attenuators
+            corrected_reflectivity_data = reflectivity_data * \
+                correction_coef / acquisition_time
+
+            # Do not take bad values due to attenuator change
+            attenuator_change = np.where(
+                (correction_coef[1:]-correction_coef[:-1]) != 0
+            )[0]
+            np.put(corrected_reflectivity_data, attenuator_change+1, np.nan)
+
+            self.intensities.append(corrected_reflectivity_data)
+
+            print("###########################################################\n")
+
+    def compute_q(self, theta):
+        """
+        :param theta: string corresponding to angle (degrees) used following:
+            Q = (4pi/lambda) * sin(theta)
+            Should be mu (vertical configuration) or beta (horizontal
+            configuration)
+        """
+        # Append Q values for this scan, assume delta and gamma equal to zero
+        self.q = []
+        for theta, wavelength in zip(getattr(self, theta), self.wavelength):
+            try:
+                self.q.append(
+                    (4*np.pi / wavelength) * np.sin(np.deg2rad(theta))
+                )
+            except:
+                print("\tCould not compute Q.")
 
     def prep_binoc_data(
         self,
@@ -628,7 +601,6 @@ class Reflectivity:
         labels=False,
         y_zero=0,
         zoom=[None, None, None, None],
-        x_tick_step=False,
         fill=False,
         fill_first=0,
         fill_last=-1,
@@ -652,7 +624,6 @@ class Reflectivity:
          background, default is 0
         :param zoom: values used for plot range, default is
          [None, None, None, None], order is left, right, bottom and top.
-        :param x_tick_step: tick step used for x axis, default is False
         :param fill: if True, add filling between two plots
         :param fill_first: index of scan to use for filling
         :param fill_last: index of scan to use for filling
@@ -664,11 +635,8 @@ class Reflectivity:
         """
 
         # Get x axis
-        if self.data_format == "nxs" and x_var in self.x_axes:
+        if self.data_format == "nxs":
             x_axis = getattr(self, x_var)
-
-        elif self.data_format == "nxs" and x_var not in self.x_axes:
-            return ("Choose x_axis in the following list :", self.x_axes)
 
         # x_var has no influence if we use binocular file for now
         elif self.data_format == "hdf5":
@@ -732,21 +700,23 @@ class Reflectivity:
 
             # Add colour
             try:
-                plt.plot(
-                    x,
-                    y_plot,
-                    color=color_dict[int(scan_index)],
-                    label=label,
-                    linewidth=2,
-                )
-
+                color = color_dict[int(scan_index)]
             except KeyError:
-                # Take int(scan_index) in case keys are not strings in the dict
-                try:
+                color = color_dict[scan_index]
+            plt.plot(
+                x,
+                y_plot,
+                color=color,
+                label=label,
+                linewidth=2,
+            )
+
+               # Take int(scan_index) in case keys are not strings in the dict
+               try:
                     plt.plot(
                         x,
                         y_plot,
-                        color=color_dict[scan_index],
+                        ,
                         label=label,
                         linewidth=2,
                     )

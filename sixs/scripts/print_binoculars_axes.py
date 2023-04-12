@@ -24,10 +24,11 @@ def print_binocular_axes(filename):
         )
         for k in (axes.keys()):
             v = list(axes[k][:4])
-            axe_length = int((axes[k][2] -  axes[k][1]) / axes[k][3])
+            axe_length = int((axes[k][2] - axes[k][1]) / axes[k][3])
             table.add_row([k] + v + [axe_length])
 
     print(table)
+
 
 # If used as script, iterate on glob string
 if __name__ == "__main__":

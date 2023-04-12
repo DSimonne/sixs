@@ -952,8 +952,8 @@ class CTR:
         for f in files:
             if any([str(n) in f for n in scan_indices]):
                 scan_files.append(f)
-                good_scan_indices.append([n for n in scan_indices if str(n) in f][0])
-
+                good_scan_indices.append(
+                    [n for n in scan_indices if str(n) in f][0])
 
         if verbose:
             print(
@@ -1378,7 +1378,8 @@ class CTR:
         for f in files:
             if any([str(n) in f for n in scan_indices]):
                 scan_files.append(f)
-                good_scan_indices.append([n for n in scan_indices if str(n) in f][0])
+                good_scan_indices.append(
+                    [n for n in scan_indices if str(n) in f][0])
 
         if len(scan_files) == 0:
             return ("No matching files found in folder.")
@@ -1488,7 +1489,8 @@ class CTR:
         for f in files:
             if any([str(n) in f for n in scan_indices]):
                 scan_files.append(f)
-                good_scan_indices.append([n for n in scan_indices if str(n) in f][0])
+                good_scan_indices.append(
+                    [n for n in scan_indices if str(n) in f][0])
 
         if verbose:
             print(
@@ -1718,7 +1720,7 @@ class CTR:
         p.yaxis.axis_label_text_font_size = axis_label_text_font_size
         p.yaxis.major_label_text_font_size = axis_major_label_text_font_size
         if not legend:
-            p.legend.visible=False
+            p.legend.visible = False
         if isinstance(title, str):
             p.title.text_font_size = title_text_font_size
 
