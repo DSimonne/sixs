@@ -113,37 +113,10 @@ class Reflectivity:
         # Init class arguments
         self.folder = folder
         self.scan_indices = [str(s) for s in scan_indices]
-        self.data_format = data_format
-        self.var = var
-
-        var_dict = {
-            "hkl": "hkl",
-            "h": "hkl",
-            "k": "hkl",
-            "l": "hkl",
-            "qparqper": "qparqper",
-            "qpar": "qparqper",
-            "qper": "qparqper",
-            "qxqyqz": "qxqyqz",
-            "qx": "qxqyqz",
-            "qy": "qxqyqz",
-            "qz": "qxqyqz",
-            "ang": "ang",
-            "mu": "ang",
-            "gamma": "ang",
-            "delta": "ang",
-            "omega": "ang",
-            "beta": "ang",
-        }
-
-        try:
-            self.data_type = var_dict[var]
-        except:
-            raise KeyError("Choose a variable according to", var_dict)
 
         # Find files in folder depending on data format
         files = [f.split("/")[-1]
-                 for f in sorted(glob.glob(f"{self.folder}/*.{data_format}"))]
+                 for f in sorted(glob.glob(f"{self.folder}/*.nxs"))]
         if verbose:
             print("\n###########################################################")
             print(f"Detected files in {self.folder}:")
@@ -152,39 +125,21 @@ class Reflectivity:
             print("###########################################################\n")
 
         # Get files of interest based on scan_indices
-        if self.data_type == "hkl" and self.data_format == "hdf5":
-            self.scan_list = [f for f in files if any(
-                ["hkl_" + n + ".hdf5" in f for n in self.scan_indices])]
+        self.scan_list = [f for f in files if any(
+            [n in f for n in self.scan_indices])]
 
-        elif self.data_type == "qxqyqz" and self.data_format == "hdf5":
-            self.scan_list = [f for f in files if any(
-                ["qxqyqz_" + n + ".hdf5" in f for n in self.scan_indices])]
-
-        elif self.data_type == "qparqper" and self.data_format == "hdf5":
-            self.scan_list = [f for f in files if any(
-                ["qparqper_" + n + ".hdf5" in f for n in self.scan_indices])]
-
-        elif self.data_type == "ang" and self.data_format == "hdf5":
-            self.scan_list = [f for f in files if any(
-                ["ang_" + n + ".hdf5" in f for n in self.scan_indices])]
-
-        # Data type not important for nxs files
-        elif self.data_format == "nxs":
-            self.scan_list = [f for f in files if any(
-                [n + ".nxs" in f for n in self.scan_indices])]
-
-            self.data_key = "data_14"
-            self.piezo_attenuators_key = "data_25"
-            self.pneumatic_attenuators_key = "data_26"
-            self.acquisition_time_key = "i14-c-c00-ex-config-global"
-            self.detector_key = "i14-c-c00-ex-config-xpads140"
-            self.mu_key = "data_40"
-            self.delta_key = "data_41"
-            self.gamma_key = "data_42"
-            self.etaa_key = "data_43"
-            self.beta_key = "data_44"
-            self.wavelength_key = "i14-c-c02-op-mono"
-            # /com/SIXS/i14-c-cx1-ex-med-h-dif-group.1
+        self.data_key = "data_14"
+        self.piezo_attenuators_key = "data_25"
+        self.pneumatic_attenuators_key = "data_26"
+        self.acquisition_time_key = "i14-c-c00-ex-config-global"
+        self.detector_key = "i14-c-c00-ex-config-xpads140"
+        self.mu_key = "data_40"
+        self.delta_key = "data_41"
+        self.gamma_key = "data_42"
+        self.etaa_key = "data_43"
+        self.beta_key = "data_44"
+        self.wavelength_key = "i14-c-c02-op-mono"
+        # /com/SIXS/i14-c-cx1-ex-med-h-dif-group.1
 
         print("\n###########################################################")
         print("Working on the following files:")
@@ -397,14 +352,7 @@ class Reflectivity:
          there must a data entry that corresponds to x_axis
         :param log_intensities: if True, y axis is logarithmic
         """
-
-        # Get x axis
-        if self.data_format == "nxs":
-            x_axis = getattr(self, x_var)
-
-        # x_var has no influence if we use binocular file for now
-        elif self.data_format == "hdf5":
-            x_axis = [self.binoc_x_axis for i in self.scan_list]
+        x_axis = getattr(self, x_var)
 
         # Load background
         if isinstance(background, str):
