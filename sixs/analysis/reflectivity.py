@@ -23,25 +23,64 @@ from lmfit.models import *
 
 
 class Reflectivity:
-    """Contains methods to load reflectometry data collected at SixS"""
+    """
+    Contains methods to load reflectivity data collected at SixS. To analyze the
+    data, proceed as follows:
+
+    1) Initiaze the Class
+    2) Import the `.nxs` files with the `prep_nxs_data` method. Be careful about
+    the attenuator values as well as the ROI, you can see if the ROI is good
+    with the `compare_roi` method.
+    3) Normalize the data with the `normalize_data` method.
+    3) Extract the data as .dot files, it can then be analyzed using GenX.
+
+    You can plot the data with the `plot_refl` method.
+
+    X-ray reflectivity (XRR) is a technique used in materials science and
+    surface science to study the structure and properties of thin films and
+    multilayered structures. It is a non-destructive, non-contact method that
+    involves shining a beam of X-rays onto a sample and measuring the intensity
+    of the reflected X-rays as a function of the incident angle.
+
+    XRR is based on the principle of interference of X-rays that are reflected
+    from different interfaces within a layered structure. When X-rays strike an
+    interface between two materials with different electron densities, such as a
+    film and a substrate, a portion of the X-rays is reflected back while the
+    rest penetrates into the material. The reflected X-rays interfere with each
+    other, resulting in a pattern of constructive and destructive interference
+    that can be detected and analyzed to obtain information about the structure
+    and properties of the sample.
+
+    By varying the incident angle of the X-rays, XRR can provide information
+    about the thickness, density, and roughness of thin films, as well as the
+    composition and interface roughness of multilayered structures. XRR is
+    widely used in fields such as thin film deposition, surface chemistry,
+    nanoscience, and materials characterization to study a wide range of
+    materials, including metals, polymers, semiconductors, and thin biological
+    films.
+
+    X-ray reflectivity is a powerful technique that provides valuable insights
+    into the structural properties of thin films and multilayered structures,
+    making it a valuable tool in materials science research and industrial
+    applications.
+    """
 
     def __init__(
         self,
         folder,
         scan_indices,
-        data_format,
-        var,
         configuration_file=False,
         verbose=True,
     ):
         """
+        Initializes the Class by finding the .nxs files in the `folder` that
+        match the values in `scan_indices`.
+
         :param folder: path to data folder
         :param scan_indices: indices of reflectivity scans, list
-        :param data_format: 'hdf5' (after binoculars) or 'nxs'   (raw data)
-        :param var: "l", variable used as x axis to plot data
-        :param configuration_file: False, .yml file that stores metadata
-         specific to the reaction, if False, default to
-         path_package + "experiments/ammonia.yml"
+        :param configuration_file: str, .yml file that stores metadata
+         specific to the reaction, if False, default to path_package
+         + "experiments/ammonia.yml"
         :param verbose: True to print extra informations
         """
         path_package = inspect.getfile(sixs).split("__")[0]
