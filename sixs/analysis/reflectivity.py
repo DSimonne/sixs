@@ -154,25 +154,18 @@ class Reflectivity:
         pneumatic_attenuators_coef=None,
     ):
         """
-        Change the integration roi to see if it has an impact on the data,
-        then the data is integrated on this roi.
-        Many parameters can be extracted from the nxs file such as Q, qpar, qper,
-        mu, gamma, delta, omega, h, k and l.
-        h, k and l depend on the orientation matrix used at that time.
-
-        Each one of these parameters is defined FOR THE CENTRAL PIXEL of the
-        detector !
-
-        The reflectivity may not have the same length, and/ or amount of points
-        for each scan.
+        Load the nexus files and integrate the reflectivity intensity inside the
+        given Region Of Interest (ROI).
+        Use the attenuators coefficient to correct the data if you see that
+        values before and after an attenuator change do not match.
 
         :param roi: int or container
             if int, use this roi, if container of length 4, define roi as
             [roi[0], roi[1], roi[2], roi[3]]
-        :param piezo_attenuators_coef: None, if not specified the value is extracted
-            from the file, otherwise provide float
-        :param pneumatic_attenuators_coef: None, if not specified the value is extracted
-            from the file, otherwise provide float
+        :param piezo_attenuators_coef: None, if not specified the value is
+            extracted from the file, otherwise provide float
+        :param pneumatic_attenuators_coef: None, if not specified the value is
+            extracted from the file, otherwise provide float
         """
         self.intensities = []
         self.mu, self.beta, self.delta, self.etaa, self.gamma = [], [], [], [], []
@@ -243,13 +236,13 @@ class Reflectivity:
                 (correction_coef[1:]-correction_coef[:-1]) != 0
             )[0]
             np.put(corrected_reflectivity_data, attenuator_change+1, np.nan)
-
             self.intensities.append(corrected_reflectivity_data)
-
             print("###########################################################\n")
 
     def compute_q(self, theta):
         """
+        Compute values of the scattering vector from the values of theta.
+
         :param theta: string corresponding to angle (degrees) used following:
             Q = (4pi/lambda) * sin(theta)
             Should be mu (vertical configuration) or beta (horizontal
@@ -816,6 +809,45 @@ class Reflectivity:
         ])
 
         return window
+
+    def extract_data(
+        self,
+        x_var,
+        convert_theta_two_theta=False,
+        folder=None,
+        y_errors=None,
+    ):
+        """
+        Extract data as .dat files to be used in Genx.
+        Be careful that GenX asks for two-theta or Q as x input.
+        removes np.nan values from y and corresponding x values.
+
+        :param x_var: variable to save as x, can be an angle or q
+        :param convert_theta_two_theta: True to multiply by two the values of
+            x_var to save two_theta instead of theta.
+        :param folder: None, folder in which the files are saved, if None then
+            uses the same folder as defined in __init__
+        :param y_errors: not supported yet
+        """
+
+        x_axis = getattr(self, x_var)
+
+        save_folder = self.folder if folder is None else folder
+
+        for x, y, scan_index in zip(
+            x_axis,
+            self.intensities,
+            self.scan_indices
+        ):
+            if convert_theta_two_theta:
+                x*=2
+
+            data_array = np.array([x[~np.isnan(y)], y[~np.isnan(y)]]).T
+
+            np.savetxt(
+                f"{save_folder}/reflectivity_{x_var}_{scan_index}.dat",
+                data_array
+            )
 
     @ staticmethod
     def find_nearest(array, value):
