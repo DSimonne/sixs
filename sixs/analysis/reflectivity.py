@@ -4,20 +4,14 @@ import glob
 import os
 import inspect
 import yaml
-from periodictable import xsf
+import sixs
+from scipy import interpolate
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 import ipywidgets as widgets
-from ipywidgets import interact, interactive, fixed, interact_manual
-from ipywidgets import interact, Button, Layout, interactive, fixed
-
-from scipy import interpolate
-
-import sixs
-from lmfit import minimize, Parameters, Parameter
-from lmfit.models import *
+from ipywidgets import interactive, fixed, Layout
 
 
 class Reflectivity:
@@ -156,6 +150,23 @@ class Reflectivity:
         given Region Of Interest (ROI).
         Use the attenuators coefficient to correct the data if you see that
         values before and after an attenuator change do not match.
+
+        Careful, when loading the nexus file, the values of the motors, ROI, the
+        detector image, etc ... are found thanks to a hard coded part of the code.
+        You must change that if there is a NoSuchNodeError error.
+        The hardcoded values are attributes of the class:
+            self.pneumatic_attenuators_key
+            self.piezo_attenuators_key
+            self.data_key
+            self.detector_key
+            self.detector_key
+            self.acquisition_time_key
+            self.mu_key
+            self.beta_key
+            self.delta_key
+            self.etaa_key
+            self.gamma_key
+            self.wavelength_key
 
         :param roi: int or container
             if int, use this roi, if container of length 4, define roi as
@@ -634,17 +645,19 @@ class Reflectivity:
                 f"{save_folder}/reflectivity_{x_var}_{scan_index}.dat",
                 data_array
             )
+            print(
+                f"Saved as {save_folder}/reflectivity_{x_var}_{scan_index}.dat"
+            )
 
     @ staticmethod
     def find_nearest(array, value):
         X = np.abs(array-value)
-        idx = np.where(X == X.min())
+        idx = np.where(X == np.nanmin(X))
         if len(idx) == 1:
             try:
                 idx = idx[0][0]
                 return array[idx], idx
             except IndexError:
-                # print("Value is not in array")
                 if all(array < value):
                     return array[-1], -1
                 elif all(array > value):
