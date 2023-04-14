@@ -16,15 +16,14 @@ from ipywidgets import interactive, fixed, Layout
 
 class Reflectivity:
     """
-    Contains methods to load reflectivity data collected at SixS. To analyze the
-    data, proceed as follows:
+    Contains methods to reduce reflectivity data collected at SixS.
 
     1) Initiaze the Class
     2) Import the `.nxs` files with the `prep_nxs_data` method. Be careful about
     the attenuator values as well as the ROI, you can see if the ROI is good
     with the `compare_roi` method.
     3) Normalize the data with the `normalize_data` method.
-    3) Extract the data as .dot files, it can then be analyzed using GenX.
+    3) Extract the data as .dat files, it can then be analyzed using GenX.
 
     You can plot the data with the `plot_refl` method.
 
@@ -117,8 +116,13 @@ class Reflectivity:
             print("###########################################################\n")
 
         # Get files of interest based on scan_indices
-        self.scan_list = [f for f in files if any(
+        files_with_scan_number = [f for f in files if any(
             [n in f for n in self.scan_indices])]
+
+        # Sort files
+        numbers = [int(f.split(".nxs")[0][-5:]) for f in files_with_scan_number]
+        tuples = sorted(zip(numbers, files_with_scan_number))
+        __, self.scan_list = [t[0] for t in tuples], [t[1] for t in tuples]
 
         self.data_key = "data_14"
         self.piezo_attenuators_key = "data_25"
