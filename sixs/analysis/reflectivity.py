@@ -641,9 +641,9 @@ class Reflectivity:
             self.scan_indices
         ):
             if convert_theta_two_theta:
-                x *= 2
+                two_theta= x * 2
 
-            data_array = np.array([x[~np.isnan(y)], y[~np.isnan(y)]]).T
+            data_array = np.array([two_theta[~np.isnan(y)], y[~np.isnan(y)]]).T
 
             np.savetxt(
                 f"{save_folder}/reflectivity_{x_var}_{scan_index}.dat",

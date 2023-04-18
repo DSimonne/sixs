@@ -173,6 +173,12 @@ class Map:
         if show_tree:
             display(H5Glance(file_path))
 
+        try:
+            if verbose:
+                print_binocular_axes(self.file_path)
+        except AttributeError:
+            print("Data type not supported")
+
         with tb.open_file(self.file_path) as f:
             # Get raw data
             self.ct = f.root.binoculars.counts[...]
@@ -200,22 +206,22 @@ class Map:
             except tb.NoSuchNodeError:
                 hkl = False
 
-            # QxQyQz
+            # qxqyqz
             try:
-                Qx = f.root.binoculars.axes.Qx[...]
-                Qy = f.root.binoculars.axes.Qy[...]
-                QxQy = True
+                qx = f.root.binoculars.axes.qx[...]
+                qy = f.root.binoculars.axes.qy[...]
+                qxqy = True
             except tb.NoSuchNodeError:
-                QxQy = False
+                qxqy = False
 
             # Q, xp, yp
             try:
                 Q = f.root.binoculars.axes.Q[...]
                 xp = f.root.binoculars.axes.xp[...]
                 yp = f.root.binoculars.axes.yp[...]
-                QXpYp = True
+                qxpYp = True
             except tb.NoSuchNodeError:
-                QXpYp = False
+                qxpYp = False
 
             # Qpar, Qper
             try:
@@ -232,19 +238,19 @@ class Map:
                 Angles = False
 
             ############################ Load data ############################
-            if Qphi:  # also Qphi can have Qz (or Qx, Qy)
+            if Qphi:  # also Qphi can have qz (or qx, qy)
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
                 try:  # one of the three
-                    self.Qxyz = f.root.binoculars.axes.Qx[...]
+                    self.qxyz = f.root.binoculars.axes.qx[...]
                 except:
                     pass
                 try:
-                    self.Qxyz = f.root.binoculars.axes.Qy[...]
+                    self.qxyz = f.root.binoculars.axes.qy[...]
                 except:
                     pass
                 try:
-                    self.Qxyz = f.root.binoculars.axes.Qz[...]
+                    self.qxyz = f.root.binoculars.axes.qz[...]
                 except:
                     pass
 
@@ -259,14 +265,14 @@ class Map:
                 self.K = f.root.binoculars.axes.K[...]
                 self.L = f.root.binoculars.axes.L[...]
 
-            elif QxQy:
+            elif qxqy:
                 self.ct = np.swapaxes(self.ct, 0, 2)  # qz, qy, qx
                 self.cont = np.swapaxes(self.cont, 0, 2)  # qz, qy, qx
-                self.Qz = f.root.binoculars.axes.Qz[...]
-                self.Qx = f.root.binoculars.axes.Qx[...]
-                self.Qy = f.root.binoculars.axes.Qy[...]
+                self.qz = f.root.binoculars.axes.qz[...]
+                self.qx = f.root.binoculars.axes.qx[...]
+                self.qy = f.root.binoculars.axes.qy[...]
 
-            elif QXpYp:
+            elif qxpYp:
                 self.Q = f.root.binoculars.axes.Q[...]
                 self.xp = f.root.binoculars.axes.xp[...]
                 self.yp = f.root.binoculars.axes.yp[...]
@@ -288,8 +294,8 @@ class Map:
             if Qphi:
                 self.Q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
-                self.Qxyz_axis = np.linspace(
-                    self.Qxyz[1], self.Qxyz[2], 1+self.Qxyz[5]-self.Qxyz[4])
+                self.qxyz_axis = np.linspace(
+                    self.qxyz[1], self.qxyz[2], 1+self.qxyz[5]-self.qxyz[4])
                 self.Phi_axis = np.linspace(
                     self.Phi[1], self.Phi[2], 1+self.Phi[5]-self.Phi[4])
 
@@ -307,15 +313,15 @@ class Map:
                 self.L_axis = np.round(np.linspace(
                     self.L[1], self.L[2], 1 + int(self.L[5] - self.L[4])), 3)
 
-            elif QxQy:
-                self.Qz_axis = np.linspace(
-                    self.Qz[1], self.Qz[2], 1 + int(self.Qz[5]-self.Qz[4]))
-                self.Qx_axis = np.linspace(
-                    self.Qx[1], self.Qx[2], 1 + int(self.Qx[5]-self.Qx[4]))
-                self.Qy_axis = np.linspace(
-                    self.Qy[1], self.Qy[2], 1 + int(self.Qy[5]-self.Qy[4]))
+            elif qxqy:
+                self.qz_axis = np.linspace(
+                    self.qz[1], self.qz[2], 1 + int(self.qz[5]-self.qz[4]))
+                self.qx_axis = np.linspace(
+                    self.qx[1], self.qx[2], 1 + int(self.qx[5]-self.qx[4]))
+                self.qy_axis = np.linspace(
+                    self.qy[1], self.qy[2], 1 + int(self.qy[5]-self.qy[4]))
 
-            elif QXpYp:
+            elif qxpYp:
                 self.Q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1 + int(self.Q[5]-self.Q[4]))
                 self.xp_axis = np.linspace(
@@ -341,11 +347,6 @@ class Map:
                     self.omega_axis = np.round(np.linspace(
                         self.omega[1], self.omega[2], 1 + int(self.omega[5] - self.omega[4])), 3)
 
-        try:
-            if verbose:
-                print_binocular_axes(self.file_path)
-        except AttributeError:
-            print("Data type not supported")
 
     def project_data(
         self,
@@ -377,7 +378,7 @@ class Map:
 
         For ASCII file, use np.savetxt instead.
 
-        :param projection_axis: string in ("H", "K", "L", "Qx", "Qy", "Qz")
+        :param projection_axis: string in ("H", "K", "L", "qx", "qy", "qz")
         :param axis_range_1: list or tuple of length two, defines the positions
             of the value to be used in the array on the desired axis, use [None,
             None] to use the whole range.
@@ -388,9 +389,9 @@ class Map:
             "H": 2,
             "K": 1,
             "L": 0,
-            "Qx": 2,
-            "Qy": 1,
-            "Qz": 0,
+            "qx": 2,
+            "qy": 1,
+            "qz": 0,
             "delta": 2,
             "gamma": 1,
             "mu": 0,
@@ -401,9 +402,9 @@ class Map:
             "H": "H_axis",
             "K": "K_axis",
             "L": "L_axis",
-            "Qx": "Qx_axis",
-            "Qy": "Qy_axis",
-            "Qz": "Qz_axis",
+            "qx": "qx_axis",
+            "qy": "qy_axis",
+            "qz": "qz_axis",
             "delta": "delta_axis",
             "gamma": "gamma_axis",
             "mu": "mu_axis",
@@ -430,15 +431,15 @@ class Map:
             end_index = len(projection_axis_values)-1
 
         # Only take values that are within the axis range
-        if self.projection_axis in ('H', "Qx", "delta"):
+        if self.projection_axis in ('H', "qx", "delta"):
             sliced_ct = self.ct[:, :, start_index:end_index+1]
             sliced_cont = self.cont[:, :, start_index:end_index+1]
 
-        elif self.projection_axis in ('K', "Qy", "gamma"):
+        elif self.projection_axis in ('K', "qy", "gamma"):
             sliced_ct = self.ct[:, start_index:end_index+1, :]
             sliced_cont = self.cont[:, start_index:end_index+1, :]
 
-        elif self.projection_axis in ('L', "Qz", "mu", "omega"):
+        elif self.projection_axis in ('L', "qz", "mu", "omega"):
             sliced_ct = self.ct[start_index:end_index+1, :, :]
             sliced_cont = self.cont[start_index:end_index+1, :, :]
 
@@ -759,29 +760,29 @@ class Map:
             axis_name1 = 'H (rlu)'
             axis_name2 = 'K (rlu)'
 
-        elif self.projection_axis == 'Qxyz':
+        elif self.projection_axis == 'qxyz':
             axis1 = self.Q_axis
             axis2 = self.Phi_axis
             axis_name1 = 'Q'
             axis_name2 = 'Phi (deg)'
 
-        elif self.projection_axis == 'Qx':
-            axis1 = self.Qy_axis
-            axis2 = self.Qz_axis
-            axis_name1 = 'Qy'
-            axis_name2 = 'Qz'
+        elif self.projection_axis == 'qx':
+            axis1 = self.qy_axis
+            axis2 = self.qz_axis
+            axis_name1 = 'qy'
+            axis_name2 = 'qz'
 
-        elif self.projection_axis == 'Qy':
-            axis1 = self.Qx_axis
-            axis2 = self.Qz_axis
-            axis_name1 = 'Qx'
-            axis_name2 = 'Qz'
+        elif self.projection_axis == 'qy':
+            axis1 = self.qx_axis
+            axis2 = self.qz_axis
+            axis_name1 = 'qx'
+            axis_name2 = 'qz'
 
-        elif self.projection_axis == 'Qz':
-            axis1 = self.Qx_axis
-            axis2 = self.Qy_axis
-            axis_name1 = 'Qx'
-            axis_name2 = 'Qy'
+        elif self.projection_axis == 'qz':
+            axis1 = self.qx_axis
+            axis2 = self.qy_axis
+            axis_name1 = 'qx'
+            axis_name2 = 'qy'
 
         elif self.projection_axis == 'delta':
             axis1 = self.gamma_axis
@@ -842,7 +843,7 @@ class CTR:
     The binocular data is loaded as followin the integrate_CTR() method:
         * Divide counts by contribution where cont != 0
         * Swap the h and k axes to be consistent with the indexing
-            [h, k, l], or [Qx, Qy, Qz].
+            [h, k, l], or [qx, qy, qz].
     If you use this method, to have the best results you should define your step
     in L directly in binoculars process and use the same step afterwards.
     """
