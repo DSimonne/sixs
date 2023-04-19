@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 import ipywidgets as widgets
-from ipywidgets import interactive, fixed, Layout
+from ipywidgets import interactive, fixed, Layout, interact
 
 
 class Reflectivity:
@@ -120,7 +120,8 @@ class Reflectivity:
             [n in f for n in self.scan_indices])]
 
         # Sort files
-        numbers = [int(f.split(".nxs")[0][-5:]) for f in files_with_scan_number]
+        numbers = [int(f.split(".nxs")[0][-5:])
+                   for f in files_with_scan_number]
         tuples = sorted(zip(numbers, files_with_scan_number))
         __, self.scan_list = [t[0] for t in tuples], [t[1] for t in tuples]
 
@@ -163,7 +164,6 @@ class Reflectivity:
             self.piezo_attenuators_key
             self.data_key
             self.detector_key
-            self.detector_key
             self.acquisition_time_key
             self.mu_key
             self.beta_key
@@ -180,7 +180,7 @@ class Reflectivity:
         :param pneumatic_attenuators_coef: None, if not specified the value is
             extracted from the file, otherwise provide float
         """
-        self.intensities = []
+        self.intensities, self.detector_images = [], []
         self.mu, self.beta, self.delta, self.etaa, self.gamma = [], [], [], [], []
         self.wavelength = []
 
@@ -195,10 +195,12 @@ class Reflectivity:
                     self.pneumatic_attenuators_key][...]
                 if piezo_attenuators_coef is None:
                     piezo_attenuators_coef = f.root.com.SIXS["i14-c-c00-ex-config-att"].att_coef[...]
-                piezo_attenuators_amounts = f.root.com.scan_data[self.piezo_attenuators_key][...]
+                piezo_attenuators_amounts = f.root.com.scan_data[
+                    self.piezo_attenuators_key][...]
+
                 detector_images = f.root.com.scan_data[self.data_key][...]
                 detector_mask = f.root.com.SIXS[self.detector_key].mask[...]
-                roi_limits = f.root.com.SIXS[self.detector_key].roi_limits[...]
+                self.roi_limits = f.root.com.SIXS[self.detector_key].roi_limits[...]
                 acquisition_time = f.root.com.SIXS[self.acquisition_time_key].integration_time[...]
                 mu = f.root.com.scan_data[self.mu_key][...]
                 beta = f.root.com.scan_data[self.beta_key][...]
@@ -215,10 +217,10 @@ class Reflectivity:
             self.gamma.append(gamma)
             self.wavelength.append(wavelength)
 
-            # create 3d mask array
+            # Create 3d mask array
             mask_array = np.ones(detector_images.shape) * detector_mask
 
-            # mask the data
+            # Mask the data
             masked_images = np.where(
                 mask_array == 0,
                 detector_images,
@@ -227,12 +229,12 @@ class Reflectivity:
 
             # Get ROI
             if isinstance(roi, int):
-                roi = roi_limits[3]
+                roi = self.roi_limits[roi]
 
             # Compute reflectivity by summing data in ROI
             reflectivity_data = np.nansum(
                 masked_images[:, roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]],
-                axis=(1, 2)
+                axis=(1, 2),
             )
 
             # Compute attenuator coefficient
@@ -473,12 +475,12 @@ class Reflectivity:
 
     def compare_roi(
         self,
+        roi,
         v_min_log=0.01,
         v_max_log=1000,
-        central_pixel_x=94,
-        central_pixel_y=278,
-        figsize=(16, 9),
-        data_range=300,
+        central_pixel_x=0,
+        central_pixel_y=0,
+        figsize=(10, 6),
     ):
         """
         Widget function to assess the quality of the roi on the .nxs file.
@@ -487,129 +489,156 @@ class Reflectivity:
         :param v_min_log: minimum value in log scale
         :param v_max_log: maximum value in log scale
         :param central_pixel_x: central pixel (x usually delta) corresponding
-         to the angular positions saved in nexus file. There is usually a
-         shift of about ~1.7° that allows us to hide the direct beam to work
-         with the attenuators.
+            to the angular positions saved in nexus file. There is usually a
+            shift of about ~1.7° that allows us to hide the direct beam to work
+            with the attenuators.
         :param central_pixel_y: central pixel (y usually gamma) corresponding
-         to the angular positions saved in nexus file.
-        :param figsize: size of figure
+            to the angular positions saved in nexus file.
         """
-
-        try:
-            self.x_range
-            self.y_range
-
-        except:
-            return ("You need to run Reflectivity.prep_nxs_data() before!")
-
-        # Define detector image plotting function
-        def plot2D(a, b, c, d, Refl, index):
-            fig, ax = plt.subplots(2, 1, figsize=figsize)
-
-            try:
-                data = getattr(Refl, self.detector)
-            except AttributeError:
-                print("Could not load detector data ...")
-
-            ax[0].imshow(
-                data[index, :, :],
-                norm=LogNorm(vmin=v_min_log, vmax=v_max_log)
-            )
-            ax[0].axhline(b, linewidth=1, color="red")
-            ax[0].axhline(b + d, linewidth=1, color="red")
-
-            ax[0].axvline(a, linewidth=1, color="red")
-            ax[0].axvline(a + c, linewidth=1, color="red", label="ROI")
-
-            ax[0].axvline(central_pixel_x, linestyle="--",
-                          linewidth=1, color="black")
-            ax[0].axhline(central_pixel_y, linestyle="--",
-                          linewidth=1, color="black", label="Central pixel")
-            ax[0].legend(fontsize=15)
-
-            ax[0].set_title('Entire detector', fontsize=15)
-            ax[0].set_ylabel("Y (Gamma)", fontsize=15)
-            ax[0].set_xlabel("X (Delta)", fontsize=15)
-
-            ax[1].set_title('Zoom in ROI', fontsize=15)
-            ax[1].set_ylabel("Y (Gamma)", fontsize=15)
-            ax[1].set_xlabel("X (Delta)", fontsize=15)
-
-            ax[1].imshow(
-                data[index, b:b+d, a:a+c],
-                norm=LogNorm(vmin=v_min_log, vmax=v_max_log)
-            )
-
-            plt.tight_layout()
-
-        # Create widget list
-        _list_widgets = interactive(
-            plot2D,
-            a=widgets.IntSlider(
-                value=0,
-                min=0,
-                max=self.x_range,
-                step=1,
-                description='a:',
-                continuous_update=False,
-                orientation='horizontal',
-                readout=True,
-                readout_format='d'),
-            b=widgets.IntSlider(
-                value=0,
-                min=0,
-                max=self.y_range,
-                step=1,
-                description='b:',
-                continuous_update=False,
-                orientation='horizontal',
-                readout=True,
-                readout_format='d'),
-            c=widgets.IntSlider(
-                value=self.x_range,
-                min=0,
-                max=self.x_range,
-                step=1,
-                description='c:',
-                continuous_update=False,
-                orientation='horizontal',
-                readout=True,
-                readout_format='d'),
-            d=widgets.IntSlider(
-                value=self.y_range,
-                min=0,
-                max=self.y_range,
-                step=1,
-                description='d:',
-                continuous_update=False,
-                orientation='horizontal',
-                readout=True,
-                readout_format='d'),
-            index=widgets.IntSlider(
-                value=0,
-                min=0,
-                max=data_range,
-                step=1,
-                description='Index:',
-                continuous_update=False,
-                orientation='horizontal',
-                readout=True,
-                readout_format='d',
+        # First interactive function to choose the file
+        @ interact(
+            filename=widgets.Select(
+                options=self.scan_list,
+                description='File:',
                 style={'description_width': 'initial'},
-                layout=Layout(width="30%")),
-            Refl=widgets.Select(
-                options=[rn4.DataSet(filename=f, directory=self.folder)
-                         for f in self.scan_list],
-                description='Scan:',
-                style={'description_width': 'initial'},
-                layout=Layout(width="70%")))
-        window = widgets.VBox([
-            widgets.HBox(_list_widgets.children[0:4]),
-            widgets.HBox(_list_widgets.children[4:-1]),
-            _list_widgets.children[-1]
-        ])
+                layout=Layout(width="70%"))
+        )
+        def plot_dataset(filename):
+            "Plot image from detector with ROI on top"
+            with tb.open_file(self.folder + filename) as f:
+                detector_images = f.root.com.scan_data[self.data_key][...]
+                detector_mask = f.root.com.SIXS[self.detector_key].mask[...]
+                roi_limits = f.root.com.SIXS[self.detector_key].roi_limits[...]
+                # mu = f.root.com.scan_data[self.mu_key][...]
+                # beta = f.root.com.scan_data[self.beta_key][...]
+                # delta = f.root.com.scan_data[self.delta_key][...]
+                # etaa = f.root.com.scan_data[self.etaa_key][...]
+                # gamma = f.root.com.scan_data[self.gamma_key][...]
+                # wavelength = f.root.com.SIXS[self.wavelength_key]["lambda"][0]
 
-        return window
+            # Get ROI
+            if isinstance(roi, int):
+                x_start, y_start, x_width, y_width = roi_limits[roi]
+
+            elif isinstance(roi, (list, tuple)) and len(roi) == 4:
+                x_start, y_start, x_width, y_width = roi
+
+            else:
+                raise TypeError(
+                    "Roi parameter must be an integer in [0, 1, 2, 3, 4] or a "
+                    "container of length 4."
+                )
+
+            # Get detector shape
+            nb_images, detector_height, detector_width = detector_images.shape
+
+            # Create 3d mask array
+            mask_array = np.ones(detector_images.shape) * detector_mask
+
+            # Mask the data
+            masked_images = np.where(
+                mask_array == 0,
+                detector_images,
+                np.nan
+            )
+
+            # Define detector image plotting function
+            def plot2D(a, b, c, d, index):
+                fig, ax = plt.subplots(2, 1, figsize=figsize)
+                ax[0].imshow(
+                    masked_images[index, :, :],
+                    norm=LogNorm(vmin=v_min_log, vmax=v_max_log)
+                )
+                ax[0].axhline(b, linewidth=1, color="red")
+                ax[0].axhline(b + d, linewidth=1, color="red")
+
+                ax[0].axvline(a, linewidth=1, color="red")
+                ax[0].axvline(a + c, linewidth=1, color="red", label="ROI")
+
+                ax[0].axvline(central_pixel_x, linestyle="--",
+                              linewidth=1, color="black")
+                ax[0].axhline(central_pixel_y, linestyle="--",
+                              linewidth=1, color="black", label="Central pixel")
+                ax[0].legend(fontsize=15)
+
+                ax[0].set_title('Entire detector', fontsize=15)
+                ax[0].set_ylabel("Y (Gamma)", fontsize=15)
+                ax[0].set_xlabel("X (Delta)", fontsize=15)
+
+                ax[1].set_title('Zoom in ROI', fontsize=15)
+                ax[1].set_ylabel("Y (Gamma)", fontsize=15)
+                ax[1].set_xlabel("X (Delta)", fontsize=15)
+
+                ax[1].imshow(
+                    masked_images[index, b:b+d, a:a+c],
+                    norm=LogNorm(vmin=v_min_log, vmax=v_max_log)
+                )
+
+                plt.tight_layout()
+
+            # Create widget list
+            _list_widgets = interactive(
+                plot2D,
+                a=widgets.IntSlider(
+                    value=x_start,
+                    min=0,
+                    max=detector_width,
+                    step=1,
+                    description='x_start:',
+                    continuous_update=False,
+                    orientation='horizontal',
+                    readout=True,
+                    readout_format='d'),
+                b=widgets.IntSlider(
+                    value=y_start,
+                    min=0,
+                    max=detector_height,
+                    step=1,
+                    description='y_start:',
+                    continuous_update=False,
+                    orientation='horizontal',
+                    readout=True,
+                    readout_format='d'),
+                c=widgets.IntSlider(
+                    value=x_width,
+                    min=0,
+                    max=detector_width,
+                    step=1,
+                    description='x_width:',
+                    continuous_update=False,
+                    orientation='horizontal',
+                    readout=True,
+                    readout_format='d'),
+                d=widgets.IntSlider(
+                    value=y_width,
+                    min=0,
+                    max=detector_height,
+                    step=1,
+                    description='y_width:',
+                    continuous_update=False,
+                    orientation='horizontal',
+                    readout=True,
+                    readout_format='d'),
+                index=widgets.IntSlider(
+                    value=0,
+                    min=0,
+                    max=nb_images-1,
+                    step=1,
+                    description='Index:',
+                    continuous_update=False,
+                    orientation='horizontal',
+                    readout=True,
+                    readout_format='d',
+                    style={'description_width': 'initial'},
+                    layout=Layout(width="30%"))
+            )
+            window = widgets.VBox([
+                widgets.HBox(_list_widgets.children[0:4]),
+                _list_widgets.children[4],
+                _list_widgets.children[-1]
+            ])
+
+            return window
 
     def extract_data(
         self,
@@ -641,7 +670,7 @@ class Reflectivity:
             self.scan_indices
         ):
             if convert_theta_two_theta:
-                two_theta= x * 2
+                two_theta = x * 2
 
             data_array = np.array([two_theta[~np.isnan(y)], y[~np.isnan(y)]]).T
 

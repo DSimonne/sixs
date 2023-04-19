@@ -347,7 +347,6 @@ class Map:
                     self.omega_axis = np.round(np.linspace(
                         self.omega[1], self.omega[2], 1 + int(self.omega[5] - self.omega[4])), 3)
 
-
     def project_data(
         self,
         projection_axis,
