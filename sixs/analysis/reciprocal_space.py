@@ -1432,7 +1432,8 @@ class CTR:
         # Save final data as numpy array
         # 0 is x axis, 1 is data, 2 is background
         data_dict = {
-            str(g): np.nan * np.empty((3, l_length)) for g in good_scan_indices
+            str(g): np.nan * np.empty((3, l_length))
+            for g in good_scan_indices
         }
 
         # Background already subtracted
@@ -1485,12 +1486,13 @@ class CTR:
                  for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
 
         # Get scans specified with scan_indices
-        scan_files, good_scan_indices = [], []
+        scan_files = []
         for f in files:
             if any([str(n) in f for n in scan_indices]):
                 scan_files.append(f)
-                good_scan_indices.append(
-                    [n for n in scan_indices if str(n) in f][0])
+
+        if len(scan_files) == 0:
+            return ("No matching files found in folder.")
 
         if verbose:
             print(
@@ -1539,17 +1541,20 @@ class CTR:
 
         # Save final data as numpy array
         # 0 is x axis, 1 is data, 2 is background
-        data = np.nan * np.empty((len(scan_files), 3, l_length))
+        data_dict = {
+            str(g): np.nan * np.empty((3, l_length))
+            for g in scan_indices
+        }
 
         # Get l axis and CTR intensity for each file
-        for i, fname in tqdm(enumerate(scan_files)):
+        for g, fname in tqdm(zip(scan_indices, scan_files)):
             # Load data
             rod_data = np.loadtxt(folder + fname, skiprows=2)
             scan_l_axis = rod_data[:, 2]
             ctr_data = rod_data[:, data_column]
 
-            data[i, 0, :len(scan_l_axis)] = scan_l_axis
-            data[i, 1, :len(scan_l_axis)] = ctr_data
+            data_dict[str(g)][0, :len(scan_l_axis)] = scan_l_axis
+            data_dict[str(g)][1, :len(scan_l_axis)] = ctr_data
 
         # Saving
         print(
@@ -1557,7 +1562,10 @@ class CTR:
             f"\nSaving data as: {folder}{save_name}"
             "\n###########################################################"
         )
-        np.save(folder + save_name, data)
+        np.savez(
+            folder + save_name,
+            **data_dict,
+        )
 
     @ staticmethod
     def plot_CTR(
