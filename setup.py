@@ -11,7 +11,7 @@ setuptools.setup(
     author_email="david.simonne@synchrotron-soleil.fr",
     data_files=[('', ["licence.txt",
                       "sixs/experiments/ammonia.yml",
-                      "sixs/alias_dict_2022.txt",                      
+                      "sixs/experiments/config_file.txt",
                       ])],
     scripts=[
         "sixs/scripts/print_binoculars_axes.py",

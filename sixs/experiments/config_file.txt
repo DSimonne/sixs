@@ -1,0 +1,70 @@
+############################# Configuration use #############################
+# What is this configuration file used for
+# Map at RT for 2023/Simonne experiment
+
+########### The `dispacher` is responsible for the job management ###########
+[dispatcher]
+type = local # singlecore
+# ncores = 16 # autodetect by default
+destination = ctr_hkl_{first}-{last}.hdf5
+overwrite=true
+# automatically overwrites with binoculars-ng
+
+####### Choose an appropriate `input` class and specify custom options ######
+# refers to classes in BINoculars/backends/sixs.py
+[input]
+type = sixs:FlyMedH
+nexusdir = /nfs/ruche-sixs/sixs-soleil/com-sixs/2023/Run2/Simonne_20221051
+
+#############################################################################
+#           Change parameters related to a different orientation !          #
+#                Leave these parameters commented if you do                 #
+#                  not want to overwrite the orientation                    #
+#                       specified in the NeXuS file                         #
+#############################################################################
+
+########## Surface orientation ##########
+# a=2.7748
+# b=2.7748
+# c=2.7748
+# alpha=90
+# beta=90
+# gamma=90
+
+############ Bulk orientation ############
+# a=3.9242
+# b=3.9242
+# c=3.9242
+# alpha=90
+# beta=90
+# gamma=90
+
+########## Sample orientation ##########
+# ux=0.109413
+# uy=-0.120617
+# uz=98.1315
+
+############### Technical data for this particular input #####################
+centralpixel = 265, 111									# x, y (H, V)
+sdd = 1.185												# sample to detector distance (m)
+detrot = 180											# detector rotation around ?
+# surface_orientation = vertical						# Used only for Q projection
+attenuation_coefficient = 1.8							# filter attenuation coefficient
+maskmatrix = /nfs/ruche-sixs/sixs-soleil/com-sixs/2023/Run2/Simonne_20221051/binoculars/mask_nxs00044_20230404_20h19.npy
+
+###################### Choose projection and resolution ######################
+# projections options (see BINoculars/backends/sixs.py):
+#    realspace, pixels,
+#    hklprojection, hkprojection,
+#    qxqyqzprojection, qparqperprojection
+#    AnglesProjection2
+[projection]
+type = hkl
+
+# Specify the resolution in 3D
+resolution = 0.005, 0.005, 0.05
+
+############################## Other parameters ##############################
+# limits = [-3.53:-1.68,-0.59:0.68,0.98:1.06]
+# omega_offset = 0
+# source /usr/local/applications/diffractions/binoculars/v0.0.1/env.sh
