@@ -2006,6 +2006,76 @@ def simulate_rod(
     os.system(f'cd {save_folder} && rod < {macro_file}')
 
 
+def save_as_dat(
+    fitaid_file,
+    h,
+    k,
+    l_bragg,
+    save_as,
+    f_threshold=None,
+    l_shift=None,
+    l_range=None,
+    sigma=None,
+):
+    """
+    Save data in `.dat format to then be used in ROD.
+    Will automatically mask np.nan values
+
+    :param fitaid_file: 2D array containing l and structure factor values, output of binoculars fitaid
+    :param h: position in h
+    :param k: position in k
+    :param l_bragg: first bragg peak position in L
+    :param save_as: final file name
+    :param f_threshold: threshold for structure factor above which the values are masked
+    :param l_shift: rigid shift in l to apply
+    :param l_range: container of len 2, mask points outside this range
+    :param sigma: if int, saved as sigma for each row, if array of same length as the data, used for sigma
+    """
+
+    data = np.loadtxt(fitaid_file)
+    # Mask np.nan
+    data = data[~np.isnan(data[:,1])]
+
+    # Mask data if above threshold
+    if f_threshold is not None:
+        data = data[
+            data[:,1]<f_threshold
+        ]
+
+    # Mask data if outside l_range
+    if len(l_range) == 2 and isinstance(l_range, (list, tuple)):
+        data = data[
+            (data[:,0]>=l_range[0]) * (data[:,0]<=l_range[1])
+        ]
+
+    # Create final array
+    final_data = np.ones((data.shape[0], 6))
+    final_data[:, 0] = h
+    final_data[:, 1] = k
+    final_data[:, 2:4] = data
+    final_data[:, 5] = l_bragg
+
+    if l_shift is not None:
+        fig, ax = plt.subplots()
+        ax.plot(final_data[:, 2], final_data[:, 3], label = "No shift")
+        ax.plot(final_data[:, 2]+l_shift, final_data[:, 3], label = "With l_shift")
+        ax.grid()
+
+        final_data[:, 2] += l_shift
+
+    if isinstance(sigma, int) or isinstance(sigma, np.ndarray):
+        final_data[:, 4] = sigma
+    else:
+        final_data[:, 4] = 0
+
+    np.savetxt(
+        save_as,
+        final_data,
+        fmt="%10.4f",
+        header=f"h, k, l, f, sigma, l_bragg. File used for creation: {fitaid_file}"
+    )
+
+
 def find_value_in_array(array, value):
     array = np.round(array, 4)  # bc of float errors
     try:
