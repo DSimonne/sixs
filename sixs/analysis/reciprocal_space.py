@@ -1735,15 +1735,39 @@ class CTR:
         show(p)
 
 
-def change_nb_unit_cells(
+def change_nb_unit_cells_pt3o4(
     save_as,
     nb_surf_unit_cells=1,
     comment=None,
     spacing=None,
 ):
     """
+    Add cubic Pt3O4 unit cells on top of a .bul file.
 
-    Change spacing between bulk and surface structures
+    The structure is hardcoded to be:
+        3.92 3.92 3.92 90.0 90.0 90.0
+        Pt 1 0 0
+        Pt 0 1 0
+        Pt 0.5 0.5 0
+
+        O 0.5 0 {z0}
+        O 0 0.5 {z0}
+
+        Pt 0 0 {z1}
+        Pt 1 1 {z1}
+        Pt 0.5 0.5 {z1}
+
+        O 0.5 0 {z2}
+        O 0 0.5 {z2}
+
+        Pt 1 0 {z3}
+        Pt 0 1 {z3}
+        Pt 0.5 0.5 {z3}
+
+    With z = (5.66/3.92) and z0 = 0.25*z, z1 = 0.5*z, z2 = 0.75*z, z3 = z.
+
+    :param nb_surf_unit_cells: number of unit cells on top of the bulk
+    :param spacing: spacing (Angström) between bulk and surface structures
     """
 
     # Keep same lattice parameter as bulk Pt
@@ -1823,13 +1847,17 @@ def modify_surface_relaxation(
     print_new_file=True,
 ):
     """
-    The files must use only one space between characters to split properly !!!
+    Edit .sur file for ROD. Play here with the relaxation by multiplying the z
+    parameter of each atom by the same value. Simple model where there is no
+    strain between the successive unit cells but just between the bulk and
+    surface files.
+    The files must use only one space between characters to split properly !
 
     :param base_file: file to edit
     :param save_as: save new file at this path
     :param lines_to_edit: list of lines to edit in the file
     :param columns_to_edit: list of columns to edit in the file,
-     e.g. ["x", "y", "z"]
+        e.g. ["x", "y", "z"]
     :param relaxation: values are multipled by this float number
     :param round_order: to avoid weird float values, the relaxation is rounded
     :param sep: str, separator between the columns, e.g. " " is one space
