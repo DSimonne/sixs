@@ -32,9 +32,9 @@ def extract_orientation_matrix(
                 alpha = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].alpha[0]
                 beta = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].beta[0]
                 gamma = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].gamma[0]
-                ux = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].Ux[0]
-                uy = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].Uy[0]
-                uz = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].Uz[0]
+                ux = np.round(f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].Ux[0], 4)
+                uy = np.round(f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].Uy[0], 4)
+                uz = np.round(f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].Uz[0], 4)
 
             except (tb.exceptions.NoSuchNodeError, IndexError):
                 a = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].A[0]
@@ -43,9 +43,9 @@ def extract_orientation_matrix(
                 alpha = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].alpha[0]
                 beta = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].beta[0]
                 gamma = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].gamma[0]
-                ux = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Ux[0]
-                uy = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Uy[0]
-                uz = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Uz[0]
+                ux = np.round(f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Ux[0], 4)
+                uy = np.round(f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Uy[0], 4)
+                uz = np.round(f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Uz[0], 4)
 
         scan_orientation_matrix = [
             scan_index,
