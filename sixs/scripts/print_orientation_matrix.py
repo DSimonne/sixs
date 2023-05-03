@@ -93,10 +93,9 @@ if __name__ == "__main__":
         orientation_matrix,
         columns=[
             "Scan index",
-            "a",
-            "Ux",
-            "Uy",
-            "Uz",
+            "a", "b", "c",
+            "alpha", "beta", "gamma",
+            "Ux", "Uy", "Uz",
         ],
     )
 
