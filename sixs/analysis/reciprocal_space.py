@@ -541,8 +541,6 @@ class Map:
                 Y,
                 Z,
                 cmap=cmap,
-                # cstride=40,
-                # rstride=40,
             )
 
         else:

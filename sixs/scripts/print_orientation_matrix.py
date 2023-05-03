@@ -27,22 +27,31 @@ def extract_orientation_matrix(
         with tb.open_file(filename) as f:
             try:
                 a = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].A[0]
+                b = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].B[0]
+                c = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].C[0]
+                alpha = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].alpha[0]
+                beta = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].beta[0]
+                gamma = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].gamma[0]
                 ux = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].Ux[0]
                 uy = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].Uy[0]
                 uz = f.root.com.SIXS["i14-c-cx1-ex-cm-med.h"].Uz[0]
 
             except (tb.exceptions.NoSuchNodeError, IndexError):
                 a = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].A[0]
+                b = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].B[0]
+                c = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].C[0]
+                alpha = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].alpha[0]
+                beta = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].beta[0]
+                gamma = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].gamma[0]
                 ux = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Ux[0]
                 uy = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Uy[0]
                 uz = f.root.com.SIXS["i14-c-cx1-ex-cm-med.v"].Uz[0]
 
         scan_orientation_matrix = [
             scan_index,
-            a,
-            ux,
-            uy,
-            uz,
+            a, b, c,
+            alpha, beta, gamma,
+            ux, uy, uz,
         ]
 
         return scan_orientation_matrix
