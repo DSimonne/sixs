@@ -292,8 +292,8 @@ class XCAT:
                     print(f"New pandas.DataFrame created for:")
                 print("\t", mass)
 
-        except Exception as e:
-            raise e
+        except AttributeError:
+            print("You must load the XCAT data file first.")
         print(f"{hashtag_line}\n")
 
     def load_mass_spec_file(
