@@ -646,6 +646,7 @@ class Reflectivity:
         convert_theta_two_theta=False,
         folder=None,
         y_errors=None,
+        x_range=[0, 10],
     ):
         """
         Extract data as .dat files to be used in Genx.
@@ -658,6 +659,7 @@ class Reflectivity:
         :param folder: None, folder in which the files are saved, if None then
             uses the same folder as defined in __init__
         :param y_errors: not supported yet
+        :param x_range: range in x in which we use the data
         """
 
         x_axis = getattr(self, x_var)
@@ -669,6 +671,12 @@ class Reflectivity:
             self.intensities,
             self.scan_indices
         ):
+            # Get x range
+            mask = (x > x_range[0]) * (x < x_range[1])
+
+            x = x[mask]
+            y = y[mask]
+
             if convert_theta_two_theta:
                 two_theta = x * 2
 
@@ -695,3 +703,92 @@ class Reflectivity:
                     return array[-1], -1
                 elif all(array > value):
                     return array[0], 0
+
+
+class GenxDataset:
+    """
+    Extract data from .ort files, output of genx
+    * simulated data
+    * figure of merit
+    * fit parameters
+    """
+
+    def __init__(self, filename, scan=None, debog=False):
+        self.filename = filename
+
+        if filename.endswith(".ort"):
+            with open(self.filename) as f:
+                lines = f.readlines()
+
+                # Get parameters, columns, and starting value for scan
+                start_data = None
+                for j, l in enumerate(lines):
+                    if "#   parameters:" in l:
+                        start_parameter = j
+                    elif "#   operator:" in l:
+                        end_parameter = j
+                    elif f"# data_set: '{scan}'" in l:
+                        if not "# analysis" in lines[j+1]:
+                            start_data = j
+                    elif "# columns:" in l:
+                        column_start = j
+
+                self._parameter_data = lines[start_parameter:end_parameter]
+                self._columns_data = lines[column_start:column_start+6]
+
+                # Get data
+                if start_data is None:
+                    for j, l in enumerate(lines):
+                        if "# # TTh (deg)" in l and start_data is None:
+                            start_data = j + 1
+
+                end_data = None
+                for j, l in enumerate(lines[start_data+1:]):
+                    if "data_set:" in l and end_data is None:
+                        end_data = start_data + j
+                try:
+                    maxrows = end_data - start_data - 2
+                except TypeError:
+                    maxrows = None
+
+            if debog:
+                print(start_data, end_data, maxrows)
+
+            self.data = np.loadtxt(
+                filename, skiprows=start_data+2, max_rows=maxrows)
+
+        elif filename.endswith(".hgx"):
+
+            with h5py.File(filename, "r") as f:
+                self._columns_data = f["current"]["parameters"]["data_labels"][...]
+                self._parameter_data = pd.DataFrame()
+
+                for j, label in enumerate(data_labels):
+                    self._parameter_data[label.decode(
+                        'utf-8')] = f["current"]["parameters"][f"data col {j}"][...]
+
+                self.raw_data = f["current"]["data"]["datasets"]["0"]["y"][...]
+                self.simulated_data = f["current"]["data"]["datasets"]["0"]["y_sim"][...]
+                self.x = f["current"]["data"]["datasets"]["0"]["x"][...]
+
+    def plot_simulated_data(self):
+        fig, ax = plt.subplots()
+
+        ax.plot(self.x, self.raw_data, label="Data")
+        ax.plot(self.x, self.simulated_data, label="Fit")
+        ax.grid()
+        ax.set_xlabel("Beta (°)")
+        ax.set_ylabel("Intensity (a.u.)")
+        ax.semilogy()
+        ax.legend()
+
+    def parameters(self):
+        for l in self._parameter_data:
+            print(l, end=" ")
+
+    def columns(self):
+        for l in self._columns_data:
+            print(l, end=" ")
+
+    def __repr__(self):
+        return self.filename

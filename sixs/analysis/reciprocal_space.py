@@ -2060,18 +2060,18 @@ def save_as_dat(
 
     data = np.loadtxt(fitaid_file)
     # Mask np.nan
-    data = data[~np.isnan(data[:,1])]
+    data = data[~np.isnan(data[:, 1])]
 
     # Mask data if above threshold
     if f_threshold is not None:
         data = data[
-            data[:,1]<f_threshold
+            data[:, 1] < f_threshold
         ]
 
     # Mask data if outside l_range
     if len(l_range) == 2 and isinstance(l_range, (list, tuple)):
         data = data[
-            (data[:,0]>=l_range[0]) * (data[:,0]<=l_range[1])
+            (data[:, 0] >= l_range[0]) * (data[:, 0] <= l_range[1])
         ]
 
     # Create final array
@@ -2083,8 +2083,9 @@ def save_as_dat(
 
     if l_shift is not None:
         fig, ax = plt.subplots()
-        ax.plot(final_data[:, 2], final_data[:, 3], label = "No shift")
-        ax.plot(final_data[:, 2]+l_shift, final_data[:, 3], label = "With l_shift")
+        ax.plot(final_data[:, 2], final_data[:, 3], label="No shift")
+        ax.plot(final_data[:, 2]+l_shift,
+                final_data[:, 3], label="With l_shift")
         ax.grid()
 
         final_data[:, 2] += l_shift
