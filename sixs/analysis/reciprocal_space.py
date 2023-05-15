@@ -2069,10 +2069,13 @@ def save_as_dat(
         ]
 
     # Mask data if outside l_range
-    if len(l_range) == 2 and isinstance(l_range, (list, tuple)):
-        data = data[
-            (data[:, 0] >= l_range[0]) * (data[:, 0] <= l_range[1])
-        ]
+    if isinstance(l_range, (list, tuple)):
+        if len(l_range) == 2:
+            data = data[
+                (data[:, 0] >= l_range[0]) * (data[:, 0] <= l_range[1])
+            ]
+        else:
+            print("`l_range` must be of length 2.")
 
     # Create final array
     final_data = np.ones((data.shape[0], 6))
