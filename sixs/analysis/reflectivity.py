@@ -70,8 +70,8 @@ class Reflectivity:
         :param folder: path to data folder
         :param scan_indices: indices of reflectivity scans, list
         :param configuration_file: str, .yml file that stores metadata
-         specific to the reaction, if False, default to path_package
-         + "experiments/ammonia.yml"
+            specific to the reaction, if False, default to path_package
+            + "experiments/ammonia.yml"
         :param verbose: True to print extra informations
         """
         path_package = inspect.getfile(sixs).split("__")[0]
@@ -103,7 +103,7 @@ class Reflectivity:
 
         # Init class arguments
         self.folder = folder
-        self.scan_indices = [str(s) for s in scan_indices]
+        self.scan_indices = [f"{s:05d}"for s in scan_indices]
 
         # Find files in folder depending on data format
         files = [f.split("/")[-1]
@@ -180,7 +180,7 @@ class Reflectivity:
         :param pneumatic_attenuators_coef: None, if not specified the value is
             extracted from the file, otherwise provide float
         """
-        self.intensities, self.detector_images = [], []
+        self.intensities = []
         self.mu, self.beta, self.delta, self.etaa, self.gamma = [], [], [], [], []
         self.wavelength = []
 
@@ -191,12 +191,12 @@ class Reflectivity:
             with tb.open_file(self.folder + file) as f:
                 if pneumatic_attenuators_coef is None:
                     pneumatic_attenuators_coef = f.root.com.SIXS["i14-c-c00-ex-config-att-old"].att_coef[...]
-                pneumatic_attenuators_amounts = f.root.com.scan_data[
-                    self.pneumatic_attenuators_key][...]
+                pneumatic_attenuators_amounts = np.nan_to_num(f.root.com.scan_data[
+                    self.pneumatic_attenuators_key][...])
                 if piezo_attenuators_coef is None:
                     piezo_attenuators_coef = f.root.com.SIXS["i14-c-c00-ex-config-att"].att_coef[...]
-                piezo_attenuators_amounts = f.root.com.scan_data[
-                    self.piezo_attenuators_key][...]
+                piezo_attenuators_amounts = np.nan_to_num(f.root.com.scan_data[
+                    self.piezo_attenuators_key][...])
 
                 detector_images = f.root.com.scan_data[self.data_key][...]
                 detector_mask = f.root.com.SIXS[self.detector_key].mask[...]
