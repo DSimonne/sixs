@@ -2047,15 +2047,18 @@ def save_as_dat(
     Save data in `.dat format to then be used in ROD.
     Will automatically mask np.nan values
 
-    :param fitaid_file: 2D array containing l and structure factor values, output of binoculars fitaid
+    :param fitaid_file: 2D array containing l and structure factor values,
+        output of binoculars fitaid
     :param h: position in h
     :param k: position in k
     :param l_bragg: first bragg peak position in L
     :param save_as: final file name
-    :param f_threshold: threshold for structure factor above which the values are masked
+    :param f_threshold: threshold for structure factor above which the values
+        are masked
     :param l_shift: rigid shift in l to apply
     :param l_range: container of len 2, mask points outside this range
-    :param sigma: if int, saved as sigma for each row, if array of same length as the data, used for sigma
+    :param sigma: if int, saved as sigma for each row, if array of same length
+        as the data, used for sigma, if "sqrt", uses sigma=np.sqrt(i)
     """
 
     data = np.loadtxt(fitaid_file)
@@ -2086,15 +2089,20 @@ def save_as_dat(
 
     if l_shift is not None:
         fig, ax = plt.subplots()
-        ax.plot(final_data[:, 2], final_data[:, 3], label="No shift")
-        ax.plot(final_data[:, 2]+l_shift,
+        ax.scatter(final_data[:, 2], final_data[:, 3], label="No shift")
+        ax.scatter(final_data[:, 2]+l_shift,
                 final_data[:, 3], label="With l_shift")
         ax.grid()
+        ax.legend()
 
         final_data[:, 2] += l_shift
 
-    if isinstance(sigma, int) or isinstance(sigma, np.ndarray):
+    if isinstance(sigma, np.ndarray):
         final_data[:, 4] = sigma
+    elif isinstance(sigma, int):
+        final_data[:, 4] = np.ones(data.shape[0])*sigma
+    elif sigma=="sqrt":
+        final_data[:, 4] = np.sqrt(data[:, 1])
     else:
         final_data[:, 4] = 0
 
