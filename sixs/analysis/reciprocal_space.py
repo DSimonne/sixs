@@ -1456,7 +1456,7 @@ class CTR:
             **data_dict,
         )
 
-    def load_ROD_data(
+    def load_simulated_ROD_data(
         self,
         folder,
         scan_indices,
@@ -1736,33 +1736,34 @@ class CTR:
 def change_nb_unit_cells_pt3o4(
     save_as,
     nb_surf_unit_cells=1,
-    comment=None,
+    comment="",
     spacing=None,
 ):
     """
     Add cubic Pt3O4 unit cells on top of a .bul file.
 
     The structure is hardcoded to be:
-        3.92 3.92 3.92 90.0 90.0 90.0
-        Pt 1 0 0
-        Pt 0 1 0
-        Pt 0.5 0.5 0
+        5.66568400 5.66568400 3.9254 90.0 90.0 90.0
 
-        O 0.5 0 {z0}
-        O 0 0.5 {z0}
+        Pt 0.50 0 0 0 0 0.25 0 0 0 0 {z0} 1 1 1 0
+        Pt 0.50 0 0 0 0 0.75 0 0 0 0 {z0} 1 1 1 0
 
-        Pt 0 0 {z1}
-        Pt 1 1 {z1}
-        Pt 0.5 0.5 {z1}
+        Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z1} 1 1 1 0
+        O  0.75 0 0 0 0 0.25 0 0 0 0 {z1} 1 1 1 0
+        O  0.25 0 0 0 0 0.75 0 0 0 0 {z1} 1 1 1 0
+        O  0.75 0 0 0 0 0.75 0 0 0 0 {z1} 1 1 1 0
+        O  0.25 0 0 0 0 0.25 0 0 0 0 {z1} 1 1 1 0
 
-        O 0.5 0 {z2}
-        O 0 0.5 {z2}
+        Pt 0.75 0 0 0 0 0.00 0 0 0 0 {z2} 1 1 1 0
+        Pt 0.25 0 0 0 0 0.00 0 0 0 0 {z2} 1 1 1 0
 
-        Pt 1 0 {z3}
-        Pt 0 1 {z3}
-        Pt 0.5 0.5 {z3}
+        O  0.25 0 0 0 0 0.25 0 0 0 0 {z3} 1 1 1 0
+        O  0.75 0 0 0 0 0.75 0 0 0 0 {z3} 1 1 1 0
+        O  0.25 0 0 0 0 0.75 0 0 0 0 {z3} 1 1 1 0
+        O  0.75 0 0 0 0 0.25 0 0 0 0 {z3} 1 1 1 0
+        Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z3} 1 1 1 0
 
-    With z = (5.66/3.92) and z0 = 0.25*z, z1 = 0.5*z, z2 = 0.75*z, z3 = z.
+    With z = (5.6657/3.9254) and z0 = 0.25*z, z1 = 0.5*z, z2 = 0.75*z.
 
     :param nb_surf_unit_cells: number of unit cells on top of the bulk
     :param spacing: spacing (Angström) between bulk and surface structures
@@ -1773,65 +1774,41 @@ def change_nb_unit_cells_pt3o4(
     lines.append(f", {nb_surf_unit_cells} unit cells.\n")
 
     # crystal lattice
-    lines.append("3.92 3.92 3.92 90.0 90.0 90.0\n")
+    lines.append("5.6657 5.6657 3.9254 90.0 90.0 90.0\n")
+    z = (5.6657/3.9254)
 
-    # first layer at z = 0
-    lines.append("Pt 1 0 0\n")
-    lines.append("Pt 0 1 0\n")
-    lines.append("Pt 0.5 0.5 0\n")
+    for n in range(nb_surf_unit_cells):
+        # non z = 0 layers inside the first unit cell
+        # values in z
+        z0 = np.round(n*z, 4)
+        z1 = np.round((n + 0.25) * z, 4)
+        z2 = np.round((n + 0.5)  * z, 4)
+        z3 = np.round((n + 0.75) * z, 4)
 
-    # non z = 0 layers inside the first unit cell
-    # values in z
-    z = (5.66/3.92)
-    z0 = 0.25*z
-    z1 = 0.5*z
-    z2 = 0.75*z
-    z3 = 1*z
+        unit_cell = [
+            f"Pt 0.50 0 0 0 0 0.25 0 0 0 0 {z0} 1 1 1 0\n",
+            f"Pt 0.50 0 0 0 0 0.75 0 0 0 0 {z0} 1 1 1 0\n",
 
-    first_unit_cell = [
-        f"O 0.5 0 {z0}\n",
-        f"O 0 0.5 {z0}\n",
+            f"Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z1} 1 1 1 0\n",
+            f"O  0.75 0 0 0 0 0.25 0 0 0 0 {z1} 1 1 1 0\n",
+            f"O  0.25 0 0 0 0 0.75 0 0 0 0 {z1} 1 1 1 0\n",
+            f"O  0.75 0 0 0 0 0.75 0 0 0 0 {z1} 1 1 1 0\n",
+            f"O  0.25 0 0 0 0 0.25 0 0 0 0 {z1} 1 1 1 0\n",
 
-        f"Pt 0 0 {z1}\n",
-        f"Pt 1 1 {z1}\n",
-        f"Pt 0.5 0.5 {z1}\n",
+            f"Pt 0.75 0 0 0 0 0.00 0 0 0 0 {z2} 1 1 1 0\n",
+            f"Pt 0.25 0 0 0 0 0.00 0 0 0 0 {z2} 1 1 1 0\n",
 
-        f"O 0.5 0 {z2}\n",
-        f"O 0 0.5 {z2}\n",
-
-        f"Pt 1 0 {z3}\n",
-        f"Pt 0 1 {z3}\n",
-        f"Pt 0.5 0.5 {z3}\n",
-    ]
-    for l in first_unit_cell:
-        lines.append(l)
-
-    # Add other unit cells
-    for n in range(2, nb_surf_unit_cells+1):
-        print("\nAdding unit cell number", n)
-
-        extra_lines = [
-            f"O 0.5 0 {(n-1)*z+z0}\n",
-            f"O 0 0.5 {(n-1)*z+z0}\n",
-
-            f"Pt 0 0 {(n-1)*z+z1}\n",
-            f"Pt 1 1 {(n-1)*z+z1}\n",
-            f"Pt 0.5 0.5 {(n-1)*z+z1}\n",
-
-            f"O 0.5 0 {(n-1)*z+z2}\n",
-            f"O 0 0.5 {(n-1)*z+z2}\n",
-
-            f"Pt 1 0 {(n-1)*z+z3}\n",
-            f"Pt 0 1 {(n-1)*z+z3}\n",
-            f"Pt 0.5 0.5 {(n-1)*z+z3}\n",
+            f"O  0.25 0 0 0 0 0.25 0 0 0 0 {z3} 1 1 1 0\n",
+            f"O  0.75 0 0 0 0 0.75 0 0 0 0 {z3} 1 1 1 0\n",
+            f"O  0.25 0 0 0 0 0.75 0 0 0 0 {z3} 1 1 1 0\n",
+            f"O  0.75 0 0 0 0 0.25 0 0 0 0 {z3} 1 1 1 0\n",
+            f"Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z3} 1 1 1 0\n",
         ]
-        for l in extra_lines:
-            print(l)
+        for l in unit_cell:
             lines.append(l)
 
     with open(save_as, "w") as f:
         f.writelines(lines)
-
 
 def modify_surface_relaxation(
     base_file,
@@ -2058,7 +2035,8 @@ def save_as_dat(
     :param l_shift: rigid shift in l to apply
     :param l_range: container of len 2, mask points outside this range
     :param sigma: if int, saved as sigma for each row, if array of same length
-        as the data, used for sigma, if "sqrt", uses sigma=np.sqrt(i)
+        as the data, used for sigma, if "sqrt", uses sigma=np.sqrt(i), if "xx%"
+        will save error at xx % of I.
     """
 
     data = np.loadtxt(fitaid_file)
@@ -2089,11 +2067,21 @@ def save_as_dat(
 
     if l_shift is not None:
         fig, ax = plt.subplots()
-        ax.scatter(final_data[:, 2], final_data[:, 3], label="No shift")
-        ax.scatter(final_data[:, 2]+l_shift,
-                final_data[:, 3], label="With l_shift")
+        ax.scatter(
+            final_data[:, 2],
+            final_data[:, 3],
+            label="No shift",
+            s=2,
+        )
+        ax.scatter(
+            final_data[:, 2]+l_shift,
+            final_data[:, 3],
+            label="With l_shift",
+            s=2,
+        )
         ax.grid()
         ax.legend()
+        ax.semilogy()
 
         final_data[:, 2] += l_shift
 
@@ -2101,8 +2089,12 @@ def save_as_dat(
         final_data[:, 4] = sigma
     elif isinstance(sigma, int):
         final_data[:, 4] = np.ones(data.shape[0])*sigma
-    elif sigma=="sqrt":
-        final_data[:, 4] = np.sqrt(data[:, 1])
+    elif isinstance(sigma, str):
+        if sigma == "sqrt":
+            final_data[:, 4] = np.sqrt(data[:, 1])
+        elif sigma.endswith("%"):
+            error_percentage = int(sigma.split("%")[0])/100
+            final_data[:, 4] = error_percentage * data[:, 1]
     else:
         final_data[:, 4] = 0
 
@@ -2112,6 +2104,118 @@ def save_as_dat(
         fmt="%10.4f",
         header=f"h, k, l, f, sigma, l_bragg. File used for creation: {fitaid_file}"
     )
+
+
+def merge_data_files(*files, save_as):
+    """
+    Stack arrays vertically to fit together in ROD.
+    """
+
+    print("Merging files:", files)
+
+    arrays = [np.loadtxt(f) for f in files]
+
+    stacked_array = np.vstack((arrays))
+
+    np.savetxt(
+        save_as,
+        stacked_array,
+        fmt="%10.4f",
+        header=f"h, k, l, f, sigma, l_bragg. File used for creation: {files}"
+    )
+
+
+def read_par_file(file):
+    """
+    Read parameter file, output of ROD fitting, and extract the parameters
+    values and chi_square.
+
+    :param file: path to `.par` file
+    """
+    chi_square = None
+
+    with open(file) as f:
+        lines = f.readlines()
+
+        parameter_line = False
+        parameters, min_value, value, max_value, refined = [], [], [], [], []
+        min_value = []
+        for line in lines:
+
+            if line.startswith("!chisqr"):
+                chi_square = float(line[10:])
+
+            if line.startswith("return"):
+                parameter_line = False
+
+            if parameter_line:
+                parameters.append(line[:13].replace(" ", ""))
+                value.append(float(line[13:23].replace(" ", "")))
+                min_value.append(float(line[23:33].replace(" ", "")))
+                max_value.append(float(line[33:39].replace(" ", "")))
+                refined.append(True if "YES" in line[39:] else False)
+
+            if line.startswith("set par"):
+                parameter_line = True
+
+    df = pd.DataFrame({
+        "Parameters": parameters,
+        "Min": min_value,
+        "Value": value,
+        "Max": max_value,
+        "Refined": refined,
+    })
+
+    return chi_square, df
+
+
+def show_par_files(files, save_as=None):
+    """
+    Read parameter file, output of ROD fitting, and extract the parameters
+    values and chi_square.
+
+    Returns df with lowest chi^2 value.
+
+    :param files: list of path to `.par` files
+    :param save_as: path to save figure
+    """
+    chi_squares = [read_par_file(f)[0] for f in files]
+    dfs = [read_par_file(f)[1] for f in files]
+
+    arr = np.empty((len(dfs), len(dfs[0])))
+    for j, df in enumerate(dfs):
+        arr[j, :] = df.Value.values
+
+    # create figure that shows parameter values vs chi^2
+    fig, axs = plt.subplots(3, 3, figsize=(10, 10), sharey=True)
+
+    axs[0, 0].scatter(arr[:, 0], chi_squares)
+    axs[0, 1].scatter(arr[:, 1], chi_squares)
+    axs[0, 2].scatter(arr[:, 2], chi_squares)
+
+    axs[1, 0].scatter(arr[:, 3], chi_squares)
+    axs[1, 1].scatter(arr[:, 4], chi_squares)
+    axs[1, 2].scatter(arr[:, 5], chi_squares)
+
+    axs[2, 0].scatter(arr[:, 6], chi_squares)
+    axs[2, 1].scatter(arr[:, 7], chi_squares)
+    axs[2, 2].scatter(arr[:, 8], chi_squares)
+
+    for j, ax in enumerate(axs.ravel()):
+        ax.grid()
+        ax.set_xlabel(dfs[0].Parameters.values[j])
+        ax.set_ylabel(r"$\chi^2$")
+
+    plt.tight_layout()
+    if isinstance(save_as, str):
+        plt.savefig(save_as)
+    plt.show()
+
+    best_index = np.array(chi_squares).argmin()
+    print(
+        f"Lowest Chi^2 value for {files[best_index]}: {chi_squares[best_index]}")
+
+    return dfs[best_index]
 
 
 def find_value_in_array(array, value):
