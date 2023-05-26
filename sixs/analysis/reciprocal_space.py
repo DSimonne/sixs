@@ -946,10 +946,10 @@ class CTR:
                  for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
 
         # Get scans specified with scan_indices
-        scan_files, good_scan_indices = [], []
+        self.scan_files, good_scan_indices = [], []
         for f in files:
             if any([str(n) in f for n in scan_indices]):
-                scan_files.append(f)
+                self.scan_files.append(f)
                 good_scan_indices.append(
                     [n for n in scan_indices if str(n) in f][0])
 
