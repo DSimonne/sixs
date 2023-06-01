@@ -2181,55 +2181,6 @@ def read_par_file(file):
     return chi_square, df
 
 
-def show_par_files(files, save_as=None):
-    """
-    Read parameter file, output of ROD fitting, and extract the parameters
-    values and chi_square.
-
-    Returns df with lowest chi^2 value.
-
-    :param files: list of path to `.par` files
-    :param save_as: path to save figure
-    """
-    chi_squares = [read_par_file(f)[0] for f in files]
-    dfs = [read_par_file(f)[1] for f in files]
-
-    arr = np.empty((len(dfs), len(dfs[0])))
-    for j, df in enumerate(dfs):
-        arr[j, :] = df.Value.values
-
-    # create figure that shows parameter values vs chi^2
-    fig, axs = plt.subplots(3, 3, figsize=(10, 10), sharey=True)
-
-    axs[0, 0].scatter(arr[:, 0], chi_squares)
-    axs[0, 1].scatter(arr[:, 1], chi_squares)
-    axs[0, 2].scatter(arr[:, 2], chi_squares)
-
-    axs[1, 0].scatter(arr[:, 3], chi_squares)
-    axs[1, 1].scatter(arr[:, 4], chi_squares)
-    axs[1, 2].scatter(arr[:, 5], chi_squares)
-
-    axs[2, 0].scatter(arr[:, 6], chi_squares)
-    axs[2, 1].scatter(arr[:, 7], chi_squares)
-    axs[2, 2].scatter(arr[:, 8], chi_squares)
-
-    for j, ax in enumerate(axs.ravel()):
-        ax.grid()
-        ax.set_xlabel(dfs[0].Parameters.values[j])
-        ax.set_ylabel(r"$\chi^2$")
-
-    plt.tight_layout()
-    if isinstance(save_as, str):
-        plt.savefig(save_as)
-    plt.show()
-
-    best_index = np.array(chi_squares).argmin()
-    print(
-        f"Lowest Chi^2 value for {files[best_index]}: {chi_squares[best_index]}")
-
-    return dfs[best_index]
-
-
 def find_value_in_array(array, value):
     array = np.round(array, 4)  # bc of float errors
     try:
@@ -2247,3 +2198,75 @@ def find_value_in_array(array, value):
                 return array[mask[0]], mask[0]
     except TypeError:
         print("Use a numerical value")
+
+
+def show_par_files(
+    files,
+    disp_pars=3,
+    debye_waller_pars=3,
+    save_as=None,
+    figsize=(10, 10),
+):
+    """
+    Read parameter file, output of ROD fitting, and extract the parameters
+    values and chi_square.
+
+    Plots a figure that shows parameter values vs chi^2
+
+    Returns df with lowest chi^2 value.
+
+    :param files: list of path to `.par` files
+    :param save_as: path to save figure
+    """
+    chi_squares = [read_par_file(f)[0] for f in files]
+    dfs = [read_par_file(f)[1] for f in files]
+
+    arr = np.empty((len(dfs), len(dfs[0])))
+    for j, df in enumerate(dfs):
+        arr[j, :] = df.Value.values
+
+    # Nb of rows
+    disp_rows = int(np.ceil(disp_pars/3))
+    debye_waller_rows = int(np.ceil(debye_waller_pars/3))
+    rows = 1+disp_rows+debye_waller_rows
+
+    # Create figure
+    fig, axs = plt.subplots(rows, 3, figsize=figsize, sharey=True)
+
+    axs[0, 0].scatter(arr[:, 0], chi_squares)  # scale
+    axs[0, 0].set_xlabel(dfs[0].Parameters.values[0])
+    axs[0, 1].scatter(arr[:, 1], chi_squares)  # beta
+    axs[0, 1].set_xlabel(dfs[0].Parameters.values[1])
+    axs[0, 2].scatter(arr[:, 2], chi_squares)  # surf frac
+    axs[0, 2].set_xlabel(dfs[0].Parameters.values[2])
+
+    # Disp
+    for i in range(disp_rows):
+        for j in range(3):
+            if 3*i+j < disp_pars:
+                axs[i+1, j].scatter(arr[:, 3+i*3+j], chi_squares)
+                axs[i+1, j].set_xlabel(dfs[0].Parameters.values[3+i*3+j])
+
+    # DWF
+    for i in range(debye_waller_rows):
+        for j in range(3):
+            if 3*i+j < debye_waller_pars:
+                axs[i+1+disp_rows,
+                    j].scatter(arr[:, 3+disp_pars+i*3+j], chi_squares)
+                axs[i+1+disp_rows,
+                    j].set_xlabel(dfs[0].Parameters.values[3+disp_pars+i*3+j])
+
+    for j, ax in enumerate(axs.ravel()):
+        ax.grid()
+        ax.set_ylabel(r"$\chi^2$")
+
+    plt.tight_layout()
+    if isinstance(save_as, str):
+        plt.savefig(save_as)
+    plt.show()
+
+    best_index = np.array(chi_squares).argmin()
+    print(
+        f"Lowest Chi^2 value for {files[best_index]}: {chi_squares[best_index]}")
+
+    return dfs[best_index]
