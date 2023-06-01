@@ -1900,6 +1900,7 @@ def simulate_rod(
     filename,
     bulk_file=None,
     surface_file=None,
+    fit_file=None,
     rod_hk=[2, 2],
     l_start=0,
     l_end=3,
@@ -1929,6 +1930,7 @@ def simulate_rod(
     :param filename: str, used in the names of the output files, not a path
     :param bulk_file: str, path to bulk file (.bul)
     :param surface_file: str, path to surface file (.sur)
+    :param fit_file: str, path to fit file (.sur)
     :param rod_hk: list, position in h and k of the rod
     :param l_start: beginning of the rod in l
     :param l_end: end of the rod in l
@@ -1986,6 +1988,15 @@ def simulate_rod(
                 save_folder,
             )
             lines.append(f"\nread sur {os.path.basename(surface_file)}")
+
+    if isinstance(fit_file, str):
+        if os.path.isfile(fit_file):
+            # Copy surface file to save_folder for execution
+            shutil.copy2(
+                fit_file,
+                save_folder,
+            )
+            lines.append(f"\nread fit {os.path.basename(fit_file)}")
 
     # Plotting options
     if error_bars:
