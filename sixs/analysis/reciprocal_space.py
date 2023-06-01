@@ -1748,20 +1748,20 @@ def change_nb_unit_cells_pt3o4(
         Pt 0.50 0 0 0 0 0.25 0 0 0 0 {z0} 1 1 1 0
         Pt 0.50 0 0 0 0 0.75 0 0 0 0 {z0} 1 1 1 0
 
-        Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z1} 1 1 1 0
-        O  0.75 0 0 0 0 0.25 0 0 0 0 {z1} 1 1 1 0
-        O  0.25 0 0 0 0 0.75 0 0 0 0 {z1} 1 1 1 0
-        O  0.75 0 0 0 0 0.75 0 0 0 0 {z1} 1 1 1 0
-        O  0.25 0 0 0 0 0.25 0 0 0 0 {z1} 1 1 1 0
+        Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z1} 2 1 1 0
+        O 0.75 0 0 0 0 0.25 0 0 0 0 {z1} 2 1 1 0
+        O 0.25 0 0 0 0 0.75 0 0 0 0 {z1} 2 1 1 0
+        O 0.75 0 0 0 0 0.75 0 0 0 0 {z1} 2 1 1 0
+        O 0.25 0 0 0 0 0.25 0 0 0 0 {z1} 2 1 1 0
 
-        Pt 0.75 0 0 0 0 0.00 0 0 0 0 {z2} 1 1 1 0
-        Pt 0.25 0 0 0 0 0.00 0 0 0 0 {z2} 1 1 1 0
+        Pt 0.75 0 0 0 0 0.00 0 0 0 0 {z2} 3 1 1 0
+        Pt 0.25 0 0 0 0 0.00 0 0 0 0 {z2} 3 1 1 0
 
-        O  0.25 0 0 0 0 0.25 0 0 0 0 {z3} 1 1 1 0
-        O  0.75 0 0 0 0 0.75 0 0 0 0 {z3} 1 1 1 0
-        O  0.25 0 0 0 0 0.75 0 0 0 0 {z3} 1 1 1 0
-        O  0.75 0 0 0 0 0.25 0 0 0 0 {z3} 1 1 1 0
-        Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z3} 1 1 1 0
+        O 0.25 0 0 0 0 0.25 0 0 0 0 {z3} 4 1 1 0
+        O 0.75 0 0 0 0 0.75 0 0 0 0 {z3} 4 1 1 0
+        O 0.25 0 0 0 0 0.75 0 0 0 0 {z3} 4 1 1 0
+        O 0.75 0 0 0 0 0.25 0 0 0 0 {z3} 4 1 1 0
+        Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z3} 4 1 1 0
 
     With z = (5.6657/3.9254) and z0 = 0.25*z, z1 = 0.5*z, z2 = 0.75*z.
 
@@ -1782,27 +1782,27 @@ def change_nb_unit_cells_pt3o4(
         # values in z
         z0 = np.round(n*z, 4)
         z1 = np.round((n + 0.25) * z, 4)
-        z2 = np.round((n + 0.5)  * z, 4)
+        z2 = np.round((n + 0.5) * z, 4)
         z3 = np.round((n + 0.75) * z, 4)
 
         unit_cell = [
-            f"Pt 0.50 0 0 0 0 0.25 0 0 0 0 {z0} 1 1 1 0\n",
-            f"Pt 0.50 0 0 0 0 0.75 0 0 0 0 {z0} 1 1 1 0\n",
+            f"Pt 0.50 0 0 0 0 0.25 0 0 0 0 {z0} {4*n+1} 1 1 0\n",
+            f"Pt 0.50 0 0 0 0 0.75 0 0 0 0 {z0} {4*n+1} 1 1 0\n",
 
-            f"Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z1} 1 1 1 0\n",
-            f"O  0.75 0 0 0 0 0.25 0 0 0 0 {z1} 1 1 1 0\n",
-            f"O  0.25 0 0 0 0 0.75 0 0 0 0 {z1} 1 1 1 0\n",
-            f"O  0.75 0 0 0 0 0.75 0 0 0 0 {z1} 1 1 1 0\n",
-            f"O  0.25 0 0 0 0 0.25 0 0 0 0 {z1} 1 1 1 0\n",
+            f"Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z1} {4*n+2} 1 1 0\n",
+            f"O 0.75 0 0 0 0 0.25 0 0 0 0 {z1} {4*n+2} 1 1 0\n",
+            f"O 0.25 0 0 0 0 0.75 0 0 0 0 {z1} {4*n+2} 1 1 0\n",
+            f"O 0.75 0 0 0 0 0.75 0 0 0 0 {z1} {4*n+2} 1 1 0\n",
+            f"O 0.25 0 0 0 0 0.25 0 0 0 0 {z1} {4*n+2} 1 1 0\n",
 
-            f"Pt 0.75 0 0 0 0 0.00 0 0 0 0 {z2} 1 1 1 0\n",
-            f"Pt 0.25 0 0 0 0 0.00 0 0 0 0 {z2} 1 1 1 0\n",
+            f"Pt 0.75 0 0 0 0 0.00 0 0 0 0 {z2} {4*n+3} 1 1 0\n",
+            f"Pt 0.25 0 0 0 0 0.00 0 0 0 0 {z2} {4*n+3} 1 1 0\n",
 
-            f"O  0.25 0 0 0 0 0.25 0 0 0 0 {z3} 1 1 1 0\n",
-            f"O  0.75 0 0 0 0 0.75 0 0 0 0 {z3} 1 1 1 0\n",
-            f"O  0.25 0 0 0 0 0.75 0 0 0 0 {z3} 1 1 1 0\n",
-            f"O  0.75 0 0 0 0 0.25 0 0 0 0 {z3} 1 1 1 0\n",
-            f"Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z3} 1 1 1 0\n",
+            f"O 0.25 0 0 0 0 0.25 0 0 0 0 {z3} {4*n+4} 1 1 0\n",
+            f"O 0.75 0 0 0 0 0.75 0 0 0 0 {z3} {4*n+4} 1 1 0\n",
+            f"O 0.25 0 0 0 0 0.75 0 0 0 0 {z3} {4*n+4} 1 1 0\n",
+            f"O 0.75 0 0 0 0 0.25 0 0 0 0 {z3} {4*n+4} 1 1 0\n",
+            f"Pt 0.00 0 0 0 0 0.50 0 0 0 0 {z3} {4*n+4} 1 1 0\n",
         ]
         for l in unit_cell:
             lines.append(l)
@@ -1810,22 +1810,23 @@ def change_nb_unit_cells_pt3o4(
     with open(save_as, "w") as f:
         f.writelines(lines)
 
+
 def modify_surface_relaxation(
     base_file,
     save_as,
     lines_to_edit=[3],
     columns_to_edit=["z"],
     relaxation=0.99,
-    round_order=3,
+    round_order=4,
     sep=" ",
     print_old_file=False,
     print_new_file=True,
 ):
     """
     Edit .sur file for ROD. Play here with the relaxation by multiplying the z
-    parameter of each atom by the same value. Simple model where there is no
+    parameter of each atom by the same value. !!Simple model where there is no
     strain between the successive unit cells but just between the bulk and
-    surface files.
+    surface files.!!
     The files must use only one space between characters to split properly !
 
     :param base_file: file to edit
