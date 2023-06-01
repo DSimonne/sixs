@@ -1866,9 +1866,9 @@ def modify_surface_relaxation(
 
         # Modify parameter
         for c in columns_to_edit:
-            c_index = {"x": 1, "y": 2, "z": 3}[c]
-            line[c_index] = str(float(line[c_index]) *
-                                np.round(relaxation, round_order))
+            c_index = {"x": 1, "y": 6, "z": 11}[c]
+            line[c_index] = str(np.round(float(line[c_index]) *
+                                relaxation, round_order))
 
         # Join line
         line = sep.join(line)
@@ -1883,7 +1883,7 @@ def modify_surface_relaxation(
     # Print new file
     if print_new_file:
         print(
-            "\n############### New surface file ###############"
+            "\n############### New surface file ###############\n"
             f"################## r = {relaxation:.3f}  ##################\n"
         )
         for line in new_file_lines:
