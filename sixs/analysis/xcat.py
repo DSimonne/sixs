@@ -287,6 +287,7 @@ class XCAT:
 
                 elif mass == "valve":
                     self.valve_df = self.mass_flow_df.iloc[:, 32:35].copy()
+                    self.valve_df.astype({"valve_MRS":int, "valve_MIX":int})
 
                 if j == 0:
                     print(f"New pandas.DataFrame created for:")
