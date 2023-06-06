@@ -287,7 +287,12 @@ class XCAT:
 
                 elif mass == "valve":
                     self.valve_df = self.mass_flow_df.iloc[:, 32:35].copy()
-                    self.valve_df.astype({"valve_MRS":int, "valve_MIX":int})
+                    try:
+                        self.valve_df = self.valve_df.astype(
+                            {"valve_MRS":int, "valve_MIX":int}
+                        )
+                    except pandas.errors.IntCastingNaNError:
+                        pass
 
                 if j == 0:
                     print(f"New pandas.DataFrame created for:")
@@ -484,14 +489,21 @@ class XCAT:
                 # to have enough data for interpolation
                 temp_df = temp_df[temp_df[f"time_{mass}"]
                                   < self.mass_spec_file_duration + 1]
-
                 setattr(self, f"{mass}_df_truncated", temp_df)
+
+                if mass=="valve":
+                    try:
+                        self.valve_df_truncated = self.valve_df_truncated.astype(
+                            {"valve_MRS":int, "valve_MIX":int}
+                        )
+                    except pandas.errors.IntCastingNaNError:
+                        pass
 
                 if j == 0:
                     print(
                         "\nNew pandas.DataFrame created from mass spectrometer "
                         "starting time for "
-                        f"{self.mass_spec_file_duration/3600} hours for:"
+                        f"{self.mass_spec_file_duration/3600:.3f} hours for:"
                     )
                 print("\t", mass)
 
@@ -561,6 +573,14 @@ class XCAT:
 
                 # Save
                 setattr(self, f"{mass}_df_interpolated", interpolated_df)
+
+                if mass=="valve":
+                    try:
+                        self.valve_df_interpolated = self.valve_df_interpolated.astype(
+                            {"valve_MRS":int, "valve_MIX":int}
+                        )
+                    except pandas.errors.IntCastingNaNError:
+                        pass
                 if j == 0:
                     print(f"\nNew interpolated pandas.DataFrame created for:")
                 print("\t", mass)
@@ -1298,8 +1318,6 @@ class XCAT:
             print(f"Saved as {save_as} in (png, pdf) formats.")
 
         plt.show()
-
-    # Extra functions
 
     def remove_background(
         self,
