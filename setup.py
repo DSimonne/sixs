@@ -18,6 +18,7 @@ setuptools.setup(
         "sixs/scripts/print_orientation_matrix.py",
         "sixs/scripts/print_scan_metadata.py",
         "sixs/scripts/print_scan_positions.py",
+        "sixs/scripts/plot_xyz_file.py"
     ],
     url="https://github.com/DSimonne/sixs/tree/main",
     classifiers=[

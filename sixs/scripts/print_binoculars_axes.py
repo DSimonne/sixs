@@ -48,6 +48,10 @@ if __name__ == "__main__":
             key=os.path.getmtime
         )
 
+        # Iterate on file list
+        for f in files:
+            print_binocular_axes(f)
+
     except IndexError:
         print(
             """
@@ -56,7 +60,3 @@ if __name__ == "__main__":
             Arg 1: Glob string, relative path to nexus file, e.g. "1335*.nxs"
             """)
         exit()
-
-    # Iterate on file list
-    for f in files:
-        print_binocular_axes(f)
