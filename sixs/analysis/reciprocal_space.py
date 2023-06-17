@@ -223,6 +223,15 @@ class Map:
             except tb.NoSuchNodeError:
                 qxpYp = False
 
+            # Two theta
+            try:
+                q = f.root.binoculars.axes.q[...]
+                tth = f.root.binoculars.axes.tth[...]
+                timestamp = f.root.binoculars.axes.timestamp[...]
+                two_theta = True
+            except tb.NoSuchNodeError:
+                two_theta = False
+
             # Qpar, Qper
             try:
                 Qpar = f.root.binoculars.axes.Qpar[...]
@@ -237,7 +246,7 @@ class Map:
             except tb.NoSuchNodeError:
                 Angles = False
 
-            ############################ Load data ############################
+            ############################ Load axes ############################
             if Qphi:  # also Qphi can have qz (or qx, qy)
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
@@ -271,6 +280,11 @@ class Map:
                 self.qz = f.root.binoculars.axes.qz[...]
                 self.qx = f.root.binoculars.axes.qx[...]
                 self.qy = f.root.binoculars.axes.qy[...]
+
+            elif two_theta:
+                self.q = f.root.binoculars.axes.q[...]
+                self.tth = f.root.binoculars.axes.tth[...]
+                self.timestamp = f.root.binoculars.axes.timestamp[...]
 
             elif qxpYp:
                 self.Q = f.root.binoculars.axes.Q[...]
@@ -328,6 +342,14 @@ class Map:
                     self.xp[1], self.xp[2], 1 + int(self.xp[5]-self.xp[4]))
                 self.yp_axis = np.linspace(
                     self.yp[1], self.yp[2], 1 + int(self.yp[5]-self.yp[4]))
+
+            elif two_theta:
+                self.q_axis = np.round(np.linspace(
+                    self.q[1], self.q[2], 1 + int(self.q[5]-self.q[4])), 3)
+                self.tth_axis = np.round(np.linspace(
+                    self.tth[1], self.tth[2], 1 + int(self.tth[5]-self.tth[4])), 3)
+                self.timestamp_axis = np.round(np.linspace(
+                    self.timestamp[1], self.timestamp[2], 1 + int(self.timestamp[5]-self.timestamp[4])), 3)
 
             elif QparQper:
                 self.Qper_axis = np.linspace(
@@ -395,6 +417,9 @@ class Map:
             "gamma": 1,
             "mu": 0,
             "omega": 0,
+            "q": 0,
+            "tth": 1,
+            "timestamp": 2,
         }[self.projection_axis]
 
         projection_axis_name = {
@@ -408,6 +433,9 @@ class Map:
             "gamma": "gamma_axis",
             "mu": "mu_axis",
             "omega": "omega_axis",
+            "q": "q_axis",
+            "tth": "tth_axis",
+            "timestamp": "timestamp_axis",
         }[self.projection_axis]
 
         projection_axis_values = getattr(self, projection_axis_name)
@@ -430,21 +458,21 @@ class Map:
             end_index = len(projection_axis_values)-1
 
         # Only take values that are within the axis range
-        if self.projection_axis in ('H', "qx", "delta"):
-            sliced_ct = self.ct[:, :, start_index:end_index+1]
-            sliced_cont = self.cont[:, :, start_index:end_index+1]
-
-        elif self.projection_axis in ('K', "qy", "gamma"):
-            sliced_ct = self.ct[:, start_index:end_index+1, :]
-            sliced_cont = self.cont[:, start_index:end_index+1, :]
-
-        elif self.projection_axis in ('L', "qz", "mu", "omega"):
+        if projection_axis_index == 0:
             sliced_ct = self.ct[start_index:end_index+1, :, :]
             sliced_cont = self.cont[start_index:end_index+1, :, :]
 
+        elif projection_axis_index == 1:
+            sliced_ct = self.ct[:, start_index:end_index+1, :]
+            sliced_cont = self.cont[:, start_index:end_index+1, :]
+
+        elif projection_axis_index == 2:
+            sliced_ct = self.ct[:, :, start_index:end_index+1]
+            sliced_cont = self.cont[:, :, start_index:end_index+1]
+
         # Sum the ct and cont
-        summed_ct = np.sum(sliced_ct, axis=projection_axis_index)
-        summed_cont = np.sum(sliced_cont, axis=projection_axis_index)
+        summed_ct = np.nansum(sliced_ct, axis=projection_axis_index)
+        summed_cont = np.nansum(sliced_cont, axis=projection_axis_index)
 
         # Compute the final data over the selected range
         self.projected_data = np.where(
@@ -812,6 +840,24 @@ class Map:
             axis2 = self.gamma_axis
             axis_name1 = 'Delta'
             axis_name2 = 'Gamma'
+
+        elif self.projection_axis == 'q':
+            axis1 = self.timestamp_axis
+            axis2 = self.tth_axis
+            axis_name1 = 'timestamp'
+            axis_name2 = 'tth'
+
+        elif self.projection_axis == 'timestamp':
+            axis1 = self.q_axis
+            axis2 = self.tth_axis
+            axis_name1 = 'q'
+            axis_name2 = 'tth'
+
+        elif self.projection_axis == 'tth':
+            axis1 = self.q_axis
+            axis2 = self.timestamp_axis
+            axis_name1 = 'q'
+            axis_name2 = 'timestamp'
 
         return axis1, axis2, axis_name1, axis_name2
 

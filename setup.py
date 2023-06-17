@@ -43,5 +43,6 @@ setuptools.setup(
         "tables",
         "PyQt5",
         "h5glance",
+        "prettytable"
     ]
 )
