@@ -289,7 +289,7 @@ class XCAT:
                     self.valve_df = self.mass_flow_df.iloc[:, 32:35].copy()
                     try:
                         self.valve_df = self.valve_df.astype(
-                            {"valve_MRS":int, "valve_MIX":int}
+                            {"valve_MRS": int, "valve_MIX": int}
                         )
                     except pandas.errors.IntCastingNaNError:
                         pass
@@ -491,10 +491,10 @@ class XCAT:
                                   < self.mass_spec_file_duration + 1]
                 setattr(self, f"{mass}_df_truncated", temp_df)
 
-                if mass=="valve":
+                if mass == "valve":
                     try:
                         self.valve_df_truncated = self.valve_df_truncated.astype(
-                            {"valve_MRS":int, "valve_MIX":int}
+                            {"valve_MRS": int, "valve_MIX": int}
                         )
                     except pandas.errors.IntCastingNaNError:
                         pass
@@ -574,10 +574,10 @@ class XCAT:
                 # Save
                 setattr(self, f"{mass}_df_interpolated", interpolated_df)
 
-                if mass=="valve":
+                if mass == "valve":
                     try:
                         self.valve_df_interpolated = self.valve_df_interpolated.astype(
-                            {"valve_MRS":int, "valve_MIX":int}
+                            {"valve_MRS": int, "valve_MIX": int}
                         )
                     except pandas.errors.IntCastingNaNError:
                         pass

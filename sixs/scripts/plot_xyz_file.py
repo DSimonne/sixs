@@ -5,6 +5,7 @@ import os
 from xyz2graph import MolGraph, to_networkx_graph, to_plotly_figure
 from plotly.offline import offline
 
+
 def create_html_file(filepath):
     """Needs https://github.com/zotko/xyz2graph"""
     # Create the MolGraph object
@@ -21,6 +22,7 @@ def create_html_file(filepath):
 
     # Convert the molecular graph to the NetworkX graph
     G = to_networkx_graph(mg)
+
 
 # If used as script
 if __name__ == "__main__":
@@ -44,4 +46,3 @@ if __name__ == "__main__":
             Arg 1: Relative or absolute path to `.xyz` file.
             """)
         exit()
-
