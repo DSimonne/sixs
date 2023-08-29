@@ -19,7 +19,8 @@ The resolution parameter in L is very important and gives the range of values
 which will be averaged during the HK projection calculations.
 A smaller value will give a better resolution in the final integrated CTR curve,
 but it may be that some of the voxels will not have any intensity assigned and
-need to be interpolated. This is due to the resolution of the original scan
+need to be interpolated.
+This is due to the resolution of the original scan
 which might not have been sufficient (especially for high Q) and therefore not
 every voxel in reciprocal space map has an assigned value (Drnec et al.,
 J. Appl. Cryst., 47 (2014), 365-377).
@@ -391,10 +392,10 @@ class Map:
             "qx": 2,
             "qy": 1,
             "qz": 0,
-            "delta": 2,
+            "delta": 0,
             "gamma": 1,
-            "mu": 0,
-            "omega": 0,
+            "mu": 2,
+            "omega": 2,
         }[self.projection_axis]
 
         projection_axis_name = {
@@ -430,7 +431,7 @@ class Map:
             end_index = len(projection_axis_values)-1
 
         # Only take values that are within the axis range
-        if self.projection_axis in ('H', "qx", "delta"):
+        if self.projection_axis in ('H', "qx", "omega", "mu"):
             sliced_ct = self.ct[:, :, start_index:end_index+1]
             sliced_cont = self.cont[:, :, start_index:end_index+1]
 
@@ -438,7 +439,7 @@ class Map:
             sliced_ct = self.ct[:, start_index:end_index+1, :]
             sliced_cont = self.cont[:, start_index:end_index+1, :]
 
-        elif self.projection_axis in ('L', "qz", "mu", "omega"):
+        elif self.projection_axis in ('L', "qz", "delta"):
             sliced_ct = self.ct[start_index:end_index+1, :, :]
             sliced_cont = self.cont[start_index:end_index+1, :, :]
 
@@ -766,20 +767,20 @@ class Map:
         elif self.projection_axis == 'qx':
             axis1 = self.qy_axis
             axis2 = self.qz_axis
-            axis_name1 = 'qy'
-            axis_name2 = 'qz'
+            axis_name1 = "qy (A^-1)"
+            axis_name2 = "qz (A^-1)"
 
         elif self.projection_axis == 'qy':
             axis1 = self.qx_axis
             axis2 = self.qz_axis
-            axis_name1 = 'qx'
-            axis_name2 = 'qz'
+            axis_name1 = "qx (A^-1)"
+            axis_name2 = "qz (A^-1)"
 
         elif self.projection_axis == 'qz':
             axis1 = self.qx_axis
             axis2 = self.qy_axis
-            axis_name1 = 'qx'
-            axis_name2 = 'qy'
+            axis_name1 = "qx (A^-1)"
+            axis_name2 = "qy (A^-1)"
 
         elif self.projection_axis == 'delta':
             axis1 = self.gamma_axis
@@ -792,14 +793,14 @@ class Map:
                 axis_name2 = 'Omega'
 
         elif self.projection_axis == 'gamma':
-            axis1 = self.delta_axis
-            axis_name1 = 'Delta'
+            axis2 = self.delta_axis
+            axis_name2 = 'Delta'
             try:
-                axis2 = self.mu_axis
-                axis_name2 = 'Mu'
+                axis1 = self.mu_axis
+                axis_name1 = 'Mu'
             except AttributeError:
-                axis2 = self.omega_axis
-                axis_name2 = 'Omega'
+                axis1 = self.omega_axis
+                axis_name1 = 'Omega'
 
         elif self.projection_axis == 'mu':
             axis1 = self.delta_axis
