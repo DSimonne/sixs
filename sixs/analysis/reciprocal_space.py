@@ -786,20 +786,20 @@ class Map:
         elif self.projection_axis == 'qx':
             axis1 = self.qy_axis
             axis2 = self.qz_axis
-            axis_name1 = "qy (A^-1)"
-            axis_name2 = "qz (A^-1)"
+            axis_name1 = r"$q_y (\AA^{-1})$"
+            axis_name2 = r"$q_z (\AA^{-1})$"
 
         elif self.projection_axis == 'qy':
             axis1 = self.qx_axis
             axis2 = self.qz_axis
-            axis_name1 = "qx (A^-1)"
-            axis_name2 = "qz (A^-1)"
+            axis_name1 = r"$q_x (\AA^{-1})$"
+            axis_name2 = r"$q_z (\AA^{-1})$"
 
         elif self.projection_axis == 'qz':
             axis1 = self.qx_axis
             axis2 = self.qy_axis
-            axis_name1 = "qx (A^-1)"
-            axis_name2 = "qy (A^-1)"
+            axis_name1 = r"$q_x (\AA^{-1})$"
+            axis_name2 = r"$q_y (\AA^{-1})$"
 
         elif self.projection_axis == 'delta':
             axis1 = self.gamma_axis
