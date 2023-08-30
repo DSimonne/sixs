@@ -185,7 +185,7 @@ class Map:
             self.ct = f.root.binoculars.counts[...]
             self.cont = f.root.binoculars.contributions[...]
 
-            ####################### Get projection type #######################
+            ####################### 1) Get projection type #######################
             # Qphi
             try:
                 Phi = f.root.binoculars.axes.Phi[...]
@@ -213,7 +213,12 @@ class Map:
                 qy = f.root.binoculars.axes.qy[...]
                 qxqy = True
             except tb.NoSuchNodeError:
-                qxqy = False
+                try:
+                    qx = f.root.binoculars.axes.Qx[...]
+                    qy = f.root.binoculars.axes.Qy[...]
+                    qxqy = True
+                except tb.NoSuchNodeError:
+                    qxqy = False
 
             # Q, xp, yp
             try:
@@ -238,22 +243,31 @@ class Map:
             except tb.NoSuchNodeError:
                 Angles = False
 
-            ############################ Load data ############################
+            ############################ 2) Load data ############################
             if Qphi:  # also Qphi can have qz (or qx, qy)
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
                 try:  # one of the three
                     self.qxyz = f.root.binoculars.axes.qx[...]
                 except:
-                    pass
+                    try:
+                        self.qxyz = f.root.binoculars.axes.Qx[...]
+                    except:
+                        pass
                 try:
                     self.qxyz = f.root.binoculars.axes.qy[...]
                 except:
-                    pass
+                    try:
+                        self.qxyz = f.root.binoculars.axes.Qy[...]
+                    except:
+                        pass
                 try:
                     self.qxyz = f.root.binoculars.axes.qz[...]
                 except:
-                    pass
+                    try:
+                        self.qxyz = f.root.binoculars.axes.Qz[...]
+                    except:
+                        pass
 
             elif Qindex:
                 self.Index = f.root.binoculars.axes.Index[...]
@@ -269,9 +283,14 @@ class Map:
             elif qxqy:
                 self.ct = np.swapaxes(self.ct, 0, 2)  # qz, qy, qx
                 self.cont = np.swapaxes(self.cont, 0, 2)  # qz, qy, qx
-                self.qz = f.root.binoculars.axes.qz[...]
-                self.qx = f.root.binoculars.axes.qx[...]
-                self.qy = f.root.binoculars.axes.qy[...]
+                try:
+                    self.qz = f.root.binoculars.axes.qz[...]
+                    self.qx = f.root.binoculars.axes.qx[...]
+                    self.qy = f.root.binoculars.axes.qy[...]
+                except:
+                    self.qz = f.root.binoculars.axes.Qz[...]
+                    self.qx = f.root.binoculars.axes.Qx[...]
+                    self.qy = f.root.binoculars.axes.Qy[...]
 
             elif qxpYp:
                 self.Q = f.root.binoculars.axes.Q[...]
@@ -291,7 +310,7 @@ class Map:
                     # omega scan
                     self.omega = f.root.binoculars.axes.omega[...]
 
-            ########################### Update axes ###########################
+            ########################### 3) Update axes ###########################
             if Qphi:
                 self.Q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
