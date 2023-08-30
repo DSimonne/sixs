@@ -486,6 +486,10 @@ class Map:
         lines=False,
         grid=True,
         save_path=False,
+        x_labels_rotation=None,
+        y_labels_rotation=90,
+        x_ticks_rotation=None,
+        y_ticks_rotation=None,
     ):
         """
         Plot/save a hdf5 map.
@@ -515,8 +519,8 @@ class Map:
             (x, y, width, height, rotation_angle, theta1, theta2, color, alpha)
             e.g.: [(0, 0, 1, 1, 0 ,270, 360, "r", 0.8),]
         :param lines: list of tuples of length 7 that follows:
-            (x1, y1, x2, y2, color, linestyle, alpha),
-            e.g.: [(0, 0, 1, 1, 'r', "--", 0.5)]
+            (x1, y1, x2, y2, color, linestyle, linewidth, alpha),
+            e.g.: [(0, 0, 1, 1, 'r', "--", 1, 0.5)]
         :param grid: True to show a grid
         :param save_path: path to save file
         """
@@ -585,9 +589,9 @@ class Map:
 
             # Lines
             if isinstance(lines, list):
-                for (x1, y1, x2, y2, c, ls, al) in lines:
+                for (x1, y1, x2, y2, c, ls, ln, al) in lines:
                     ax.plot([x1, x2], [y1, y2], color=c,
-                            linestyle=ls, alpha=al)
+                            linestyle=ls, alpha=al, linewidth=ln)
 
             # Arc
             if isinstance(arcs, list):
@@ -622,9 +626,10 @@ class Map:
             )
 
         # Labels and ticks
-        ax.set_xlabel(axis_name1, fontsize=20)
-        ax.set_ylabel(axis_name2, fontsize=20)
-        ax.tick_params(axis=('both'), labelsize=20)
+        ax.set_xlabel(axis_name1, fontsize=20, rotation = x_labels_rotation)
+        ax.set_ylabel(axis_name2, fontsize=20, rotation = y_labels_rotation)
+        ax.tick_params(axis=('x'), labelsize=20, labelrotation=x_ticks_rotation)
+        ax.tick_params(axis=('y'), labelsize=20, labelrotation=y_ticks_rotation)
 
         # Colorbar
         try:
@@ -786,20 +791,20 @@ class Map:
         elif self.projection_axis == 'qx':
             axis1 = self.qy_axis
             axis2 = self.qz_axis
-            axis_name1 = r"$q_y (\AA^{-1})$"
-            axis_name2 = r"$q_z (\AA^{-1})$"
+            axis_name1 = r"$q_y \, (\AA^{-1})$"
+            axis_name2 = r"$q_z \, (\AA^{-1})$"
 
         elif self.projection_axis == 'qy':
             axis1 = self.qx_axis
             axis2 = self.qz_axis
-            axis_name1 = r"$q_x (\AA^{-1})$"
-            axis_name2 = r"$q_z (\AA^{-1})$"
+            axis_name1 = r"$q_x \, (\AA^{-1})$"
+            axis_name2 = r"$q_z \, (\AA^{-1})$"
 
         elif self.projection_axis == 'qz':
             axis1 = self.qx_axis
             axis2 = self.qy_axis
-            axis_name1 = r"$q_x (\AA^{-1})$"
-            axis_name2 = r"$q_y (\AA^{-1})$"
+            axis_name1 = r"$q_x \, (\AA^{-1})$"
+            axis_name2 = r"$q_y \, (\AA^{-1})$"
 
         elif self.projection_axis == 'delta':
             axis1 = self.gamma_axis
@@ -835,6 +840,8 @@ class Map:
 
         return axis1, axis2, axis_name1, axis_name2
 
+    def _get_3D_data(self):
+        return np.where(self.cont != 0, self.ct/self.cont, np.nan)
 
 class CTR:
     """

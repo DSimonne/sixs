@@ -133,7 +133,6 @@ class Reflectivity:
         self.mu_key = "data_40"
         self.delta_key = "data_41"
         self.gamma_key = "data_42"
-        self.etaa_key = "data_43"
         self.beta_key = "data_44"
         self.wavelength_key = "i14-c-c02-op-mono"
         # /com/SIXS/i14-c-cx1-ex-med-h-dif-group.1
@@ -168,7 +167,6 @@ class Reflectivity:
             self.mu_key
             self.beta_key
             self.delta_key
-            self.etaa_key
             self.gamma_key
             self.wavelength_key
 
@@ -181,7 +179,7 @@ class Reflectivity:
             extracted from the file, otherwise provide float
         """
         self.intensities = []
-        self.mu, self.beta, self.delta, self.etaa, self.gamma = [], [], [], [], []
+        self.mu, self.beta, self.delta, self.gamma = [], [], [], []
         self.wavelength = []
 
         # Iterate on all scans
@@ -189,23 +187,48 @@ class Reflectivity:
             print("###########################################################")
             print("Opening", file)
             with tb.open_file(self.folder + file) as f:
+                # Data
+                detector_images = f.root.com.scan_data[self.data_key][...]
+                try:
+                    detector_mask = f.root.com.SIXS[self.detector_key].mask[...]
+                except:
+                    print("No mask in file.")
+                    mask_data = False
+
+                # Attenuators
                 if pneumatic_attenuators_coef is None:
                     pneumatic_attenuators_coef = f.root.com.SIXS["i14-c-c00-ex-config-att-old"].att_coef[...]
-                pneumatic_attenuators_amounts = np.nan_to_num(f.root.com.scan_data[
-                    self.pneumatic_attenuators_key][...])
+                try:
+                    pneumatic_attenuators_amounts = np.nan_to_num(f.root.com.scan_data[
+                        self.pneumatic_attenuators_key][...])
+                except:
+                    print("No pneumatic attenuator.")
+                    pneumatic_attenuators_amounts = np.zeros(detector_images.shape[0])
+
                 if piezo_attenuators_coef is None:
                     piezo_attenuators_coef = f.root.com.SIXS["i14-c-c00-ex-config-att"].att_coef[...]
-                piezo_attenuators_amounts = np.nan_to_num(f.root.com.scan_data[
-                    self.piezo_attenuators_key][...])
+                try:
+                    piezo_attenuators_amounts = np.nan_to_num(f.root.com.scan_data[
+                        self.piezo_attenuators_key][...])
+                except:
+                    print("No piezoelectric attenuator.")
+                    piezo_attenuators_amounts = np.zeros(detector_images.shape[0])
 
-                detector_images = f.root.com.scan_data[self.data_key][...]
-                detector_mask = f.root.com.SIXS[self.detector_key].mask[...]
-                self.roi_limits = f.root.com.SIXS[self.detector_key].roi_limits[...]
-                acquisition_time = f.root.com.SIXS[self.acquisition_time_key].integration_time[...]
+                # ROI
+                try:
+                    self.roi_limits = f.root.com.SIXS[self.detector_key].roi_limits[...]
+                except:
+                    print("No ROI limits in file, give ROI directly.")
+                try:
+                    acquisition_time = f.root.com.SIXS[self.acquisition_time_key].integration_time[...]
+                except:
+                    print("No acquisition time specfied, will be set to 1.")
+                    acquisition_time = 1
+
+                # Angles
                 mu = f.root.com.scan_data[self.mu_key][...]
                 beta = f.root.com.scan_data[self.beta_key][...]
                 delta = f.root.com.scan_data[self.delta_key][...]
-                etaa = f.root.com.scan_data[self.etaa_key][...]
                 gamma = f.root.com.scan_data[self.gamma_key][...]
                 wavelength = f.root.com.SIXS[self.wavelength_key]["lambda"][0]
 
@@ -213,19 +236,21 @@ class Reflectivity:
             self.mu.append(mu)
             self.beta.append(beta)
             self.delta.append(delta)
-            self.etaa.append(etaa)
             self.gamma.append(gamma)
             self.wavelength.append(wavelength)
 
             # Create 3d mask array
-            mask_array = np.ones(detector_images.shape) * detector_mask
+            if mask_data:
+                mask_array = np.ones(detector_images.shape) * detector_mask
 
-            # Mask the data
-            masked_images = np.where(
-                mask_array == 0,
-                detector_images,
-                np.nan
-            )
+                # Mask the data
+                masked_images = np.where(
+                    mask_array == 0,
+                    detector_images,
+                    np.nan
+                )
+            else:
+                masked_images = detector_images
 
             # Get ROI
             if isinstance(roi, int):
@@ -512,7 +537,6 @@ class Reflectivity:
                 # mu = f.root.com.scan_data[self.mu_key][...]
                 # beta = f.root.com.scan_data[self.beta_key][...]
                 # delta = f.root.com.scan_data[self.delta_key][...]
-                # etaa = f.root.com.scan_data[self.etaa_key][...]
                 # gamma = f.root.com.scan_data[self.gamma_key][...]
                 # wavelength = f.root.com.SIXS[self.wavelength_key]["lambda"][0]
 
