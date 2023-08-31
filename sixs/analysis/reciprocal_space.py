@@ -490,7 +490,7 @@ class Map:
         y_labels_rotation=90,
         x_ticks_rotation=None,
         y_ticks_rotation=None,
-        text=False,
+        texts=False,
     ):
         """
         Plot/save a hdf5 map.
@@ -528,8 +528,8 @@ class Map:
         :param y_labels_rotation:
         :param x_ticks_rotation:
         :param y_ticks_rotation:
-        :param text: use to put a label on the image, tuple of length 4
-            that follows (x, y, string, fontsize) e.g., (1, 1, a), 15)
+        :param texts: use to put a label on the image, list of tuple of length 5
+            that follows (x, y, string, fontsize, color) e.g., (1, 1, a), 15, "w")
         """
         try:
             img = self.projected_data
@@ -632,8 +632,9 @@ class Map:
                 extent=[axis1.min(), axis1.max(), axis2.min(), axis2.max()]
             )
 
-        if text:
-            ax.text(text[0], text[1], text[2], fontsize=text[3], color=text[4])
+        if texts:
+            for text in texts:
+                ax.text(text[0], text[1], text[2], fontsize=text[3], color=text[4])
 
         # Labels and ticks
         ax.set_xlabel(axis_name1, fontsize=20, rotation=x_labels_rotation)
