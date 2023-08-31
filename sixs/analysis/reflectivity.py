@@ -203,7 +203,8 @@ class Reflectivity:
                         self.pneumatic_attenuators_key][...])
                 except:
                     print("No pneumatic attenuator.")
-                    pneumatic_attenuators_amounts = np.zeros(detector_images.shape[0])
+                    pneumatic_attenuators_amounts = np.zeros(
+                        detector_images.shape[0])
 
                 if piezo_attenuators_coef is None:
                     piezo_attenuators_coef = f.root.com.SIXS["i14-c-c00-ex-config-att"].att_coef[...]
@@ -212,7 +213,8 @@ class Reflectivity:
                         self.piezo_attenuators_key][...])
                 except:
                     print("No piezoelectric attenuator.")
-                    piezo_attenuators_amounts = np.zeros(detector_images.shape[0])
+                    piezo_attenuators_amounts = np.zeros(
+                        detector_images.shape[0])
 
                 # ROI
                 try:

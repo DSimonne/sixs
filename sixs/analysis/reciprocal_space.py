@@ -490,6 +490,7 @@ class Map:
         y_labels_rotation=90,
         x_ticks_rotation=None,
         y_ticks_rotation=None,
+        text=False,
     ):
         """
         Plot/save a hdf5 map.
@@ -523,6 +524,12 @@ class Map:
             e.g.: [(0, 0, 1, 1, 'r', "--", 1, 0.5)]
         :param grid: True to show a grid
         :param save_path: path to save file
+        :param x_labels_rotation:
+        :param y_labels_rotation:
+        :param x_ticks_rotation:
+        :param y_ticks_rotation:
+        :param text: use to put a label on the image, tuple of length 4
+            that follows (x, y, string, fontsize) e.g., (1, 1, a), 15)
         """
         try:
             img = self.projected_data
@@ -625,11 +632,16 @@ class Map:
                 extent=[axis1.min(), axis1.max(), axis2.min(), axis2.max()]
             )
 
+        if text:
+            ax.text(text[0], text[1], text[2], fontsize=text[3], color=text[4])
+
         # Labels and ticks
-        ax.set_xlabel(axis_name1, fontsize=20, rotation = x_labels_rotation)
-        ax.set_ylabel(axis_name2, fontsize=20, rotation = y_labels_rotation)
-        ax.tick_params(axis=('x'), labelsize=20, labelrotation=x_ticks_rotation)
-        ax.tick_params(axis=('y'), labelsize=20, labelrotation=y_ticks_rotation)
+        ax.set_xlabel(axis_name1, fontsize=20, rotation=x_labels_rotation)
+        ax.set_ylabel(axis_name2, fontsize=20, rotation=y_labels_rotation)
+        ax.tick_params(axis=('x'), labelsize=20,
+                       labelrotation=x_ticks_rotation)
+        ax.tick_params(axis=('y'), labelsize=20,
+                       labelrotation=y_ticks_rotation)
 
         # Colorbar
         try:
@@ -842,6 +854,7 @@ class Map:
 
     def _get_3D_data(self):
         return np.where(self.cont != 0, self.ct/self.cont, np.nan)
+
 
 class CTR:
     """
