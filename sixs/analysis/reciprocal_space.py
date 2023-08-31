@@ -19,8 +19,7 @@ The resolution parameter in L is very important and gives the range of values
 which will be averaged during the HK projection calculations.
 A smaller value will give a better resolution in the final integrated CTR curve,
 but it may be that some of the voxels will not have any intensity assigned and
-need to be interpolated.
-This is due to the resolution of the original scan
+need to be interpolated. This is due to the resolution of the original scan
 which might not have been sufficient (especially for high Q) and therefore not
 every voxel in reciprocal space map has an assigned value (Drnec et al.,
 J. Appl. Cryst., 47 (2014), 365-377).
@@ -185,7 +184,7 @@ class Map:
             self.ct = f.root.binoculars.counts[...]
             self.cont = f.root.binoculars.contributions[...]
 
-            ####################### 1) Get projection type #######################
+            ####################### Get projection type #######################
             # Qphi
             try:
                 Phi = f.root.binoculars.axes.Phi[...]
@@ -213,12 +212,7 @@ class Map:
                 qy = f.root.binoculars.axes.qy[...]
                 qxqy = True
             except tb.NoSuchNodeError:
-                try:
-                    qx = f.root.binoculars.axes.Qx[...]
-                    qy = f.root.binoculars.axes.Qy[...]
-                    qxqy = True
-                except tb.NoSuchNodeError:
-                    qxqy = False
+                qxqy = False
 
             # Q, xp, yp
             try:
@@ -228,6 +222,15 @@ class Map:
                 qxpYp = True
             except tb.NoSuchNodeError:
                 qxpYp = False
+
+            # Two theta
+            try:
+                q = f.root.binoculars.axes.q[...]
+                tth = f.root.binoculars.axes.tth[...]
+                timestamp = f.root.binoculars.axes.timestamp[...]
+                two_theta = True
+            except tb.NoSuchNodeError:
+                two_theta = False
 
             # Qpar, Qper
             try:
@@ -243,31 +246,22 @@ class Map:
             except tb.NoSuchNodeError:
                 Angles = False
 
-            ############################ 2) Load data ############################
+            ############################ Load axes ############################
             if Qphi:  # also Qphi can have qz (or qx, qy)
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
                 try:  # one of the three
                     self.qxyz = f.root.binoculars.axes.qx[...]
                 except:
-                    try:
-                        self.qxyz = f.root.binoculars.axes.Qx[...]
-                    except:
-                        pass
+                    pass
                 try:
                     self.qxyz = f.root.binoculars.axes.qy[...]
                 except:
-                    try:
-                        self.qxyz = f.root.binoculars.axes.Qy[...]
-                    except:
-                        pass
+                    pass
                 try:
                     self.qxyz = f.root.binoculars.axes.qz[...]
                 except:
-                    try:
-                        self.qxyz = f.root.binoculars.axes.Qz[...]
-                    except:
-                        pass
+                    pass
 
             elif Qindex:
                 self.Index = f.root.binoculars.axes.Index[...]
@@ -283,14 +277,14 @@ class Map:
             elif qxqy:
                 self.ct = np.swapaxes(self.ct, 0, 2)  # qz, qy, qx
                 self.cont = np.swapaxes(self.cont, 0, 2)  # qz, qy, qx
-                try:
-                    self.qz = f.root.binoculars.axes.qz[...]
-                    self.qx = f.root.binoculars.axes.qx[...]
-                    self.qy = f.root.binoculars.axes.qy[...]
-                except:
-                    self.qz = f.root.binoculars.axes.Qz[...]
-                    self.qx = f.root.binoculars.axes.Qx[...]
-                    self.qy = f.root.binoculars.axes.Qy[...]
+                self.qz = f.root.binoculars.axes.qz[...]
+                self.qx = f.root.binoculars.axes.qx[...]
+                self.qy = f.root.binoculars.axes.qy[...]
+
+            elif two_theta:
+                self.q = f.root.binoculars.axes.q[...]
+                self.tth = f.root.binoculars.axes.tth[...]
+                self.timestamp = f.root.binoculars.axes.timestamp[...]
 
             elif qxpYp:
                 self.Q = f.root.binoculars.axes.Q[...]
@@ -310,7 +304,7 @@ class Map:
                     # omega scan
                     self.omega = f.root.binoculars.axes.omega[...]
 
-            ########################### 3) Update axes ###########################
+            ########################### Update axes ###########################
             if Qphi:
                 self.Q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
@@ -348,6 +342,14 @@ class Map:
                     self.xp[1], self.xp[2], 1 + int(self.xp[5]-self.xp[4]))
                 self.yp_axis = np.linspace(
                     self.yp[1], self.yp[2], 1 + int(self.yp[5]-self.yp[4]))
+
+            elif two_theta:
+                self.q_axis = np.round(np.linspace(
+                    self.q[1], self.q[2], 1 + int(self.q[5]-self.q[4])), 3)
+                self.tth_axis = np.round(np.linspace(
+                    self.tth[1], self.tth[2], 1 + int(self.tth[5]-self.tth[4])), 3)
+                self.timestamp_axis = np.round(np.linspace(
+                    self.timestamp[1], self.timestamp[2], 1 + int(self.timestamp[5]-self.timestamp[4])), 3)
 
             elif QparQper:
                 self.Qper_axis = np.linspace(
@@ -411,10 +413,13 @@ class Map:
             "qx": 2,
             "qy": 1,
             "qz": 0,
-            "delta": 0,
+            "delta": 2,
             "gamma": 1,
-            "mu": 2,
-            "omega": 2,
+            "mu": 0,
+            "omega": 0,
+            "q": 0,
+            "tth": 1,
+            "timestamp": 2,
         }[self.projection_axis]
 
         projection_axis_name = {
@@ -428,6 +433,9 @@ class Map:
             "gamma": "gamma_axis",
             "mu": "mu_axis",
             "omega": "omega_axis",
+            "q": "q_axis",
+            "tth": "tth_axis",
+            "timestamp": "timestamp_axis",
         }[self.projection_axis]
 
         projection_axis_values = getattr(self, projection_axis_name)
@@ -450,21 +458,21 @@ class Map:
             end_index = len(projection_axis_values)-1
 
         # Only take values that are within the axis range
-        if self.projection_axis in ('H', "qx", "omega", "mu"):
-            sliced_ct = self.ct[:, :, start_index:end_index+1]
-            sliced_cont = self.cont[:, :, start_index:end_index+1]
-
-        elif self.projection_axis in ('K', "qy", "gamma"):
-            sliced_ct = self.ct[:, start_index:end_index+1, :]
-            sliced_cont = self.cont[:, start_index:end_index+1, :]
-
-        elif self.projection_axis in ('L', "qz", "delta"):
+        if projection_axis_index == 0:
             sliced_ct = self.ct[start_index:end_index+1, :, :]
             sliced_cont = self.cont[start_index:end_index+1, :, :]
 
+        elif projection_axis_index == 1:
+            sliced_ct = self.ct[:, start_index:end_index+1, :]
+            sliced_cont = self.cont[:, start_index:end_index+1, :]
+
+        elif projection_axis_index == 2:
+            sliced_ct = self.ct[:, :, start_index:end_index+1]
+            sliced_cont = self.cont[:, :, start_index:end_index+1]
+
         # Sum the ct and cont
-        summed_ct = np.sum(sliced_ct, axis=projection_axis_index)
-        summed_cont = np.sum(sliced_cont, axis=projection_axis_index)
+        summed_ct = np.nansum(sliced_ct, axis=projection_axis_index)
+        summed_cont = np.nansum(sliced_cont, axis=projection_axis_index)
 
         # Compute the final data over the selected range
         self.projected_data = np.where(
@@ -486,11 +494,6 @@ class Map:
         lines=False,
         grid=True,
         save_path=False,
-        x_labels_rotation=None,
-        y_labels_rotation=90,
-        x_ticks_rotation=None,
-        y_ticks_rotation=None,
-        texts=False,
     ):
         """
         Plot/save a hdf5 map.
@@ -520,16 +523,10 @@ class Map:
             (x, y, width, height, rotation_angle, theta1, theta2, color, alpha)
             e.g.: [(0, 0, 1, 1, 0 ,270, 360, "r", 0.8),]
         :param lines: list of tuples of length 7 that follows:
-            (x1, y1, x2, y2, color, linestyle, linewidth, alpha),
-            e.g.: [(0, 0, 1, 1, 'r', "--", 1, 0.5)]
+            (x1, y1, x2, y2, color, linestyle, alpha),
+            e.g.: [(0, 0, 1, 1, 'r', "--", 0.5)]
         :param grid: True to show a grid
         :param save_path: path to save file
-        :param x_labels_rotation:
-        :param y_labels_rotation:
-        :param x_ticks_rotation:
-        :param y_ticks_rotation:
-        :param texts: use to put a label on the image, list of tuple of length 5
-            that follows (x, y, string, fontsize, color) e.g., (1, 1, a), 15, "w")
         """
         try:
             img = self.projected_data
@@ -596,9 +593,9 @@ class Map:
 
             # Lines
             if isinstance(lines, list):
-                for (x1, y1, x2, y2, c, ls, ln, al) in lines:
+                for (x1, y1, x2, y2, c, ls, al) in lines:
                     ax.plot([x1, x2], [y1, y2], color=c,
-                            linestyle=ls, alpha=al, linewidth=ln)
+                            linestyle=ls, alpha=al)
 
             # Arc
             if isinstance(arcs, list):
@@ -632,17 +629,10 @@ class Map:
                 extent=[axis1.min(), axis1.max(), axis2.min(), axis2.max()]
             )
 
-        if texts:
-            for text in texts:
-                ax.text(text[0], text[1], text[2], fontsize=text[3], color=text[4])
-
         # Labels and ticks
-        ax.set_xlabel(axis_name1, fontsize=20, rotation=x_labels_rotation)
-        ax.set_ylabel(axis_name2, fontsize=20, rotation=y_labels_rotation)
-        ax.tick_params(axis=('x'), labelsize=20,
-                       labelrotation=x_ticks_rotation)
-        ax.tick_params(axis=('y'), labelsize=20,
-                       labelrotation=y_ticks_rotation)
+        ax.set_xlabel(axis_name1, fontsize=20)
+        ax.set_ylabel(axis_name2, fontsize=20)
+        ax.tick_params(axis=('both'), labelsize=20)
 
         # Colorbar
         try:
@@ -804,20 +794,20 @@ class Map:
         elif self.projection_axis == 'qx':
             axis1 = self.qy_axis
             axis2 = self.qz_axis
-            axis_name1 = r"$q_y \, (\AA^{-1})$"
-            axis_name2 = r"$q_z \, (\AA^{-1})$"
+            axis_name1 = 'qy'
+            axis_name2 = 'qz'
 
         elif self.projection_axis == 'qy':
             axis1 = self.qx_axis
             axis2 = self.qz_axis
-            axis_name1 = r"$q_x \, (\AA^{-1})$"
-            axis_name2 = r"$q_z \, (\AA^{-1})$"
+            axis_name1 = 'qx'
+            axis_name2 = 'qz'
 
         elif self.projection_axis == 'qz':
             axis1 = self.qx_axis
             axis2 = self.qy_axis
-            axis_name1 = r"$q_x \, (\AA^{-1})$"
-            axis_name2 = r"$q_y \, (\AA^{-1})$"
+            axis_name1 = 'qx'
+            axis_name2 = 'qy'
 
         elif self.projection_axis == 'delta':
             axis1 = self.gamma_axis
@@ -830,14 +820,14 @@ class Map:
                 axis_name2 = 'Omega'
 
         elif self.projection_axis == 'gamma':
-            axis2 = self.delta_axis
-            axis_name2 = 'Delta'
+            axis1 = self.delta_axis
+            axis_name1 = 'Delta'
             try:
-                axis1 = self.mu_axis
-                axis_name1 = 'Mu'
+                axis2 = self.mu_axis
+                axis_name2 = 'Mu'
             except AttributeError:
-                axis1 = self.omega_axis
-                axis_name1 = 'Omega'
+                axis2 = self.omega_axis
+                axis_name2 = 'Omega'
 
         elif self.projection_axis == 'mu':
             axis1 = self.delta_axis
@@ -851,10 +841,25 @@ class Map:
             axis_name1 = 'Delta'
             axis_name2 = 'Gamma'
 
-        return axis1, axis2, axis_name1, axis_name2
+        elif self.projection_axis == 'q':
+            axis1 = self.timestamp_axis
+            axis2 = self.tth_axis
+            axis_name1 = 'timestamp'
+            axis_name2 = 'tth'
 
-    def _get_3D_data(self):
-        return np.where(self.cont != 0, self.ct/self.cont, np.nan)
+        elif self.projection_axis == 'timestamp':
+            axis1 = self.q_axis
+            axis2 = self.tth_axis
+            axis_name1 = 'q'
+            axis_name2 = 'tth'
+
+        elif self.projection_axis == 'tth':
+            axis1 = self.q_axis
+            axis2 = self.timestamp_axis
+            axis_name1 = 'q'
+            axis_name2 = 'timestamp'
+
+        return axis1, axis2, axis_name1, axis_name2
 
 
 class CTR:
