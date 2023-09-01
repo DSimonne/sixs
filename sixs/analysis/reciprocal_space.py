@@ -19,8 +19,9 @@ The resolution parameter in L is very important and gives the range of values
 which will be averaged during the HK projection calculations.
 A smaller value will give a better resolution in the final integrated CTR curve,
 but it may be that some of the voxels will not have any intensity assigned and
-need to be interpolated. This is due to the resolution of the original scan
-which might not have been sufficient (especially for high Q) and therefore not
+need to be interpolated.
+This is due to the resolution of the original scan which might not have been
+sufficient (especially for high Q) and therefore not
 every voxel in reciprocal space map has an assigned value (Drnec et al.,
 J. Appl. Cryst., 47 (2014), 365-377).
 You can either increase the resolution parameter or rely on the interpolation.
@@ -184,7 +185,7 @@ class Map:
             self.ct = f.root.binoculars.counts[...]
             self.cont = f.root.binoculars.contributions[...]
 
-            ####################### Get projection type #######################
+            ####################### 1) Get projection type #######################
             # Qphi
             try:
                 Phi = f.root.binoculars.axes.Phi[...]
@@ -212,7 +213,12 @@ class Map:
                 qy = f.root.binoculars.axes.qy[...]
                 qxqy = True
             except tb.NoSuchNodeError:
-                qxqy = False
+                try:
+                    qx = f.root.binoculars.axes.Qx[...]
+                    qy = f.root.binoculars.axes.Qy[...]
+                    qxqy = True
+                except tb.NoSuchNodeError:
+                    qxqy = False
 
             # Q, xp, yp
             try:
@@ -246,21 +252,33 @@ class Map:
             except tb.NoSuchNodeError:
                 Angles = False
 
-            ############################ Load axes ############################
+            ############################ 2) Load axes ############################
             if Qphi:  # also Qphi can have qz (or qx, qy)
                 self.Phi = f.root.binoculars.axes.Phi[...]
                 self.Q = f.root.binoculars.axes.Q[...]
                 try:  # one of the three
                     self.qxyz = f.root.binoculars.axes.qx[...]
                 except:
+                    try:
+                        self.qxyz = f.root.binoculars.axes.Qx[...]
+                    except:
+                        pass
                     pass
                 try:
                     self.qxyz = f.root.binoculars.axes.qy[...]
                 except:
+                    try:
+                        self.qxyz = f.root.binoculars.axes.Qy[...]
+                    except:
+                        pass
                     pass
                 try:
                     self.qxyz = f.root.binoculars.axes.qz[...]
                 except:
+                    try:
+                        self.qxyz = f.root.binoculars.axes.Qz[...]
+                    except:
+                        pass
                     pass
 
             elif Qindex:
@@ -277,9 +295,14 @@ class Map:
             elif qxqy:
                 self.ct = np.swapaxes(self.ct, 0, 2)  # qz, qy, qx
                 self.cont = np.swapaxes(self.cont, 0, 2)  # qz, qy, qx
-                self.qz = f.root.binoculars.axes.qz[...]
-                self.qx = f.root.binoculars.axes.qx[...]
-                self.qy = f.root.binoculars.axes.qy[...]
+                try:
+                    self.qz = f.root.binoculars.axes.qz[...]
+                    self.qx = f.root.binoculars.axes.qx[...]
+                    self.qy = f.root.binoculars.axes.qy[...]
+                except:
+                    self.qz = f.root.binoculars.axes.Qz[...]
+                    self.qx = f.root.binoculars.axes.Qx[...]
+                    self.qy = f.root.binoculars.axes.Qy[...]
 
             elif two_theta:
                 self.q = f.root.binoculars.axes.q[...]
@@ -304,7 +327,7 @@ class Map:
                     # omega scan
                     self.omega = f.root.binoculars.axes.omega[...]
 
-            ########################### Update axes ###########################
+            ########################### 3) Update axes ###########################
             if Qphi:
                 self.Q_axis = np.linspace(
                     self.Q[1], self.Q[2], 1+self.Q[5]-self.Q[4])
@@ -413,10 +436,10 @@ class Map:
             "qx": 2,
             "qy": 1,
             "qz": 0,
-            "delta": 2,
+            "delta": 0,
             "gamma": 1,
-            "mu": 0,
-            "omega": 0,
+            "mu": 2,
+            "omega": 2,
             "q": 0,
             "tth": 1,
             "timestamp": 2,
@@ -494,6 +517,11 @@ class Map:
         lines=False,
         grid=True,
         save_path=False,
+        x_labels_rotation=None,
+        y_labels_rotation=90,
+        x_ticks_rotation=None,
+        y_ticks_rotation=None,
+        texts=False,
     ):
         """
         Plot/save a hdf5 map.
@@ -523,10 +551,18 @@ class Map:
             (x, y, width, height, rotation_angle, theta1, theta2, color, alpha)
             e.g.: [(0, 0, 1, 1, 0 ,270, 360, "r", 0.8),]
         :param lines: list of tuples of length 7 that follows:
+            (x1, y1, x2, y2, color, linestyle, linewidth, alpha),
+            e.g.: [(0, 0, 1, 1, 'r', "--", 1, 0.5)]
             (x1, y1, x2, y2, color, linestyle, alpha),
             e.g.: [(0, 0, 1, 1, 'r', "--", 0.5)]
         :param grid: True to show a grid
         :param save_path: path to save file
+        :param x_labels_rotation:
+        :param y_labels_rotation:
+        :param x_ticks_rotation:
+        :param y_ticks_rotation:
+        :param texts: use to put a label on the image, list of tuple of length 5
+            that follows (x, y, string, fontsize, color) e.g., (1, 1, a), 15, "w")
         """
         try:
             img = self.projected_data
@@ -593,9 +629,9 @@ class Map:
 
             # Lines
             if isinstance(lines, list):
-                for (x1, y1, x2, y2, c, ls, al) in lines:
+                for (x1, y1, x2, y2, c, ls, ln, al) in lines:
                     ax.plot([x1, x2], [y1, y2], color=c,
-                            linestyle=ls, alpha=al)
+                            linestyle=ls, alpha=al, linewidth=ln)
 
             # Arc
             if isinstance(arcs, list):
@@ -626,13 +662,21 @@ class Map:
                 interpolation=interpolation,
                 origin="lower",
                 norm=LogNorm(vmin=vmin, vmax=vmax),
-                extent=[axis1.min(), axis1.max(), axis2.min(), axis2.max()]
+                extent=[axis1.min(), axis1.max(), axis2.min(), axis2.max()],
+                aspect="equal",
             )
 
+        if texts:
+            for text in texts:
+                ax.text(text[0], text[1], text[2], fontsize=text[3], color=text[4])
+
         # Labels and ticks
-        ax.set_xlabel(axis_name1, fontsize=20)
-        ax.set_ylabel(axis_name2, fontsize=20)
-        ax.tick_params(axis=('both'), labelsize=20)
+        ax.set_xlabel(axis_name1, fontsize=20, rotation=x_labels_rotation)
+        ax.set_ylabel(axis_name2, fontsize=20, rotation=y_labels_rotation)
+        ax.tick_params(axis=('x'), labelsize=20,
+                       labelrotation=x_ticks_rotation)
+        ax.tick_params(axis=('y'), labelsize=20,
+                       labelrotation=y_ticks_rotation)
 
         # Colorbar
         try:
@@ -794,20 +838,20 @@ class Map:
         elif self.projection_axis == 'qx':
             axis1 = self.qy_axis
             axis2 = self.qz_axis
-            axis_name1 = 'qy'
-            axis_name2 = 'qz'
+            axis_name1 = r"$q_y \, (\AA^{-1})$"
+            axis_name2 = r"$q_z \, (\AA^{-1})$"
 
         elif self.projection_axis == 'qy':
             axis1 = self.qx_axis
             axis2 = self.qz_axis
-            axis_name1 = 'qx'
-            axis_name2 = 'qz'
+            axis_name1 = r"$q_x \, (\AA^{-1})$"
+            axis_name2 = r"$q_z \, (\AA^{-1})$"
 
         elif self.projection_axis == 'qz':
             axis1 = self.qx_axis
             axis2 = self.qy_axis
-            axis_name1 = 'qx'
-            axis_name2 = 'qy'
+            axis_name1 = r"$q_x \, (\AA^{-1})$"
+            axis_name2 = r"$q_y \, (\AA^{-1})$"
 
         elif self.projection_axis == 'delta':
             axis1 = self.gamma_axis
@@ -820,14 +864,14 @@ class Map:
                 axis_name2 = 'Omega'
 
         elif self.projection_axis == 'gamma':
-            axis1 = self.delta_axis
-            axis_name1 = 'Delta'
+            axis2 = self.delta_axis
+            axis_name2 = 'Delta'
             try:
-                axis2 = self.mu_axis
-                axis_name2 = 'Mu'
+                axis1 = self.mu_axis
+                axis_name1 = 'Mu'
             except AttributeError:
-                axis2 = self.omega_axis
-                axis_name2 = 'Omega'
+                axis1 = self.omega_axis
+                axis_name1 = 'Omega'
 
         elif self.projection_axis == 'mu':
             axis1 = self.delta_axis
@@ -860,6 +904,9 @@ class Map:
             axis_name2 = 'timestamp'
 
         return axis1, axis2, axis_name1, axis_name2
+
+    def _get_3D_data(self):
+        return np.where(self.cont != 0, self.ct/self.cont, np.nan)
 
 
 class CTR:
