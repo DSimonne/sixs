@@ -515,7 +515,7 @@ class Map:
         circles=None,
         arcs=False,
         lines=False,
-        grid=True,
+        grid=1,
         save_path=False,
         x_labels_rotation=None,
         y_labels_rotation=90,
@@ -555,7 +555,7 @@ class Map:
             e.g.: [(0, 0, 1, 1, 'r', "--", 1, 0.5)]
             (x1, y1, x2, y2, color, linestyle, alpha),
             e.g.: [(0, 0, 1, 1, 'r', "--", 0.5)]
-        :param grid: True to show a grid
+        :param grid: shown if float between 0 and 1, used as alpha for grid
         :param save_path: path to save file
         :param x_labels_rotation:
         :param y_labels_rotation:
@@ -653,8 +653,8 @@ class Map:
                     ax.add_patch(ap)
 
             # Grid
-            if grid:
-                ax.grid(alpha=0.5, which='both', axis="both")
+            if isinstance(grid, (float, int)):
+                ax.grid(alpha=grid, which='both', axis="both")
 
             plotted_img = ax.imshow(
                 self.img,
