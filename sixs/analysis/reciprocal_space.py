@@ -814,20 +814,20 @@ class Map:
         if self.projection_axis == 'H':
             axis1 = self.K_axis
             axis2 = self.L_axis
-            axis_name1 = 'K (rlu)'
-            axis_name2 = 'L (rlu)'
+            axis_name1 = 'K (r.l.u.)'
+            axis_name2 = 'L (r.l.u.)'
 
         elif self.projection_axis == 'K':
             axis1 = self.H_axis
             axis2 = self.L_axis
-            axis_name1 = 'H (rlu)'
-            axis_name2 = 'L (rlu)'
+            axis_name1 = 'H (r.l.u.)'
+            axis_name2 = 'L (r.l.u.)'
 
         elif self.projection_axis == 'L':
             axis1 = self.H_axis
             axis2 = self.K_axis
-            axis_name1 = 'H (rlu)'
-            axis_name2 = 'K (rlu)'
+            axis_name1 = 'H (r.l.u.)'
+            axis_name2 = 'K (r.l.u.)'
 
         elif self.projection_axis == 'qxyz':
             axis1 = self.Q_axis
@@ -2306,7 +2306,7 @@ def show_par_files(
 
     Plots a figure that shows parameter values vs chi^2
 
-    Returns df with lowest chi^2 value.
+    Returns df with lowest chi^2 value, and corresponding chi^2 value
 
     :param files: list of path to `.par` files
     :param save_as: path to save figure
@@ -2362,4 +2362,4 @@ def show_par_files(
     print(
         f"Lowest Chi^2 value for {files[best_index]}: {chi_squares[best_index]}")
 
-    return dfs[best_index]
+    return dfs[best_index], chi_squares[best_index]

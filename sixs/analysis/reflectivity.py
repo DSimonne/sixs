@@ -6,6 +6,8 @@ import inspect
 import yaml
 import sixs
 from scipy import interpolate
+import h5py
+import pandas as pd
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -789,7 +791,7 @@ class GenxDataset:
                 self._columns_data = f["current"]["parameters"]["data_labels"][...]
                 self._parameter_data = pd.DataFrame()
 
-                for j, label in enumerate(data_labels):
+                for j, label in enumerate(self._columns_data):
                     self._parameter_data[label.decode(
                         'utf-8')] = f["current"]["parameters"][f"data col {j}"][...]
 
