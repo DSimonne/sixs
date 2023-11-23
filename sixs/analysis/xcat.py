@@ -1124,7 +1124,7 @@ class XCAT:
         text_dict=None,
         hours=True,
         logscale=True,
-        y_label="Partial pressure (bar)",
+        y_label="Partial pressure (Torr)",
         heater_file=None,
         save_as=False,
         title="Pressure in XCAT reactor cell for each mass",
