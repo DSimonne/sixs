@@ -1253,7 +1253,6 @@ class XCAT:
                     linestyle="--",
                     color=color_dict[cursor_label],
                     linewidth=1.5,
-                    label=cursor_label
                 )
             except (TypeError, KeyError):
                 pass
@@ -1282,6 +1281,7 @@ class XCAT:
                     x2,
                     alpha=0.2,
                     facecolor=color_dict[cursor_label],
+                    label=cursor_label,
                 )
             except TypeError:
                 pass

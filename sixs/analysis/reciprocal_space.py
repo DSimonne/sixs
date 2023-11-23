@@ -126,6 +126,8 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import patches
+import matplotlib.ticker as ticker
+from mpl_toolkits import axes_grid1
 
 import ipywidgets as widgets
 from ipywidgets import interact, interactive, fixed, Layout
@@ -680,8 +682,8 @@ class Map:
 
         # Colorbar
         try:
-            cbar = fig.colorbar(plotted_img, ax=ax)
-            cbar.ax.tick_params(labelsize=20)
+            cbar = add_colorbar(plotted_img)
+            cbar.ax.tick_params(labelsize=15)
         except ValueError:
             print("Could not display colorbar, change scale values.")
             pass
@@ -715,8 +717,8 @@ class Map:
         @ interact(
             projection_axis_range=widgets.FloatRangeSlider(
                 value=[axis[0], axis[-2]],
-                min=min(axis[:-1]),
-                max=max(axis[:-1]),
+                min=np.min(axis[:-1]),
+                max=np.max(axis[:-1]),
                 step=np.mean(axis[1:] - axis[:-1]),
                 description='Projection axis range:',
                 continuous_update=False,
@@ -738,7 +740,7 @@ class Map:
         ):
             """Update the space range"""
             self.project_data(
-                projection_axis_range=projection_axis_range,
+                projection_axis_range=np.round(projection_axis_range, 3),
                 projection_axis=projection_axis,
             )
 
@@ -801,6 +803,8 @@ class Map:
                 """Plot the space"""
 
                 vmin, vmax = data_range
+                zoom_axis1 = np.round(zoom_axis1, 3)
+                zoom_axis2 = np.round(zoom_axis2, 3)
                 self.plot_map(
                     zoom_axis1=list(zoom_axis1),
                     zoom_axis2=list(zoom_axis2),
@@ -1831,6 +1835,9 @@ def change_nb_unit_cells_pt3o4(
     nb_surf_unit_cells=1,
     comment="",
     spacing=None,
+    c_pt3o4=5.60,
+    a_pt3o4=5.60,
+    a_pt=3.925,
 ):
     """
     Add cubic Pt3O4 unit cells on top of a .bul file.
@@ -1867,8 +1874,8 @@ def change_nb_unit_cells_pt3o4(
     lines.append(f", {nb_surf_unit_cells} unit cells.\n")
 
     # crystal lattice
-    lines.append("5.6657 5.6657 3.9254 90.0 90.0 90.0\n")
-    z = (5.6657/3.9254)
+    lines.append(f"{a_pt3o4} {a_pt3o4} {a_pt} 90.0 90.0 90.0\n")
+    z = (c_pt3o4/a_pt)
 
     for n in range(nb_surf_unit_cells):
         # non z = 0 layers inside the first unit cell
@@ -2363,3 +2370,21 @@ def show_par_files(
         f"Lowest Chi^2 value for {files[best_index]}: {chi_squares[best_index]}")
 
     return dfs[best_index], chi_squares[best_index]
+
+
+
+def add_colorbar(im, aspect=15, pad_fraction=0.5, **kwargs):
+    """Add a vertical color bar to an image plot."""
+    divider = axes_grid1.make_axes_locatable(im.axes)
+    width = axes_grid1.axes_size.AxesY(im.axes, aspect=1./aspect)
+    pad = axes_grid1.axes_size.Fraction(pad_fraction, width)
+    current_ax = plt.gca()
+    cax = divider.append_axes("right", size=width, pad=pad)
+    plt.sca(current_ax)
+    cbar = im.axes.figure.colorbar(im, cax=cax, **kwargs)
+    cbar.ax.yaxis.set_major_locator(ticker.AutoLocator())
+    cbar.ax.yaxis.set_minor_locator(ticker.AutoLocator())
+    cbar.ax.yaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True, useOffset=True))
+    cbar.ax.xaxis.set_major_formatter(ticker.ScalarFormatter())
+    cbar.ax.ticklabel_format(style='plain', scilimits=(0, 0))
+    return cbar

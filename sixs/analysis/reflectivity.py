@@ -193,6 +193,7 @@ class Reflectivity:
                 detector_images = f.root.com.scan_data[self.data_key][...]
                 try:
                     detector_mask = f.root.com.SIXS[self.detector_key].mask[...]
+                    mask_data = True
                 except:
                     print("No mask in file.")
                     mask_data = False
