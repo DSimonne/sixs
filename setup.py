@@ -44,5 +44,7 @@ setuptools.setup(
         "PyQt5",
         "h5glance",
         "prettytable",
+        "tqdm",
+        "bokeh",
     ]
 )
