@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import numpy as np
 import pandas as pd
-from sixs import ReadNxs4 as rd
+from sixs import ReadNxs4 as rn4
 import sys
 import os
 import glob
@@ -19,7 +19,7 @@ def find_pos(filename):
     try:
         scan_index = filename.split("_")[-1].split(".nxs")[0]
 
-        data = rd.DataSet(filename)
+        data = rn4.DataSet(filename)
         metadata = [
             scan_index,
             rotation,

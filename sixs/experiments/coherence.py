@@ -3,20 +3,20 @@ This module has functions to help with the alignment of the sample
 during coherence experiments at SixS.
 
 Functions to use in the ipy3 environment of srv4:
-    get_file_range(): get a list of file in a directory, that is then
+    get_file_range(): get a list of files in a directory, that is then
         used as entry in show_map()
     show_map(): show a map performed with the hexapod
-    plot_xy_hexapod_scan(): plot a 2d scan, usually in x and y, and prints the command
+    plot_position_evolution(): plot the evolution of the particle position
+        taken from hexapod alignment scans
+    plot_2d_scan(): plot a 2d scan, usually in x and y, and prints the command
         to align the sample
     plot_rocking_curve(): plot rocking curve in mu or omega and prints the command
         to align the sample
-    plot_sample_position_evolution(): plot the evolution of the particle position
-        taken from hexapod alignment scans
 
 Other functions used in the module:
     load_nexus_attribute()
     find_FZP_focal_plane()
-    plot_mesh()
+    plot_mesh(), used in show_map()
     get_scan_number()
     
 How to test these functions on srv4:
@@ -24,15 +24,25 @@ How to test these functions on srv4:
     
     Position evolution:
 
-        file_list_position_evolution = coh.get_file_range(directory=test_dir, start_number=1090,end_number=1160, pattern="*hexapod*.nxs")
-        coh.plot_sample_position_evolution(directory=test_dir, file_list=file_list_position_evolution)
+        file_list_position_evolution = coh.get_file_range(
+            directory=test_dir, start_number=1090,end_number=1160, pattern="*hexapod*.nxs"
+        )
+        coh.plot_position_evolution(
+            directory=test_dir, file_list=file_list_position_evolution
+        )
     
     Map:
-        file_list_map = coh.get_file_range(directory=test_dir, start_number=470,end_number=1070)
-        coh.show_map(file_list = file_list_map, directory=test_dir)
+        file_list_map = coh.get_file_range(
+            directory=test_dir, start_number=470,end_number=1070
+        )
+        coh.show_map(
+            file_list = file_list_map, directory=test_dir
+        )
     
     2d scan:
-        coh.plot_xy_hexapod_scan(file="B18S1P1_bis_hexapod_scan_00692.nxs", directory=test_dir)
+        coh.plot_2d_scan(
+            file="B18S1P1_bis_hexapod_scan_00692.nxs", directory=test_dir
+        )
 """
 
 import matplotlib.pyplot as plt
@@ -49,18 +59,22 @@ import h5py
 from scipy import interpolate
 try:
     from lmfit.models import GaussianModel
-    from sixs import ReadNxs4 as rn4
 except ModuleNotFoundError:
     print(
         "Could not import `lmfit`, and `sixs`"
         "\nThis is normal on srv4"
     )
 
-# Functions to load data from SixS NeXuS files
-
-
 def load_nexus_attribute(key, file, directory=None):
-    """Get attribute values from nexus file in f.com.scan_data"""
+    """
+    Get attribute values from nexus file in f.com.scan_data
+
+    :param key: attribute name (str)
+    :param file: file name (str)
+    :param directory: path to directory (str)
+
+    return: content of attribute
+    """
     if not isinstance(key, str):
         print("param 'key' must be a string")
         return None
@@ -89,10 +103,9 @@ def load_nexus_attribute(key, file, directory=None):
 
 def get_file_range(directory, start_number, end_number, pattern='*.nxs'):
     """
-    Select a file range based on the scan number, selection is made using 
-    the get_scan_number() function.
-
-    :return: file list
+    Select a file range depending on the numeration at the end of the file name,
+    
+    return: list of file names
     """
     print("Using as directory:", directory)
     all_file_list = sorted(
@@ -106,7 +119,7 @@ def get_file_range(directory, start_number, end_number, pattern='*.nxs'):
         file_number = get_scan_number(file)
         if start_number <= file_number <= end_number and os.path.isfile(file):
             file_list.append(os.path.basename(file))
-    print(f"Found {len(file_list)} files.")
+    print(f"Found {len(file_list)} file(s).")
     return file_list
 
 
@@ -115,8 +128,13 @@ def find_FZP_focal_plane(
     file_list,
     scan_type,
     directory=None,
-    omega=0,
+    basez_key="",
+    x_key="",
+    y_key="",
+    z_key="",
+    cam2_key="",
     pos_hor_scans=None,
+    omega=0,
     ROI=(None, None, None, None),
     verbose=False,
     amplitude=0.005,
@@ -130,21 +148,27 @@ def find_FZP_focal_plane(
     of the beam FWHM in the vertical position.
 
     It uses the x and y position of the goniometer, that should be attributes
-    of rn.DataSet
+    of rn.DataSet().
 
     A gaussian curve is fitted to retrieve the FWHM.
+
+    Using basez is better because we have a higher resolution
 
     TODO: add derivative
 
     :param file_list: path to alignment files
     :param scan_type: 'basez' or 'gonio'
+    :param directory: e.g. = "./"
+    :param basez_key: attribute name (str)
+    :param x_key: attribute name (str)
+    :param y_key: attribute name (str)
+    :param cam2_key: attribute name (str)
     :param pos_hor_scans: force horizontal position, necessary if scan_type == 'basez'
      container of length equal to length of file_list, for plotting
     :param omega: tilt angle between the vertical axis and x, in degress, must be constant
      , necessary if scan_type == 'gonio'
     :param ROI: container of length 4, determines the region of interest on the detector
      e.g. = (200, 650, 400, 600),
-    :param directory: e.g. = "./"
     :param verbose: e.g. False
     :param amplitude: init parameter for gaussian fit, e.g. 0.005
     :param center: init parameter for gaussian fit, e.g. = 0.36
@@ -181,23 +205,28 @@ def find_FZP_focal_plane(
     colors = colors[:len(file_list)]  # TODO IF TOO LONG
 
     for j, (file, color) in enumerate(zip(file_list, colors)):
-        # Read data
-        scan = rn4.DataSet(file, directory, verbose=verbose)
-
         # Find vertical and horixontal position from x, y, and omega
         if scan_type == 'basez':
-            pos_ver = scan.basez
+            pos_ver = load_nexus_attribute(key=basez_key, file=file, directory=directory)
             pos_hor = pos_hor_scans[j]
 
         elif scan_type == 'gonio':
-            pos_ver = np.cos(np.deg2rad(omega))*scan.x + \
-                np.sin(np.deg2rad(omega))*scan.y
-            pos_hor = np.round(
-                np.mean(np.cos(np.deg2rad(omega))*scan.y - np.sin(np.deg2rad(omega))*scan.x), 0)
-            pos_hor_scans.append(pos_hor)
+            x = load_nexus_attribute(key=x_key, file=file, directory=directory)
+            y = load_nexus_attribute(key=y_key, file=file, directory=directory)
+
+            pos_ver = np.cos(np.deg2rad(omega))*x + np.sin(np.deg2rad(omega))*y
+            pos_hor_scans.append(
+                np.round(
+                    np.mean(
+                        np.cos(np.deg2rad(omega))*y - np.sin(np.deg2rad(omega))*x
+                    ),
+                    0
+                )
+            )
 
         # Sum data in ROI
-        sum_over_ROI = scan.cam2[:, ROI[0]:ROI[1],
+        cam2_data = load_nexus_attribute(key=cam2_key, file=file, directory=directory)
+        sum_over_ROI = cam2_data[:, ROI[0]:ROI[1],
                                  ROI[2]:ROI[3]].sum(axis=(1, 2))
 
         if scale == 'log':
@@ -230,18 +259,15 @@ def find_FZP_focal_plane(
         )
 
     # Plot FWHM evolution
+    plt.scatter(pos_hor_scans, fwhm_scans, color=colors)
+    plt.xlabel("Horizontal position")
+    plt.ylabel("FWHM")
     plt.xlabel("Vertical position")
     plt.ylabel("Intensity")
     plt.grid()
     plt.legend()
     plt.show()
     plt.close()
-
-    plt.scatter(pos_hor_scans, fwhm_scans, color=colors)
-    plt.xlabel("Horizontal position")
-    plt.ylabel("FWHM")
-
-    # Show figure
     plt.tight_layout()
     plt.show(block=False)
 
@@ -255,6 +281,7 @@ def show_map(
     x_key=None,
     y_key=None,
     verbose=False,
+    compute_roi=False,
     scale="log",
     flip_axes=True,
     shading="nearest",
@@ -263,7 +290,6 @@ def show_map(
 ):
     """
     Extract map from a list of scans
-
     :param file_list: list of .nxs files in param directory
     :param directory: directory in which file_list are, default is None
     :param map_type: str in ("hexapod_scan", "ascan_y"),
@@ -275,12 +301,12 @@ def show_map(
     :param y_key: str, key used in f.root.com.scan_data for y
      default value depends on 'map_type'
     :param verbose: True for more details
+    :param compute_roi: container of len 4, ROI
     :param scale: str in ("log", "lin")
     :param flip_axes: True to switch x and y axis
     :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
     :param cmap: colormap to use for the map
     :param square_aspect: True to force square aspect in the final plot
-
     return: Error or success message
     """
     # Check parameters
@@ -342,6 +368,10 @@ def show_map(
         y = load_nexus_attribute(key=y_key, file=file, directory=directory)
         roi_sum = load_nexus_attribute(
             key=roi_key, file=file, directory=directory)
+        
+        if compute_roi:
+            a, b, c, d = compute_roi
+            roi_sum = np.sum(roi_sum[:, a:b, c:d], axis = (1, 2))
 
         # Append to lists
         X_list.append(x)
@@ -415,7 +445,6 @@ def plot_mesh(
     :param arr_x: positions in x, shape (X,)
     :param arr_y: positions in y, shape (Y,)
     :param plotted_array: values, 2D array of shape (X, Y)
-    :param title: title (str) for the plot
     :param cmap: colormap used for mesh
     :param flip_axes: True to switch x and y
     :param shading: use 'nearest' for no interpolation and 'gouraud' otherwise
@@ -480,13 +509,14 @@ def plot_mesh(
     plt.show(block=False)
 
 
-def plot_xy_hexapod_scan(
+def plot_2d_scan(
     file,
     directory=None,
     colormap='jet',
     roi_key="roi1_merlin",
     x_key="X",
     y_key="Y",
+    compute_roi=False,
 ):
     """
     Plot evolution of roi as a function of x_key and y_key
@@ -506,14 +536,18 @@ def plot_xy_hexapod_scan(
     """
     # Check arguments
     try:
-        colormap = getattr(cm, colormap)
+        colormap = getattr(coh.cm, colormap)
     except AttributeError:
         return ("Possible colormaps are 'viridis', 'jet', ...")
 
     # Load data
-    x = load_nexus_attribute(key=x_key, file=file, directory=directory)
-    y = load_nexus_attribute(key=y_key, file=file, directory=directory)
-    roi_sum = load_nexus_attribute(key=roi_key, file=file, directory=directory)
+    x = coh.load_nexus_attribute(key=x_key, file=file, directory=directory)
+    y = coh.load_nexus_attribute(key=y_key, file=file, directory=directory)
+    roi_sum = coh.load_nexus_attribute(key=roi_key, file=file, directory=directory)
+        
+    if compute_roi:
+        a, b, c, d = compute_roi
+        roi_sum = np.sum(roi_sum[:, a:b, c:d], axis = (1, 2))
 
     # Print different command to move to max in x and y
     x_max = np.round(x[roi_sum.argmax()], 4)
@@ -586,7 +620,7 @@ def plot_xy_hexapod_scan(
 
 def plot_rocking_curve(
     file: str,
-    directory: str = None,
+    directory=None,
     roi_key: str = "roi1_merlin",
     motor_key: str = "mu",
     method: str = "com",
@@ -594,7 +628,7 @@ def plot_rocking_curve(
     logscale: bool = True,
     figsize: tuple = (12, 6),
     color: str = "teal",
-) -> None:
+):
     """
     Find the rocking curve position of interest (maximum, or center of
     mass).
@@ -674,7 +708,7 @@ def plot_rocking_curve(
         plt.show(block=False)
 
 
-def plot_sample_position_evolution(
+def plot_position_evolution(
     file_list,
     directory=None,
     roi_key="roi1_merlin",
@@ -684,8 +718,8 @@ def plot_sample_position_evolution(
     cmap="RdYlBu",
 ):
     """
-    Plot the evolution of the position of the sample taken from the alignment 
-    scans as a function of the scan number
+    Plot the evolution of the position of the sample taken from the alignment scans
+    as a function of the scan number
 
     :param file_list: list of .nxs files in param directory
     :param directory: directory in which file are, default is None
@@ -695,7 +729,8 @@ def plot_sample_position_evolution(
      default value depends on 'map_type'
     :param y_key: str, key used in f.root.com.scan_data for y
      default value depends on 'map_type'
-    :param method: the method used to find the position of interest (str).
+    :param method: the method used to find the position of interest
+        (str).
     :param cmap: cmap for color in plots
     """
 
