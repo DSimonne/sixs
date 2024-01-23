@@ -353,20 +353,20 @@ class Map:
                     self.L[1], self.L[2], 1 + int(self.L[5] - self.L[4])), 3)
 
             elif qxqy:
-                self.qz_axis = np.linspace(
-                    self.qz[1], self.qz[2], 1 + int(self.qz[5]-self.qz[4]))
-                self.qx_axis = np.linspace(
-                    self.qx[1], self.qx[2], 1 + int(self.qx[5]-self.qx[4]))
-                self.qy_axis = np.linspace(
-                    self.qy[1], self.qy[2], 1 + int(self.qy[5]-self.qy[4]))
+                self.qz_axis = np.round(np.linspace(
+                    self.qz[1], self.qz[2], 1 + int(self.qz[5]-self.qz[4])), 3)
+                self.qx_axis = np.round(np.linspace(
+                    self.qx[1], self.qx[2], 1 + int(self.qx[5]-self.qx[4])), 3)
+                self.qy_axis = np.round(np.linspace(
+                    self.qy[1], self.qy[2], 1 + int(self.qy[5]-self.qy[4])), 3)
 
             elif qxpYp:
-                self.Q_axis = np.linspace(
-                    self.Q[1], self.Q[2], 1 + int(self.Q[5]-self.Q[4]))
-                self.xp_axis = np.linspace(
-                    self.xp[1], self.xp[2], 1 + int(self.xp[5]-self.xp[4]))
-                self.yp_axis = np.linspace(
-                    self.yp[1], self.yp[2], 1 + int(self.yp[5]-self.yp[4]))
+                self.Q_axis = np.round(np.linspace(
+                    self.Q[1], self.Q[2], 1 + int(self.Q[5]-self.Q[4])), 3)
+                self.xp_axis = np.round(np.linspace(
+                    self.xp[1], self.xp[2], 1 + int(self.xp[5]-self.xp[4])), 3)
+                self.yp_axis = np.round(np.linspace(
+                    self.yp[1], self.yp[2], 1 + int(self.yp[5]-self.yp[4])), 3)
 
             elif two_theta:
                 self.q_axis = np.round(np.linspace(
@@ -377,10 +377,10 @@ class Map:
                     self.timestamp[1], self.timestamp[2], 1 + int(self.timestamp[5]-self.timestamp[4])), 3)
 
             elif QparQper:
-                self.Qper_axis = np.linspace(
-                    self.Qper[1], self.Qper[2], 1+self.Qper[5]-self.Qper[4])
-                self.Qpar_axis = np.linspace(
-                    self.Qpar[1], self.Qpar[2], 1+self.Qpar[5]-self.Qpar[4])
+                self.Qper_axis = np.round(np.linspace(
+                    self.Qper[1], self.Qper[2], 1+self.Qper[5]-self.Qper[4]), 3)
+                self.Qpar_axis = np.round(np.linspace(
+                    self.Qpar[1], self.Qpar[2], 1+self.Qpar[5]-self.Qpar[4]), 3)
 
             elif Angles:
                 self.delta_axis = np.round(np.linspace(
