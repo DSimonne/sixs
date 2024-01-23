@@ -778,7 +778,7 @@ class Map:
                 ),
                 data_range=widgets.FloatRangeSlider(
                     value=[
-                        np.nanmin(self.projected_data),
+                        np.max([0.1, np.nanmin(self.projected_data)]),
                         np.nanmax(self.projected_data),
                     ],
                     min=np.nanmin(self.projected_data),
