@@ -706,6 +706,7 @@ class Map:
         projection_axis,
         figsize=(10, 10),
         cmap="jet",
+        layout_width="50%"
     ):
         """
         """
@@ -725,7 +726,7 @@ class Map:
                 orientation='horizontal',
                 readout=True,
                 readout_format='.3f',
-                layout=Layout(width="50%"),
+                layout=Layout(width=layout_width),
                 style={'description_width': 'initial'},
             ),
             projection_axis=fixed(projection_axis),
@@ -759,7 +760,7 @@ class Map:
                     orientation='horizontal',
                     readout=True,
                     readout_format='.3f',
-                    layout=Layout(width="50%"),
+                    layout=Layout(width=layout_width),
                     style={'description_width': 'initial'},
                 ),
                 zoom_axis2=widgets.FloatRangeSlider(
@@ -772,7 +773,7 @@ class Map:
                     orientation='horizontal',
                     readout=True,
                     readout_format='.3f',
-                    layout=Layout(width="50%"),
+                    layout=Layout(width=layout_width),
                     style={'description_width': 'initial'},
                 ),
                 data_range=widgets.FloatRangeSlider(
@@ -787,7 +788,7 @@ class Map:
                     orientation='horizontal',
                     readout=True,
                     readout_format='.1f',
-                    layout=Layout(width="50%"),
+                    layout=Layout(width=layout_width),
                     style={'description_width': 'initial'},
                 ),
                 figsize=fixed(figsize),
