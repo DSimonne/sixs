@@ -24,7 +24,6 @@ Secondly, I advise you to create a virtual environment to help with debogging, a
 * `cd /Packages`
 * `git clone https://github.com/DSimonne/sixs.git`
 * `cd sixs`
-* `source_py38`
 * `pip install .`
 
 # Data analysis at SixS
