@@ -5,7 +5,7 @@ with open("sixs/README.md", "r") as fh:
 
 setuptools.setup(
     name="sixs",
-    version="0.0.1",
+    version="0.0.2",
     description="Python package for data reduction at SixS",
     author="David Simonne, Andrea Resta",
     author_email="david.simonne@synchrotron-soleil.fr",

@@ -1044,10 +1044,10 @@ class CTR:
                  for f in sorted(glob.glob(f"{folder}/{glob_string_match}"))]
 
         # Get scans specified with scan_indices
-        self.scan_files, good_scan_indices = [], []
+        scan_files, good_scan_indices = [], []
         for f in files:
             if any([str(n) in f for n in scan_indices]):
-                self.scan_files.append(f)
+                scan_files.append(f)
                 good_scan_indices.append(
                     [n for n in scan_indices if str(n) in f][0])
 
@@ -1062,7 +1062,7 @@ class CTR:
             print(
                 "\nWorking on the following files:"
             )
-            for f in self.scan_files:
+            for f in scan_files:
                 print("\t", f)
             print(
                 "###########################################################")
@@ -1120,44 +1120,44 @@ class CTR:
         # Define the lines around the ROI and the background
         ROI_lines = [
             (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] +
-             CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 0.8),
+             CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 1, 0.8),
             (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] -
-             CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 0.8),
+             CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 1, 0.8),
             (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0] +
-             CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 0.8),
+             CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "r", "--", 1, 0.8),
             (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0] -
-             CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 0.8),
+             CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "r", "--", 1, 0.8),
         ]
 
         if isinstance(center_background, list):
             ROI_lines += [
                 (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] -
-                 CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+                 CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 1, 0.8),
                 (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]-CTR_width_K /
-                 2, HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 0.8),
+                 2, HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 1, 0.8),
                 (HK_peak[0]-CTR_width_H/2-background_width_H/2, HK_peak[1]+CTR_width_K /
-                 2, HK_peak[0]-CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+                 2, HK_peak[0]-CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 1, 0.8),
 
                 (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0] +
-                 CTR_width_H/2+background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+                 CTR_width_H/2+background_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 1, 0.8),
                 (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]-CTR_width_K /
-                 2, HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 0.8),
+                 2, HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, "b", "--", 1, 0.8),
                 (HK_peak[0]+CTR_width_H/2+background_width_H/2, HK_peak[1]+CTR_width_K /
-                 2, HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 0.8),
+                 2, HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, "b", "--", 1, 0.8),
 
                 (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2+background_width_K/2, HK_peak[0] -
-                 CTR_width_H/2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
+                 CTR_width_H/2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 1, 0.8),
                 (HK_peak[0]-CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0]-CTR_width_H /
-                 2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
+                 2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 1, 0.8),
                 (HK_peak[0]+CTR_width_H/2, HK_peak[1]+CTR_width_K/2, HK_peak[0]+CTR_width_H /
-                 2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 0.8),
+                 2, HK_peak[1]+CTR_width_K/2+background_width_K/2, "b", "--", 1, 0.8),
 
                 (HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2-background_width_K/2, HK_peak[0] -
-                 CTR_width_H/2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
+                 CTR_width_H/2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 1, 0.8),
                 (HK_peak[0]-CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0]-CTR_width_H /
-                 2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
+                 2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 1, 0.8),
                 (HK_peak[0]+CTR_width_H/2, HK_peak[1]-CTR_width_K/2, HK_peak[0]+CTR_width_H /
-                 2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 0.8),
+                 2, HK_peak[1]-CTR_width_K/2-background_width_K/2, "b", "--", 1, 0.8),
             ]
 
         # Start iterating on the files to see the shape
@@ -1168,7 +1168,7 @@ class CTR:
             "\n###########################################################"
         )
 
-        for i, fname in tqdm(enumerate(self.scan_files)):
+        for i, fname in tqdm(enumerate(scan_files)):
             with tb.open_file(folder + fname, "r") as f:
                 H = f.root.binoculars.axes.H[:]
                 K = f.root.binoculars.axes.K[:]
@@ -1194,15 +1194,14 @@ class CTR:
         )
 
         # Save final data as numpy array
-        # 0 is x axis, 1 is data, 2 is background (compatible with ROD)
-        data = np.nan * np.empty((
-            len(self.scan_files),
-            3,
-            l_length-1,  # FITAID CORRECTION
-        ))
+        # 0 is x axis, 1 is data, 2 is background
+        data_dict = {
+            str(g): np.nan * np.empty((3, l_length-1))
+            for g in good_scan_indices
+        }
 
         # Iterate on each file now to get the data
-        for i, fname in tqdm(enumerate(self.scan_files)):
+        for g, fname in tqdm(zip(good_scan_indices, scan_files)):
             if verbose:
                 print(
                     "\n###########################################################"
@@ -1410,14 +1409,14 @@ class CTR:
 
             # Save x axis
             # TODO, assumes same starting value
-            data[i, 0, :scan_l_length-1] = scan_l_axis
+            data_dict[str(g)][0, :scan_l_length-1] = scan_l_axis
 
             # Save structure factor
-            data[i, 1, :scan_l_length-1] = structure_factor
+            data_dict[str(g)][1, :scan_l_length-1] = structure_factor
 
             # Save background
             try:
-                data[i, 2, :scan_l_length-1] = background_values / \
+                data_dict[str(g)][2, :scan_l_length-1] = background_values / \
                     background_pixel_count
 
             except NameError:
@@ -1441,7 +1440,10 @@ class CTR:
             f"\nSaving data as: {folder}{save_name}"
             "\n###########################################################"
         )
-        np.save(folder + save_name, data)
+        np.savez(
+            folder + save_name,
+            **data_dict,
+        )
 
     def load_fitaid_data(
         self,
@@ -1667,6 +1669,8 @@ class CTR:
     def plot_CTR(
         numpy_array,
         scan_indices,
+        x_range,
+        y_range,
         title=None,
         color_dict=None,
         labels=None,
@@ -1681,8 +1685,6 @@ class CTR:
         axis_label_text_font_size="20pt",
         axis_major_label_text_font_size="20pt",
         title_text_font_size="25pt",
-        x_range=None,
-        y_range=None,
     ):
         """
         Plot the CTRs together, using Bokeh
