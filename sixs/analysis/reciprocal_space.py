@@ -134,8 +134,10 @@ from ipywidgets import interact, interactive, fixed, Layout
 
 from bokeh.layouts import column
 from bokeh.models import ColumnDataSource, Legend, RangeTool, HoverTool, WheelZoomTool, CrosshairTool
+from bokeh.models import LinearColorMapper, LogColorMapper
 from bokeh.plotting import figure, show
 from bokeh.io import output_notebook, export_png
+import bokeh.palettes as bp
 
 output_notebook()
 
@@ -431,6 +433,7 @@ class Map:
         """
         # Get axis
         self.projection_axis = projection_axis
+        self.projection_axis_range = projection_axis_range
         projection_axis_index = {
             "H": 2,
             "K": 1,
@@ -704,11 +707,24 @@ class Map:
     def view_space(
         self,
         projection_axis,
-        figsize=(10, 10),
-        cmap="jet",
-        layout_width="50%"
+        palette="Inferno256",
+        layout_width="50%",
+        vmin=1,
+        vmax=None,
     ):
         """
+        Plot projection interactively with Bokeh
+
+        # Compute q and corresponding d
+        q_plane = np.sqrt(xx**2 + yy**2 + np.mean(projection_axis_range)**2)
+        d_plane = (2*np.pi) / q_plane
+
+        :param projection_axis:
+        :param cmap: Possible values for now are Inferno256, Magma256,
+            Plasma256, and Viridis256,
+        :param layout_width: width in percentage of total width for slider
+        :param vmin: max value for colorbar
+        :param vmax: min value for colorbar
         """
 
         # Choose the first axis
@@ -724,20 +740,20 @@ class Map:
                 description='Projection axis range:',
                 continuous_update=False,
                 orientation='horizontal',
-                readout=True,
-                readout_format='.3f',
                 layout=Layout(width=layout_width),
                 style={'description_width': 'initial'},
             ),
             projection_axis=fixed(projection_axis),
-            figsize=fixed(figsize),
-            cmap=fixed(cmap),
+            palette=fixed(palette),
+            vmin=fixed(vmin),
+            vmax=fixed(vmax),
         )
         def change_file_and_axis(
             projection_axis_range,
             projection_axis,
-            figsize,
-            cmap,
+            palette,
+            vmin,
+            vmax,
         ):
             """Update the space range"""
             self.project_data(
@@ -748,72 +764,78 @@ class Map:
             # Get the two other axes for the widgets range
             axis1, axis2, axis_name1, axis_name2 = self._get_axes()
 
-            # Interact with widgets to zoom in the two other axes
-            @ interact(
-                zoom_axis1=widgets.FloatRangeSlider(
-                    value=[axis1[0], axis1[-1]],
-                    min=min(axis1),
-                    max=max(axis1),
-                    step=np.mean(axis1[1:] - axis1[:-1]),
-                    description=f'{axis_name1} range:',
-                    continuous_update=False,
-                    orientation='horizontal',
-                    readout=True,
-                    readout_format='.3f',
-                    layout=Layout(width=layout_width),
-                    style={'description_width': 'initial'},
-                ),
-                zoom_axis2=widgets.FloatRangeSlider(
-                    value=[axis2[0], axis2[-1]],
-                    min=min(axis2),
-                    max=max(axis2),
-                    step=np.mean(axis2[1:] - axis2[:-1]),
-                    description=f'{axis_name2} range:',
-                    continuous_update=False,
-                    orientation='horizontal',
-                    readout=True,
-                    readout_format='.3f',
-                    layout=Layout(width=layout_width),
-                    style={'description_width': 'initial'},
-                ),
-                data_range=widgets.FloatRangeSlider(
-                    value=[
-                        np.max([0.1, np.nanmin(self.projected_data)]),
-                        np.nanmax(self.projected_data),
-                    ],
-                    min=np.nanmin(self.projected_data),
-                    max=np.nanmax(self.projected_data),
-                    description='Data range:',
-                    continuous_update=False,
-                    orientation='horizontal',
-                    readout=True,
-                    readout_format='.1f',
-                    layout=Layout(width=layout_width),
-                    style={'description_width': 'initial'},
-                ),
-                figsize=fixed(figsize),
-                cmap=fixed(cmap),
-            )
-            def interactive_plot(
-                zoom_axis1,
-                zoom_axis2,
-                data_range,
-                figsize,
-                cmap,
-            ):
-                """Plot the space"""
+            # Get projected data
+            projection_axis_range = self.projection_axis_range
+            data_array = np.nan_to_num(self.projected_data)
 
-                vmin, vmax = data_range
-                zoom_axis1 = np.round(zoom_axis1, 3)
-                zoom_axis2 = np.round(zoom_axis2, 3)
-                self.plot_map(
-                    zoom_axis1=list(zoom_axis1),
-                    zoom_axis2=list(zoom_axis2),
-                    vmin=vmin,
-                    vmax=vmax,
-                    figsize=figsize,
-                    cmap=cmap,
+            # Create a meshgrid of qx_axis and qy_axis
+            xx, yy = np.meshgrid(axis1, axis2)
+
+            # Compute q and corresponding d
+            q_plane = np.sqrt(xx**2 + yy**2 + np.mean(projection_axis_range)**2)
+            d_plane = (2*np.pi) / q_plane
+
+            TOOLTIPS = [
+                ("Qx", "@xx"),
+                ("Qy", "@yy"),
+                ("Int", "@data"),
+                ("Qplane (A^-1)", "@q"),
+                ("dplane (A)", "@d"),
+            ]
+
+            # Figure
+            fig = figure(
+                x_axis_label="Qx (A^-1)",
+                y_axis_label="Qy (A^-1)",
+                toolbar_location="above",
+                toolbar_sticky=False,
+                tools="pan, wheel_zoom, box_zoom, reset, undo, redo, crosshair, hover, save",
+                active_scroll="wheel_zoom",
+                active_tap="auto",
+                active_drag="box_zoom",
+                active_inspect="auto",
+                tooltips=TOOLTIPS,
+            )
+
+            # Define source
+            source = ColumnDataSource(
+                data=dict(
+                    data=[np.abs(data_array)],
+                    xx=[xx],
+                    yy=[yy],
+                    q=[q_plane],
+                    d=[d_plane],
                 )
+            )
+
+            if vmin==None:
+                vmin=np.min(data_array)
+
+            if vmax==None:
+                vmax=np.max(data_array)
+
+            color_mapper = LogColorMapper(
+                palette=palette,
+                low=vmin,
+                high=vmax,
+            )
+
+            # Image
+            r = fig.image(
+                source=source,
+                image="data",
+                x=axis1[0],
+                y=axis2[0],
+                dw=axis1[-1]-axis1[0],
+                dh=axis2[-1]-axis2[0],
+                color_mapper=color_mapper,
+            )
+
+            color_bar = r.construct_color_bar(padding=10)
+
+            fig.add_layout(color_bar, "right")
+
+            show(fig)
 
     def _get_axes(self):
         if self.projection_axis == 'H':
@@ -1669,8 +1691,6 @@ class CTR:
     def plot_CTR(
         numpy_array,
         scan_indices,
-        x_range,
-        y_range,
         title=None,
         color_dict=None,
         labels=None,
@@ -1734,8 +1754,6 @@ class CTR:
             y_axis_label="Intensity",
             active_scroll="wheel_zoom",
             y_axis_type=y_scale,
-            x_range=x_range,
-            y_range=y_range,
         )
 
         p.add_layout(

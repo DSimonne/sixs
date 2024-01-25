@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 import numpy as np
 import pandas as pd
-from sixs import ReadNxs4 as rn4
 import sys
 import os
 import glob
